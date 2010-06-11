@@ -1,9 +1,9 @@
 class Signature a where
-  arity :: a -> Int
+    arity :: a -> Int
 
 data Signature a => Infinite_Terms a b =
-  Function a [Infinite_Terms a b]
-  | Variable b
+    Function a [Infinite_Terms a b]
+    | Variable b
 
 constant :: Signature a => a -> Infinite_Terms a b
 constant x = if arity(x) == 0
@@ -11,31 +11,31 @@ constant x = if arity(x) == 0
              else error "Input is not a constant"
 
 class MyShow a where
-  myshow :: a -> String
+    myshow :: a -> String
 
 instance MyShow Char where
-  myshow x = [x]
+    myshow x = [x]
 
 instance (MyShow a, MyShow b, Signature a) => Show (Infinite_Terms a b) where
-  show (Function x []) = myshow x
-  show (Function x y)  = myshow x ++ "(" ++ (show' y True) ++ ")"
-    where show' [] _         = ""
-          show' (x:xs) True  = show x ++ show' xs False
-          show' (x:xs) False = "," ++ show x ++ show' xs False
-  show (Variable x)   = myshow x
+    show (Function x []) = myshow x
+    show (Function x y)  = myshow x ++ "(" ++ (show' y True) ++ ")"
+        where show' [] _         = ""
+              show' (x:xs) True  = show x ++ show' xs False
+              show' (x:xs) False = "," ++ show x ++ show' xs False
+    show (Variable x)   = myshow x
 
 data Nat_Strings = Nat_String [Int]
 
 instance Show Nat_Strings where
-  show (Nat_String x) = show x
+    show (Nat_String x) = show x
 
 prefix_positions :: [[Nat_Strings]] -> [Nat_Strings]
 prefix_positions xs = concat (prefix_positions' xs 1)
-  where prefix_position n (Nat_String xs) = Nat_String (n:xs)
-        prefix_positions' [] _
-          = []
-        prefix_positions' (x:xs) n
-          = (map (prefix_position n) x):(prefix_positions' xs (n + 1))
+    where prefix_position n (Nat_String xs) = Nat_String (n:xs)
+          prefix_positions' [] _
+              = []
+          prefix_positions' (x:xs) n
+              = (map (prefix_position n) x):(prefix_positions' xs (n + 1))
 
 positions :: Signature a => (Infinite_Terms a b) -> [Nat_Strings]
 positions (Function x y) = Nat_String [] : prefix_positions (map positions y)
