@@ -5,6 +5,11 @@ data Signature a => Infinite_Terms a b =
   Function a [Infinite_Terms a b]
   | Variable b
 
+constant :: Signature a => a -> Infinite_Terms a b
+constant x = if arity(x) == 0
+             then Function x []
+             else error "Input is not a constant"
+
 class MyShow a where
   myshow :: a -> String
 
@@ -55,4 +60,4 @@ h_omega :: Standard_Terms
 h_omega = Function 'h' [h_omega, h_omega]
 
 h_a_f_b :: Standard_Terms
-h_a_f_b = Function 'h' [Function 'a' [], Function 'f' [Function 'b' []]]
+h_a_f_b = Function 'h' [constant 'a', Function 'f' [constant 'b']]
