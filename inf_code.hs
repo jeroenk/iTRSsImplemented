@@ -14,13 +14,13 @@ class Signature s where
 class Eq v => Variables v
 
 data (Signature s, Variables v) => Symbols s v =
-    Function_Symbol s
-    | Variable_Symbol v
+    FunctionSymbol s
+    | VariableSymbol v
 
 instance (MyShow s, MyShow v, Signature s, Variables v)
          => Show (Symbols s v) where
-    show (Function_Symbol f) = myshow f
-    show (Variable_Symbol x) = myshow x
+    show (FunctionSymbol f) = myshow f
+    show (VariableSymbol x) = myshow x
 
 -- Terms
 
@@ -44,40 +44,38 @@ instance (MyShow s, MyShow v, Signature s, Variables v)
 
 -- Strings of natural numbers
 
-data Nat_Strings = Nat_String [Int]
+data NatStrings = NatString [Int]
 
-instance Show Nat_Strings where
-    show (Nat_String ns) = show ns
+instance Show NatStrings where
+    show (NatString ns) = show ns
 
-prefix_position :: Int -> Nat_Strings -> Nat_Strings
-prefix_position n (Nat_String ns) = Nat_String (n:ns)
+prefix_position :: Int -> NatStrings -> NatStrings
+prefix_position n (NatString ns) = NatString (n:ns)
 
 positions :: (Signature s, Variables v)
-             => Terms s v -> [Nat_Strings]
+             => Terms s v -> [NatStrings]
 positions (Function _ xs)
-    = Nat_String [] : concat (prefix_positions (map positions xs) 1)
+    = NatString [] : concat (prefix_positions (map positions xs) 1)
     where prefix_positions [] _
               = []
           prefix_positions (x:xs) n
-              = (map (prefix_position n) x):(prefix_positions xs (n + 1))
+              = (map (prefix_position n) x):(prefix_positions xs (succ n))
 positions (Variable _)
-    = [Nat_String []]
+    = [NatString []]
 
 get_symbol :: (Signature s, Variables v)
-              => Terms s v -> Nat_Strings -> Symbols s v
-get_symbol (Function f _) (Nat_String [])
-    = Function_Symbol f
-get_symbol (Function _ xs) (Nat_String (n:ns))
-    = get_symbol (subterm' xs n) (Nat_String ns)
-    where subterm' (x:xs) 1 = x
-          subterm' (x:xs) n = subterm' xs (n - 1)
-          subterm' _ _      = error "Undefined subterm"
-get_symbol (Variable x) (Nat_String [])
-    = Variable_Symbol x
-get_symbol (Variable x) _
-    = error "Undefined subterm"
+              => Terms s v -> NatStrings -> Symbols s v
+get_symbol (Function f _) (NatString [])
+    = FunctionSymbol f
+get_symbol (Function _ xs) (NatString (n:ns))
+    = get_symbol (xs!!(pred n)) (NatString ns)
+get_symbol (Variable x) (NatString [])
+    = VariableSymbol x
 
 -- Substitutions
+--
+-- For convenience variables may occur multiple times in substitutions. It is
+-- the first instance encountered in a left to right traversal that counts.
 
 data Substitutions s v = Substitution [(v, Terms s v)]
 
@@ -112,15 +110,23 @@ substitute sigma (Function f xs)
 substitute sigma (Variable x)
     = substitute_variable sigma x
 
+compute_substitution :: (Signature s, Variables v)
+                        => Terms s v -> Terms s v -> Substitutions s v
+compute_substitution s t = Substitution (compute s t)
+    where compute (Function f xs) (Function g ys)
+              = concat (zipWith compute xs ys)
+          compute t (Variable x)
+              = [(x, t)]
+
 -- Excursion: Rational Terms
 --
 -- Remark that a finite system of regular equations is a substitution where
--- the terms are not allowed to be variables
+-- the terms are not allowed to be variables.
 
-type Regular_Systems s v = Substitutions s v
+type RegularSystems s v = Substitutions s v
 
 rational_term :: (Signature s, Variables v)
-                 => Regular_Systems s v -> v -> Terms s v
+                 => RegularSystems s v -> v -> Terms s v
 rational_term sigma x = rational_term' sigma (Variable x)
     where rational_term' sigma (Variable x)
               = if in_substitution sigma x
@@ -132,21 +138,56 @@ rational_term sigma x = rational_term' sigma (Variable x)
 -- Subterms
 
 subterm :: (Signature s, Variables v)
-           => Terms s v -> Nat_Strings -> Terms s v
-subterm s (Nat_String [])
+           => Terms s v -> NatStrings -> Terms s v
+subterm s (NatString [])
     = s
-subterm (Function _ xs) (Nat_String (n:ns))
-    = subterm (subterm' xs n) (Nat_String ns)
-    where subterm' (x:xs) 1 = x
-          subterm' (x:xs) n = subterm' xs (n - 1)
-          subterm' _ _      = error "Undefined subterm"
-subterm (Variable _) _
-    = error "Undefined subterm"
+subterm (Function _ xs) (NatString (n:ns))
+    = subterm (xs!!(pred n)) (NatString ns)
+
+replace_subterm :: (Signature s, Variables v)
+           => Terms s v -> Terms s v -> NatStrings -> Terms s v
+replace_subterm _ t (NatString [])
+    = t
+replace_subterm (Function f xs) t (NatString (n:ns))
+    = Function f (replace_subterm' xs t n (NatString ns))
+    where replace_subterm' [] _ _ ns     = []
+          replace_subterm' (x:xs) t 1 ns = (replace_subterm x t ns):xs
+          replace_subterm' (x:xs) t n ns = x:(replace_subterm' xs t (pred n) ns)
+replace_subterm (Variable x) t _
+    = (Variable x)
+
+-- Rewrite rules and systems
+
+data (Signature s, Variables v) => RewriteRules s v =
+    Rule (Terms s v) (Terms s v)
+
+instance (MyShow s, MyShow v, Signature s, Variables v)
+         => Show (RewriteRules s v) where
+    show (Rule l r) = show l ++ " -> " ++ show r
+
+data (Signature s, Variables v) => RewriteSystems s v =
+    System [RewriteRules s v]
+
+instance (MyShow s, MyShow v, Signature s, Variables v)
+         => Show (RewriteSystems s v) where
+    show (System rs) = "{" ++ show' rs True ++ "}"
+        where show' [] _ = ""
+              show' (r:rs) True  = show r ++ show' rs False
+              show' (r:rs) False = ", " ++ show r ++ show' rs False
+
+rewrite_step :: (Signature s, Variables v)
+                => Terms s v -> RewriteRules s v -> NatStrings -> Terms s v
+rewrite_step s (Rule l r) p =
+    let sigma   = compute_substitution (subterm s p) l
+        sigma_r = substitute sigma r
+    in replace_subterm s sigma_r p
 
 -- Examples
 
 type Standard_Terms         = Terms Char Char
 type Standard_Substitutions = Substitutions Char Char
+type Standard_Rules         = RewriteRules Char Char
+type Standard_Systems       = RewriteSystems Char Char
 
 instance Signature Char where
     arity 'a' = 0
@@ -157,6 +198,12 @@ instance Signature Char where
     arity _   = error "Character not in signature"
 
 instance Variables Char
+
+f_x :: Standard_Terms
+f_x = Function 'f' [Variable 'x']
+
+g_x :: Standard_Terms
+g_x = Function 'g' [Variable 'x']
 
 f_omega :: Standard_Terms
 f_omega = Function 'f' [f_omega]
@@ -178,7 +225,19 @@ sigma_1 = Substitution [('x', Function 'f' [constant 'a']), ('y', constant 'a'),
                         ('z', constant 'b')]
 
 sigma_2 :: Standard_Substitutions
-sigma_2 = Substitution [('x', Function 'f' [Variable 'x'])]
+sigma_2 = Substitution [('x', f_x)]
 
 f_omega' :: Standard_Terms
 f_omega' = rational_term sigma_2 'x'
+
+rule_1 = Rule f_x g_x
+
+rule_2 = Rule (constant 'a') f_omega
+
+rule_3 = Rule h_x_f_y (constant 'a')
+
+rule_4 = Rule h_x_f_y f_x
+
+system_1 = System [rule_1, rule_1]
+
+system_2 = System [rule_1, rule_2]
