@@ -49,6 +49,12 @@ data NatStrings = NatString [Int]
 instance Show NatStrings where
     show (NatString ns) = show ns
 
+instance Eq NatStrings where
+    (==) (NatString ns) (NatString ms) = ns == ms
+
+instance Ord NatStrings where
+    compare (NatString ns) (NatString ms) = compare ns ms
+
 length_string :: NatStrings -> Int
 length_string (NatString x) = length x
 
@@ -229,6 +235,43 @@ final_term (ComputablyReduction (Reduction ss _) phi)
               = (final_term' ss phi (suffix_position m ps))
                 :(subterms (pred n) (succ m) ss phi ps)
 
+-- Descendants
+
+descendants :: (Signature s, Variables v, RewriteSystem s v r)
+               => [NatStrings] -> Reductions s v r -> [NatStrings]
+descendants ps (Reduction ss qs) = descendants' ps ss qs
+    where descendants' ps _ []
+              = ps
+          descendants' ps (s:ss) (q:qs)
+              = descendants' (descendants_step ps q) ss qs
+          descendants_step [] _
+              = []
+          descendants_step (p:ps) (q, rule)
+              = if p >= q
+                then (compute_new p q rule) ++ (descendants_step ps (q, rule))
+                else p:(descendants_step ps (q, rule))
+          compute_new (NatString p) (NatString q) rule
+              = map (\xs -> NatString (q ++ xs))
+                (compute_new' (drop (length q) p) rule)
+          compute_new' p (Rule l r)
+              = if get_variable l p == Nothing
+                then []
+                else new_positions r (get_variable l p) (get_position l p) []
+          get_variable (Function _ _) []      = Nothing
+          get_variable (Function _ xs) (p:ps) = get_variable (xs!!(pred p)) ps
+          get_variable (Variable x) _         = Just x
+          get_position (Function _ xs) (p:ps) = get_position (xs!!(pred p)) ps
+          get_position (Variable _) ps        = ps
+          new_positions (Variable x) (Just y) ps qs
+              = if x == y then [qs ++ ps] else []
+          new_positions (Function _ xs) y ps qs
+              = concat (new_positions' xs y ps qs 1)
+          new_positions' [] _ _ _ _
+              = []
+          new_positions' (x:xs) y ps qs n
+              = (new_positions x y ps (qs ++ [n]))
+                :(new_positions' xs y ps qs (succ n))
+
 -- Examples
 
 type Standard_Terms         = Terms Char Char
@@ -269,6 +312,10 @@ h_x_omega = Function 'h' [Variable 'x', h_x_omega]
 h_x_f_y :: Standard_Terms
 h_x_f_y = Function 'h' [Variable 'x', Function 'f' [Variable 'y']]
 
+h_x_h_a_x :: Standard_Terms
+h_x_h_a_x = Function 'h' [Variable 'x',
+                          Function 'h' [constant 'a', Variable 'x']]
+
 sigma_1 :: Standard_Substitutions
 sigma_1 = Substitution [('x', Function 'f' [constant 'a']), ('y', constant 'a'),
                         ('z', constant 'b')]
@@ -289,6 +336,8 @@ rule_4 = Rule h_x_f_y f_x
 
 rule_5 = Rule (constant 'a') f_a
 
+rule_6 = Rule f_x h_x_h_a_x
+
 data System_1 = Sys1
 
 instance RewriteSystem Char Char System_1 where
@@ -302,7 +351,7 @@ instance RewriteSystem Char Char System_2 where
 data System_3 = Sys3
 
 instance RewriteSystem Char Char System_3 where
-    rules Sys3 = [rule_5]
+    rules Sys3 = [rule_5, rule_6]
 
 red_1 :: (Signature Char, Variables Char, RewriteSystem Char Char System_3)
         => Reductions Char Char System_3
@@ -321,12 +370,12 @@ red_2 = Reduction ts (zip ps rs)
 red_3 :: (Signature Char, Variables Char, RewriteSystem Char Char System_3)
         => Reductions Char Char System_1
 red_3 = Reduction ts (zip ps rs)
-    where ps = [NatString []]
-          rs = [rule_4]
-          ts = rewrite_steps (h_a_f_b) (zip ps rs)
+    where ps = [NatString [1], NatString [1]]
+          rs = [rule_4, rule_6]
+          ts = rewrite_steps (Function 'f' [h_a_f_b]) (zip ps rs)
 
 cred_1 = ComputablyReduction red_1 (\x -> succ x)
 
 cred_2 = ComputablyReduction red_2 (\x -> succ x)
 
-cred_3 = ComputablyReduction red_3 (\x -> 1)
+cred_3 = ComputablyReduction red_3 (\x -> 2)
