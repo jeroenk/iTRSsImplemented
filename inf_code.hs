@@ -49,8 +49,14 @@ data NatStrings = NatString [Int]
 instance Show NatStrings where
     show (NatString ns) = show ns
 
+length_string :: NatStrings -> Int
+length_string (NatString x) = length x
+
 prefix_position :: Int -> NatStrings -> NatStrings
 prefix_position n (NatString ns) = NatString (n:ns)
+
+suffix_position :: Int -> NatStrings -> NatStrings
+suffix_position n (NatString ns) = NatString (ns ++ [n])
 
 positions :: (Signature s, Variables v)
              => Terms s v -> [NatStrings]
@@ -165,29 +171,69 @@ instance (MyShow s, MyShow v, Signature s, Variables v)
          => Show (RewriteRules s v) where
     show (Rule l r) = show l ++ " -> " ++ show r
 
-data (Signature s, Variables v) => RewriteSystems s v =
-    System [RewriteRules s v]
-
-instance (MyShow s, MyShow v, Signature s, Variables v)
-         => Show (RewriteSystems s v) where
-    show (System rs) = "{" ++ show' rs True ++ "}"
-        where show' [] _ = ""
-              show' (r:rs) True  = show r ++ show' rs False
-              show' (r:rs) False = ", " ++ show r ++ show' rs False
-
 rewrite_step :: (Signature s, Variables v)
-                => Terms s v -> RewriteRules s v -> NatStrings -> Terms s v
-rewrite_step s (Rule l r) p =
+                => Terms s v -> (NatStrings, RewriteRules s v) -> Terms s v
+rewrite_step s (p, Rule l r) =
     let sigma   = compute_substitution (subterm s p) l
         sigma_r = substitute sigma r
     in replace_subterm s sigma_r p
+
+rewrite_steps :: (Signature s, Variables v)
+           => Terms s v -> [(NatStrings, RewriteRules s v)] -> [Terms s v]
+rewrite_steps s []     = [s]
+rewrite_steps s (p:ps) = s:(rewrite_steps (rewrite_step s p) ps)
+
+class (Signature s, Variables v) => RewriteSystem s v r where
+    rules :: r -> [RewriteRules s v]
+
+-- Reductions
+--
+-- Remark that we do not represent the final term of a reduction in case the
+-- reduction is of length omega, as the term might be uncomputable in that
+-- case.
+
+data (Signature s, Variables v, RewriteSystem s v r) => Reductions s v r =
+    Reduction [Terms s v] [(NatStrings, RewriteRules s v)]
+
+instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r)
+         => Show (Reductions s v r) where
+    show (Reduction [] _) = ""
+    show (Reduction ss _) = show' ss True
+        where show' [] _   = ""
+              show' (s:ss) True  = show s ++ show' ss False
+              show' (s:ss) False = " -> " ++ show s ++ show' ss False
+
+type Modulus = Int -> Int
+
+data (Signature s, Variables v, RewriteSystem s v r)
+     => ComputablyReductions s v r =
+    ComputablyReduction (Reductions s v r) Modulus
+
+instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r)
+         => Show (ComputablyReductions s v r) where
+    show (ComputablyReduction r _) = show r
+
+final_term :: (Signature s, Variables v, RewriteSystem s v r)
+              => ComputablyReductions s v r -> Terms s v
+final_term (ComputablyReduction (Reduction ss _) phi)
+    = final_term' ss phi (NatString [])
+    where final_term' ss phi ps
+              = root (get_symbol (ss!!(phi (length_string ps))) ps) ss phi ps
+          root (FunctionSymbol f) ss phi ps
+              = Function f (subterms (arity f) 1 ss phi ps)
+          root (VariableSymbol x) _ _ _
+              = Variable x
+          subterms 0 _ _ _ _
+              = []
+          subterms n m ss phi ps
+              = (final_term' ss phi (suffix_position m ps))
+                :(subterms (pred n) (succ m) ss phi ps)
 
 -- Examples
 
 type Standard_Terms         = Terms Char Char
 type Standard_Substitutions = Substitutions Char Char
 type Standard_Rules         = RewriteRules Char Char
-type Standard_Systems       = RewriteSystems Char Char
 
 instance Signature Char where
     arity 'a' = 0
@@ -201,6 +247,9 @@ instance Variables Char
 
 f_x :: Standard_Terms
 f_x = Function 'f' [Variable 'x']
+
+f_a :: Standard_Terms
+f_a = Function 'f' [constant 'a']
 
 g_x :: Standard_Terms
 g_x = Function 'g' [Variable 'x']
@@ -238,6 +287,46 @@ rule_3 = Rule h_x_f_y (constant 'a')
 
 rule_4 = Rule h_x_f_y f_x
 
-system_1 = System [rule_1, rule_1]
+rule_5 = Rule (constant 'a') f_a
 
-system_2 = System [rule_1, rule_2]
+data System_1 = Sys1
+
+instance RewriteSystem Char Char System_1 where
+    rules Sys1 = [rule_1, rule_2]
+
+data System_2 = Sys2
+
+instance RewriteSystem Char Char System_2 where
+    rules Sys2 = [rule_3, rule_4]
+
+data System_3 = Sys3
+
+instance RewriteSystem Char Char System_3 where
+    rules Sys3 = [rule_5]
+
+red_1 :: (Signature Char, Variables Char, RewriteSystem Char Char System_3)
+        => Reductions Char Char System_3
+red_1 = Reduction ts (zip ps rs)
+    where ps = (iterate (\ns -> prefix_position 1 ns) (NatString []))
+          rs = repeat rule_5
+          ts = rewrite_steps (constant 'a') (zip ps rs)
+
+red_2 :: (Signature Char, Variables Char, RewriteSystem Char Char System_3)
+        => Reductions Char Char System_1
+red_2 = Reduction ts (zip ps rs)
+    where ps = (iterate (\ns -> prefix_position 1 ns) (NatString []))
+          rs = repeat rule_1
+          ts = rewrite_steps (f_omega) (zip ps rs)
+
+red_3 :: (Signature Char, Variables Char, RewriteSystem Char Char System_3)
+        => Reductions Char Char System_1
+red_3 = Reduction ts (zip ps rs)
+    where ps = [NatString []]
+          rs = [rule_4]
+          ts = rewrite_steps (h_a_f_b) (zip ps rs)
+
+cred_1 = ComputablyReduction red_1 (\x -> succ x)
+
+cred_2 = ComputablyReduction red_2 (\x -> succ x)
+
+cred_3 = ComputablyReduction red_3 (\x -> 1)
