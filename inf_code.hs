@@ -45,21 +45,6 @@ positions (Function _ xs)
 positions (Variable _)
     = [Nat_String []]
 
-longest_prefix :: (Signature s, Variables v)
-                  => (Infinite_Terms s v) -> Nat_Strings -> Nat_Strings
-longest_prefix (Function _ []) _
-    = Nat_String []
-longest_prefix (Function _ _) (Nat_String [])
-    = Nat_String []
-longest_prefix (Function f xs) (Nat_String (n:ns))
-    = if arity(f) < n
-      then Nat_String []
-      else prefix_position n (longest_prefix (subterm xs n) (Nat_String ns))
-           where subterm (x:xs) 1 = x
-                 subterm (x:xs) n = subterm xs (n - 1)
-longest_prefix (Variable _) _
-    = Nat_String []
-
 data Substitutions s v = Substitution [(v, Infinite_Terms s v)]
 
 instance (MyShow s, MyShow v, Signature s, Variables v)
