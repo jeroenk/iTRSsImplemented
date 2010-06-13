@@ -176,8 +176,9 @@ rewrite_step s (p, Rule l r) =
 
 rewrite_steps :: (Signature s, Variables v)
            => Terms s v -> [Steps s v] -> [Terms s v]
-rewrite_steps s []     = [s]
-rewrite_steps s (p:ps) = s:(rewrite_steps (rewrite_step s p) ps)
+rewrite_steps s ps = s:(rewrite_steps' s ps)
+    where rewrite_steps' _ []     = []
+          rewrite_steps' s (p:ps) = rewrite_steps (rewrite_step s p) ps
 
 class (Signature s, Variables v) => RewriteSystem s v r where
     rules :: r -> [RewriteRules s v]
@@ -187,6 +188,8 @@ class (Signature s, Variables v) => RewriteSystem s v r where
 -- Remark that we do not represent the final term of a reduction in case the
 -- reduction is of length omega, as the term might be uncomputable in that
 -- case.
+--
+-- We assume the steps and terms in reductions to be indexed starting from 0.
 
 data (Signature s, Variables v, RewriteSystem s v r) => Reductions s v r =
     Reduction [Terms s v] [Steps s v]
@@ -208,6 +211,10 @@ data (Signature s, Variables v, RewriteSystem s v r)
 instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r)
          => Show (ComputablyReductions s v r) where
     show (ComputablyReduction r _) = show r
+
+initial_term :: (Signature s, Variables v, RewriteSystem s v r)
+                => ComputablyReductions s v r -> Terms s v
+initial_term (ComputablyReduction (Reduction (x:_) _) _) = x
 
 final_term :: (Signature s, Variables v, RewriteSystem s v r)
               => ComputablyReductions s v r -> Terms s v
@@ -262,13 +269,61 @@ descendants_across_step [] _
 descendants_across_step (p:ps) s
     = (descendants_of_position p s) ++ (descendants_across_step ps s)
 
-descendants :: (Signature s, Variables v, RewriteSystem s v r)
-               => [NatStrings] -> Reductions s v r -> [NatStrings]
-descendants ps (Reduction _ qs) = descendants' ps qs
-    where descendants' ps' []
-              = ps'
-          descendants' ps' (q:qs')
-              = descendants' (descendants_across_step ps' q) qs'
+descendants :: (Signature s, Variables v)
+               => [NatStrings] -> [Steps s v] -> [NatStrings]
+descendants ps []     = ps
+descendants ps (q:qs) = descendants (descendants_across_step ps q) qs
+
+-- Strip Lemma
+
+sequence_steps :: (Signature s, Variables v)
+                  => [NatStrings] -> RewriteRules s v -> [Steps s v]
+sequence_steps [] _     = []
+sequence_steps (p:ps) r = (p, r):(sequence_steps ps r)
+
+bottom_steps :: (Signature s, Variables v, RewriteSystem s v r)
+                => ComputablyReductions s v r -> Steps s v -> [Steps s v]
+bottom_steps (ComputablyReduction rs _) (q, r) = bottom_steps' rs q r
+    where bottom_steps' (Reduction _ ps) q s
+              = steps ps [q] r
+          steps [] _ _
+              = []
+          steps ((p, r'):ps) qs r
+              = let down_steps     = sequence_steps qs r
+                    descendants_p  = descendants [p] down_steps
+                    bottom_steps   = sequence_steps descendants_p r'
+                    descendants_qs = descendants qs [(p, r')]
+                in bottom_steps ++ (steps ps descendants_qs r)
+
+needed_height :: (Signature s, Variables v)
+               => RewriteRules s v -> Int
+needed_height (Rule l r) = max 0 (term_height l - term_height r)
+    where term_height (Function _ xs) = 1 + foldl max 0 (map term_height xs)
+          term_height (Variable _)    = 0
+
+bottom_modulus :: (Signature s, Variables v, RewriteSystem s v r)
+                  => ComputablyReductions s v r -> Steps s v -> Modulus
+bottom_modulus (ComputablyReduction rs phi) (q, r) n = bottom_modulus' rs q r
+    where bottom_modulus' (Reduction _ ps) q s
+              = steps ps [q] r (phi (n + needed_height r))
+          steps _ _ _ 0
+              = 0
+          steps ((p, r'):ps) qs r n
+              = let down_steps     = sequence_steps qs r
+                    descendants_p  = descendants [p] down_steps
+                    bottom_steps   = sequence_steps descendants_p r'
+                    descendants_qs = descendants qs [(p, r')]
+                in length bottom_steps + (steps ps descendants_qs r (pred n))
+
+bottom_reduction :: (Signature s, Variables v, RewriteSystem s v r)
+                    => ComputablyReductions s v r -> Steps s v
+                    -> ComputablyReductions s v r
+bottom_reduction r s = ComputablyReduction reduction modulus
+    where reduction = Reduction terms steps
+          terms = (rewrite_steps (rewrite_step (initial_term r) s) steps)
+          steps = bottom_steps r s
+          modulus = bottom_modulus r s
+
 
 -- Examples
 
@@ -294,6 +349,9 @@ f_a = Function 'f' [constant 'a']
 
 g_x :: Standard_Terms
 g_x = Function 'g' [Variable 'x']
+
+h_x_x :: Standard_Terms
+h_x_x = Function 'h' [Variable 'x', Variable 'x']
 
 f_omega :: Standard_Terms
 f_omega = Function 'f' [f_omega]
@@ -336,6 +394,10 @@ rule_5 = Rule (constant 'a') f_a
 
 rule_6 = Rule f_x h_x_h_a_x
 
+rule_7 = Rule f_x h_x_x
+
+rule_8 = Rule f_x (constant 'a')
+
 data System_1 = Sys1
 
 instance RewriteSystem Char Char System_1 where
@@ -349,14 +411,14 @@ instance RewriteSystem Char Char System_2 where
 data System_3 = Sys3
 
 instance RewriteSystem Char Char System_3 where
-    rules Sys3 = [rule_5, rule_6]
+    rules Sys3 = [rule_5, rule_6, rule_7, rule_8]
 
 red_1 :: (Signature Char, Variables Char, RewriteSystem Char Char System_3)
         => Reductions Char Char System_3
 red_1 = Reduction ts (zip ps rs)
-    where ps = (iterate (\ns -> prefix_position 1 ns) (NatString []))
+    where ps = (iterate (\ns -> prefix_position 1 ns) (NatString [1]))
           rs = repeat rule_5
-          ts = rewrite_steps (constant 'a') (zip ps rs)
+          ts = rewrite_steps (Function 'f' [constant 'a']) (zip ps rs)
 
 red_2 :: (Signature Char, Variables Char, RewriteSystem Char Char System_3)
         => Reductions Char Char System_1
