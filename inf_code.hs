@@ -49,20 +49,8 @@ data NatStrings = NatString [Int]
 instance Show NatStrings where
     show (NatString ns) = show ns
 
-instance Eq NatStrings where
-    (==) (NatString ns) (NatString ms) = ns == ms
-
-instance Ord NatStrings where
-    compare (NatString ns) (NatString ms) = compare ns ms
-
-length_string :: NatStrings -> Int
-length_string (NatString x) = length x
-
 prefix_position :: Int -> NatStrings -> NatStrings
 prefix_position n (NatString ns) = NatString (n:ns)
-
-suffix_position :: Int -> NatStrings -> NatStrings
-suffix_position n (NatString ns) = NatString (ns ++ [n])
 
 positions :: (Signature s, Variables v)
              => Terms s v -> [NatStrings]
@@ -139,13 +127,13 @@ type RegularSystems s v = Substitutions s v
 
 rational_term :: (Signature s, Variables v)
                  => RegularSystems s v -> v -> Terms s v
-rational_term sigma x = rational_term' sigma (Variable x)
-    where rational_term' sigma (Variable x)
+rational_term sigma x = rational_term' (Variable x)
+    where rational_term' (Variable x)
               = if in_substitution sigma x
-                then rational_term' sigma (substitute_variable sigma x)
+                then rational_term' (substitute_variable sigma x)
                 else (Variable x)
-          rational_term' sigma (Function f xs)
-              = Function f (map (rational_term' sigma) xs)
+          rational_term' (Function f xs)
+              = Function f (map rational_term' xs)
 
 -- Subterms
 
@@ -177,15 +165,17 @@ instance (MyShow s, MyShow v, Signature s, Variables v)
          => Show (RewriteRules s v) where
     show (Rule l r) = show l ++ " -> " ++ show r
 
+type Steps s v = (NatStrings, RewriteRules s v)
+
 rewrite_step :: (Signature s, Variables v)
-                => Terms s v -> (NatStrings, RewriteRules s v) -> Terms s v
+                => Terms s v -> Steps s v -> Terms s v
 rewrite_step s (p, Rule l r) =
     let sigma   = compute_substitution (subterm s p) l
         sigma_r = substitute sigma r
     in replace_subterm s sigma_r p
 
 rewrite_steps :: (Signature s, Variables v)
-           => Terms s v -> [(NatStrings, RewriteRules s v)] -> [Terms s v]
+           => Terms s v -> [Steps s v] -> [Terms s v]
 rewrite_steps s []     = [s]
 rewrite_steps s (p:ps) = s:(rewrite_steps (rewrite_step s p) ps)
 
@@ -199,7 +189,7 @@ class (Signature s, Variables v) => RewriteSystem s v r where
 -- case.
 
 data (Signature s, Variables v, RewriteSystem s v r) => Reductions s v r =
-    Reduction [Terms s v] [(NatStrings, RewriteRules s v)]
+    Reduction [Terms s v] [Steps s v]
 
 instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r)
          => Show (Reductions s v r) where
@@ -222,55 +212,63 @@ instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r)
 final_term :: (Signature s, Variables v, RewriteSystem s v r)
               => ComputablyReductions s v r -> Terms s v
 final_term (ComputablyReduction (Reduction ss _) phi)
-    = final_term' ss phi (NatString [])
-    where final_term' ss phi ps
-              = root (get_symbol (ss!!(phi (length_string ps))) ps) ss phi ps
-          root (FunctionSymbol f) ss phi ps
-              = Function f (subterms (arity f) 1 ss phi ps)
-          root (VariableSymbol x) _ _ _
-              = Variable x
-          subterms 0 _ _ _ _
+    = final_subterm []
+    where final_subterm ps = root (root_symbol (phi (length ps)) ps) ps
+          root_symbol n ps = get_symbol (ss!!n) (NatString ps)
+          root (FunctionSymbol f) ps = Function f (subterms (arity f) 1 ps)
+          root (VariableSymbol x) _  = Variable x
+          subterms 0 _ _
               = []
-          subterms n m ss phi ps
-              = (final_term' ss phi (suffix_position m ps))
-                :(subterms (pred n) (succ m) ss phi ps)
+          subterms n m ps
+              = (final_subterm (ps ++ [m])):(subterms (pred n) (succ m) ps)
 
 -- Descendants
 
-descendants :: (Signature s, Variables v, RewriteSystem s v r)
-               => [NatStrings] -> Reductions s v r -> [NatStrings]
-descendants ps (Reduction ss qs) = descendants' ps ss qs
-    where descendants' ps _ []
-              = ps
-          descendants' ps (s:ss) (q:qs)
-              = descendants' (descendants_step ps q) ss qs
-          descendants_step [] _
-              = []
-          descendants_step (p:ps) (q, rule)
-              = if p >= q
-                then (compute_new p q rule) ++ (descendants_step ps (q, rule))
-                else p:(descendants_step ps (q, rule))
-          compute_new (NatString p) (NatString q) rule
-              = map (\xs -> NatString (q ++ xs))
-                (compute_new' (drop (length q) p) rule)
-          compute_new' p (Rule l r)
-              = if get_variable l p == Nothing
-                then []
-                else new_positions r (get_variable l p) (get_position l p) []
-          get_variable (Function _ _) []      = Nothing
-          get_variable (Function _ xs) (p:ps) = get_variable (xs!!(pred p)) ps
-          get_variable (Variable x) _         = Just x
-          get_position (Function _ xs) (p:ps) = get_position (xs!!(pred p)) ps
-          get_position (Variable _) ps        = ps
-          new_positions (Variable x) (Just y) ps qs
-              = if x == y then [qs ++ ps] else []
-          new_positions (Function _ xs) y ps qs
-              = concat (new_positions' xs y ps qs 1)
+descendants_of_position :: (Signature s, Variables v)
+                           => NatStrings -> Steps s v -> [NatStrings]
+descendants_of_position (NatString ps) (NatString qs, (Rule l r))
+    = map (\xs -> NatString xs) (descendants' (not (ps >= qs)))
+    where descendants' True
+              = [ps]
+          descendants' False
+              = map (\xs -> qs ++ xs) (compute_new (drop (length qs) ps))
+          compute_new ps' = compute_new' ps' (get_variable l ps')
+              where get_variable (Function _ _) []
+                        = Nothing
+                    get_variable (Function _ xs) (p:ps)
+                        = get_variable (xs!!(pred p)) ps
+                    get_variable (Variable x) _
+                        = Just x
+          compute_new' ps' Nothing  = []
+          compute_new' ps' (Just x) = new_positions r x (get_position l ps') []
+              where get_position (Function _ xs) (p:ps)
+                        = get_position (xs!!(pred p)) ps
+                    get_position (Variable _) ps
+                        = ps
+          new_positions (Variable x) y ps' qs'
+              = if x == y then [qs' ++ ps'] else []
+          new_positions (Function _ xs) y ps' qs'
+              = concat (new_positions' xs y ps' qs' 1)
           new_positions' [] _ _ _ _
               = []
-          new_positions' (x:xs) y ps qs n
-              = (new_positions x y ps (qs ++ [n]))
-                :(new_positions' xs y ps qs (succ n))
+          new_positions' (x:xs) y ps' qs' n
+              = (new_positions x y ps' (qs' ++ [n]))
+                :(new_positions' xs y ps' qs' (succ n))
+
+descendants_across_step :: (Signature s, Variables v)
+                           => [NatStrings] -> Steps s v -> [NatStrings]
+descendants_across_step [] _
+    = []
+descendants_across_step (p:ps) s
+    = (descendants_of_position p s) ++ (descendants_across_step ps s)
+
+descendants :: (Signature s, Variables v, RewriteSystem s v r)
+               => [NatStrings] -> Reductions s v r -> [NatStrings]
+descendants ps (Reduction _ qs) = descendants' ps qs
+    where descendants' ps' []
+              = ps'
+          descendants' ps' (q:qs')
+              = descendants' (descendants_across_step ps' q) qs'
 
 -- Examples
 
