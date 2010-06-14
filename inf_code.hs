@@ -193,16 +193,16 @@ type Steps s v = (NatStrings, RewriteRules s v)
 
 rewrite_step :: (Signature s, Variables v)
                 => Terms s v -> Steps s v -> Terms s v
-rewrite_step s (p, Rule l r) =
-    let sigma   = compute_substitution (subterm s p) l
+rewrite_step t (p, Rule l r) =
+    let sigma   = compute_substitution (subterm t p) l
         sigma_r = substitute sigma r
-    in replace_subterm s sigma_r p
+    in replace_subterm t sigma_r p
 
 rewrite_steps :: (Signature s, Variables v)
            => Terms s v -> [Steps s v] -> [Terms s v]
-rewrite_steps s ps = s:(rewrite_steps' s ps)
+rewrite_steps t ps = t:(rewrite_steps' t ps)
     where rewrite_steps' _ []     = []
-          rewrite_steps' s (p:ps) = rewrite_steps (rewrite_step s p) ps
+          rewrite_steps' t (p:ps) = rewrite_steps (rewrite_step t p) ps
 
 class (Signature s, Variables v) => RewriteSystem s v r where
     rules :: r -> [RewriteRules s v]
@@ -307,7 +307,8 @@ sequence_steps (p:ps) r = (p, r):(sequence_steps ps r)
 
 bottom_develop :: (Signature s, Variables v, RewriteSystem s v r)
                   => ComputablyReductions s v r -> Steps s v -> [[Steps s v]]
-bottom_develop (ComputablyReduction rs _) (q, r) = bottom_develop' rs q
+bottom_develop (ComputablyReduction rs _) (q, r)
+    = bottom_develop' rs q
     where bottom_develop' (Reduction _ ps) q
               = steps ps [q]
           steps [] _
@@ -321,7 +322,8 @@ bottom_develop (ComputablyReduction rs _) (q, r) = bottom_develop' rs q
 
 bottom_steps :: (Signature s, Variables v, RewriteSystem s v r)
                 => ComputablyReductions s v r -> Steps s v -> [Steps s v]
-bottom_steps rs s = concat (bottom_develop rs s)
+bottom_steps rs s
+    = concat (bottom_develop rs s)
 
 bottom_modulus :: (Signature s, Variables v, RewriteSystem s v r)
                   => ComputablyReductions s v r -> Steps s v -> Modulus
@@ -331,7 +333,8 @@ bottom_modulus rs@(ComputablyReduction _ phi) s@(_, r) n
 bottom_reduction :: (Signature s, Variables v, RewriteSystem s v r)
                     => ComputablyReductions s v r -> Steps s v
                     -> ComputablyReductions s v r
-bottom_reduction r s = ComputablyReduction reduction modulus
+bottom_reduction r s
+    = ComputablyReduction reduction modulus
     where reduction = Reduction terms steps
           terms = (rewrite_steps (rewrite_step (initial_term r) s) steps)
           steps = bottom_steps r s
@@ -339,7 +342,8 @@ bottom_reduction r s = ComputablyReduction reduction modulus
 
 right_develop :: (Signature s, Variables v, RewriteSystem s v r)
                  => ComputablyReductions s v r -> Steps s v -> [[Steps s v]]
-right_develop (ComputablyReduction rs phi) (q, r) = right_develop' rs q r
+right_develop (ComputablyReduction rs phi) (q, r)
+    = right_develop' rs q r
     where right_develop' (Reduction _ ps) q r
               = steps ps [q] 0 0
           steps _ [] _ _
@@ -358,16 +362,19 @@ right_develop (ComputablyReduction rs phi) (q, r) = right_develop' rs q r
 
 right_steps :: (Signature s, Variables v, RewriteSystem s v r)
                => ComputablyReductions s v r -> Steps s v -> [Steps s v]
-right_steps rs s = concat (right_develop rs s)
+right_steps rs s
+    = concat (right_develop rs s)
 
 right_modulus :: (Signature s, Variables v, RewriteSystem s v r)
                  => ComputablyReductions s v r -> Steps s v -> Modulus
-right_modulus rs s n = length (concat (take (succ n) (right_develop rs s)))
+right_modulus rs s n
+    = length (concat (take (succ n) (right_develop rs s)))
 
 right_reduction :: (Signature s, Variables v, RewriteSystem s v r)
                    => ComputablyReductions s v r -> Steps s v
                    -> ComputablyReductions s v r
-right_reduction r s = ComputablyReduction reduction modulus
+right_reduction r s
+    = ComputablyReduction reduction modulus
     where reduction = Reduction terms steps
           terms = (rewrite_steps (final_term r) steps)
           steps = right_steps r s
@@ -380,47 +387,57 @@ strip_lemma _ r s = (bottom_reduction r s, right_reduction r s)
 
 -- Confluence
 
+needed_depth :: (Signature s, Variables v, RewriteSystem s v r)
+                => ComputablyReductions s v r -> Int -> Int
+needed_depth (ComputablyReduction (Reduction _ ps) phi) d
+    = needed_depth' (pred (phi d)) d
+    where needed_depth' (-1) d
+              = d
+          needed_depth' i d
+              | relevant  = needed_depth' (pred i) new_d
+              | otherwise = needed_depth' (pred i) d
+                  where redex_depth = string_length (fst (ps!!i))
+                        relevant = redex_depth <= d
+                        rule_height = left_height (snd (ps!!i))
+                        new_d = max d (redex_depth + rule_height - 1)
+
+get_steps_to_depth :: (Signature s, Variables v, RewriteSystem s v r)
+                      => ComputablyReductions s v r -> Int -> [Steps s v]
+get_steps_to_depth (ComputablyReduction (Reduction _ ps) phi) d
+    = needed_steps (pred (phi d)) d
+    where needed_steps (-1) _
+              = []
+          needed_steps i d
+              | relevant  = (needed_steps (pred i) new_d) ++ [ps!!i]
+              | otherwise = (needed_steps (pred i) d)
+                  where redex_depth = string_length (fst (ps!!i))
+                        relevant = redex_depth <= d
+                        rule_height = left_height (snd (ps!!i))
+                        new_d = max d (redex_depth + rule_height - 1)
+
+filter_steps :: (Signature s, Variables v, RewriteSystem s v r)
+                => r -> ComputablyReductions s v r -> [Steps s v] -> Int
+                -> [Steps s v]
+filter_steps r s [] d     = get_steps_to_depth s d
+filter_steps r s (p:ps) d = filter_steps r s' ps d
+    where s' = fst (strip_lemma r s p)
+
 confl_devel :: (Signature s, Variables v, RewriteSystem s v r)
                => r -> ComputablyReductions s v r -> ComputablyReductions s v r
                -> [[Steps s v]]
 confl_devel r s@(ComputablyReduction (Reduction _ ps) phi_s) t
-    = confl_steps' t 0 0 [] (final_term s)
-    where confl_steps' t@(ComputablyReduction (Reduction _ qs) phi_t) d n prev final_t
-              = if less_depth d final_t
-                then []
-                else (if (phi_s (needed_d t d)) <= n
-                then new:(confl_steps' t (succ d) n total (final_new new final_t))
-                else confl_steps' (fst (strip_lemma r t (ps!!n))) d (succ n) prev final_t)
-                    where new = filter_steps t prev d
-                          total = needed_steps qs (pred (phi_t d)) d
-                          final_new [] final_t = final_t
-                          final_new new final_t = last (rewrite_steps final_t new)
-          needed_d (ComputablyReduction (Reduction _ qs) phi_t) d
-              = needed_d' qs (pred (phi_t d)) d
-          needed_d' _ (-1) d
-              = d
-          needed_d' qs i d
-              = needed_d' qs (pred i) new_d
-                  where new_d = if (string_length (fst (qs!!i))) <= d
-                                then  d + (left_height (snd (qs!!i))) - 1
-                                else  d
-          filter_steps (ComputablyReduction (Reduction _ qs) phi_t) prev d
-              = filter_steps' (needed_steps qs (pred n) d) prev
-                  where n = phi_t d
-          needed_steps _ (-1) _ =
-              []
-          needed_steps qs i d =
-              if new_d_needed
-              then (needed_steps qs (pred i) new_d) ++ [qs!!i]
-              else (needed_steps qs (pred i) d)
-                   where new_d_needed = (string_length (fst (qs!!i))) <= d
-                         new_d = d + (left_height (snd (qs!!i))) - 1
-          filter_steps' ps []
-              = ps
-          filter_steps' (p:ps) (q:qs)
-              = if (fst p) == (fst q)
-                then filter_steps' ps qs
-                else p:(filter_steps' ps (q:qs))
+    = confl_devel' t 0 0 [] (final_term s)
+    where confl_devel' t d n prv final
+              | less_depth d final = []
+              | otherwise          = confl_devel'' t d n prv final
+          confl_devel'' t d n prv final
+              | steps_needed = new:(confl_devel' t (succ d) n prv_new final_new)
+              | otherwise    = confl_devel' t' d (succ n) prv final
+                    where steps_needed = (phi_s (needed_depth t d)) <= n
+                          new = filter_steps r t prv d
+                          prv_new = prv ++ new
+                          final_new = last (rewrite_steps final new)
+                          t' = fst (strip_lemma r t (ps!!n))
 
 confl_steps :: (Signature s, Variables v, RewriteSystem s v r)
               => r -> ComputablyReductions s v r -> ComputablyReductions s v r
@@ -581,6 +598,20 @@ red_5 = Reduction ts (zip ps rs)
           rs = [rule_10, rule_11]
           ts = rewrite_steps (Function 'f' [constant 'a']) (zip ps rs)
 
+red_6 :: (Signature Char, Variables Char, RewriteSystem Char Char System_1)
+        => Reductions Char Char System_1
+red_6 = Reduction ts (zip ps rs)
+    where ps = (NatString []):(map (\p -> prefix_position 1 (prefix_position 1 p)) ps)
+          rs = rule_1:rs
+          ts = rewrite_steps f_omega (zip ps rs)
+
+red_7 :: (Signature Char, Variables Char, RewriteSystem Char Char System_1)
+        => Reductions Char Char System_1
+red_7 = Reduction ts (zip ps rs)
+    where ps = (NatString [1]):(map (\p -> prefix_position 1 (prefix_position 1 p)) ps)
+          rs = rule_1:rs
+          ts = rewrite_steps f_omega (zip ps rs)
+
 cred_1 = ComputablyReduction red_1 (\x -> succ x)
 
 cred_2 = ComputablyReduction red_2 (\x -> succ x)
@@ -590,5 +621,9 @@ cred_3 = ComputablyReduction red_3 (\x -> 2)
 cred_4 = ComputablyReduction red_4 (\x -> min 3 (succ x))
 
 cred_5 = ComputablyReduction red_5 (\x -> if x == 0 then 0 else 2)
+
+cred_6 = ComputablyReduction red_6 (\x -> succ x)
+
+cred_7 = ComputablyReduction red_7 (\x -> x)
 
 show_steps (ComputablyReduction (Reduction _ s) _) = s
