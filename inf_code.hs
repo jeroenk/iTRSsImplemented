@@ -287,10 +287,10 @@ sequence_steps :: (Signature s, Variables v)
 sequence_steps [] _     = []
 sequence_steps (p:ps) r = (p, r):(sequence_steps ps r)
 
-bottom_steps :: (Signature s, Variables v, RewriteSystem s v r)
-                => ComputablyReductions s v r -> Steps s v -> [Steps s v]
-bottom_steps (ComputablyReduction rs _) (q, r) = bottom_steps' rs q
-    where bottom_steps' (Reduction _ ps) q
+bottom_develop :: (Signature s, Variables v, RewriteSystem s v r)
+                  => ComputablyReductions s v r -> Steps s v -> [[Steps s v]]
+bottom_develop (ComputablyReduction rs _) (q, r) = bottom_develop' rs q
+    where bottom_develop' (Reduction _ ps) q
               = steps ps [q]
           steps [] _
               = []
@@ -299,27 +299,22 @@ bottom_steps (ComputablyReduction rs _) (q, r) = bottom_steps' rs q
                     descendants_p  = descendants [p] down_steps
                     bottom_steps   = sequence_steps descendants_p r'
                     descendants_qs = descendants qs [(p, r')]
-                in bottom_steps ++ (steps ps descendants_qs)
+                in bottom_steps:(steps ps descendants_qs)
 
-needed_height :: (Signature s, Variables v)
+bottom_steps :: (Signature s, Variables v, RewriteSystem s v r)
+                => ComputablyReductions s v r -> Steps s v -> [Steps s v]
+bottom_steps rs s = concat (bottom_develop rs s)
+
+left_height :: (Signature s, Variables v)
                => RewriteRules s v -> Int
-needed_height (Rule l _) = term_height l
+left_height (Rule l _) = term_height l
     where term_height (Function _ xs) = 1 + foldl max 0 (map term_height xs)
           term_height (Variable _)    = 0
 
 bottom_modulus :: (Signature s, Variables v, RewriteSystem s v r)
                   => ComputablyReductions s v r -> Steps s v -> Modulus
-bottom_modulus (ComputablyReduction rs phi) (q, r) n = bottom_modulus' rs q r
-    where bottom_modulus' (Reduction _ ps) q s
-              = steps ps [q] r (phi (n + needed_height r))
-          steps _ _ _ 0
-              = 0
-          steps ((p, r'):ps) qs r n
-              = let down_steps     = sequence_steps qs r
-                    descendants_p  = descendants [p] down_steps
-                    bottom_steps   = sequence_steps descendants_p r'
-                    descendants_qs = descendants qs [(p, r')]
-                in length bottom_steps + (steps ps descendants_qs r (pred n))
+bottom_modulus rs@(ComputablyReduction _ phi) s@(_, r) n
+    = length (concat (take (phi (n + left_height r)) (bottom_develop rs s)))
 
 bottom_reduction :: (Signature s, Variables v, RewriteSystem s v r)
                     => ComputablyReductions s v r -> Steps s v
@@ -330,15 +325,15 @@ bottom_reduction r s = ComputablyReduction reduction modulus
           steps = bottom_steps r s
           modulus = bottom_modulus r s
 
-right_steps :: (Signature s, Variables v, RewriteSystem s v r)
-               => ComputablyReductions s v r -> Steps s v -> [Steps s v]
-right_steps (ComputablyReduction rs phi) (q, r) = right_steps' rs q r
-    where right_steps' (Reduction _ ps) q r
+right_develop :: (Signature s, Variables v, RewriteSystem s v r)
+                 => ComputablyReductions s v r -> Steps s v -> [[Steps s v]]
+right_develop (ComputablyReduction rs phi) (q, r) = right_develop' rs q r
+    where right_develop' (Reduction _ ps) q r
               = steps ps [q] 0 0
           steps _ [] _ _
               = []
           steps ps qs m d
-              = right_steps ++ (steps ps_left descendants_nd m_new (succ d))
+              = right_steps:(steps ps_left descendants_nd m_new (succ d))
               where m_new          = max m (phi d)
                     ps_use         = take (m_new - m) ps
                     ps_left        = drop (m_new - m) ps
@@ -349,9 +344,13 @@ right_steps (ComputablyReduction rs phi) (q, r) = right_steps' rs q r
                         where not_at_d (NatString qs) = (length qs) /= d
                     right_steps = sequence_steps descendants_d r
 
+right_steps :: (Signature s, Variables v, RewriteSystem s v r)
+               => ComputablyReductions s v r -> Steps s v -> [Steps s v]
+right_steps rs s = concat (right_develop rs s)
+
 right_modulus :: (Signature s, Variables v, RewriteSystem s v r)
                  => ComputablyReductions s v r -> Steps s v -> Modulus
-right_modulus _ _ = \n -> error "Not implemented"
+right_modulus rs s n = length (concat (take (succ n) (right_develop rs s)))
 
 right_reduction :: (Signature s, Variables v, RewriteSystem s v r)
                    => ComputablyReductions s v r -> Steps s v
