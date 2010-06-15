@@ -251,7 +251,23 @@ data (Signature s, Variables v, RewriteSystem s v r)
 
 instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r)
          => Show (ComputablyReduction s v r) where
-    show (ComputablyReduction r _) = show r
+    show (ComputablyReduction (Reduction ts _) phi) = show' ts 0 0 (head ts)
+        where show' [] _ _ _
+                  = ""
+              show' ts n d l
+                  | less_depth d l = (if n == 0 then "" else " -> ") ++ show l
+                  | otherwise      = (show_d ts n d) ++ (show' ts' n' d' l')
+                      where n' = max n (phi d)
+                            d' = succ d
+                            l' = head (drop ((n' - n) - 1) ts)
+                            ts' = drop (n' - n) ts
+              show_d ts n d
+                  | (n' - n) < 1 = ""
+                  | otherwise    = show_steps (take (n' - n) ts) n
+                      where n' = max n (phi d)
+              show_steps [] _     = ""
+              show_steps (t:ts) 0 = show t ++ show_steps ts 1
+              show_steps (t:ts) n = " -> " ++ show t ++ show_steps ts (succ n)
 
 initial_term :: (Signature s, Variables v, RewriteSystem s v r)
                 => ComputablyReduction s v r -> Term s v
@@ -639,3 +655,6 @@ cred_6 = ComputablyReduction red_6 (\x -> succ x)
 cred_7 = ComputablyReduction red_7 (\x -> x)
 
 show_steps (ComputablyReduction (Reduction _ s) _) = s
+
+show_phi (ComputablyReduction _ phi) = show_phi' 0
+    where show_phi' d = (show (phi d)) ++ (show_phi' (succ d))
