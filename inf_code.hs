@@ -217,7 +217,7 @@ rewrite_step t (p, Rule l r)
               sigma_r = substitute sigma r
 
 rewrite_steps :: (Signature s, Variables v)
-           => Term s v -> [Step s v] -> [Term s v]
+                 => Term s v -> [Step s v] -> [Term s v]
 rewrite_steps t ps = t:(rewrite_steps' t ps)
     where rewrite_steps' _ []     = []
           rewrite_steps' t (p:ps) = rewrite_steps (rewrite_step t p) ps
@@ -277,17 +277,18 @@ initial_term (ComputablyReduction (Reduction (x:_) _) _) = x
 final_term :: (Signature s, Variables v, RewriteSystem s v r)
               => ComputablyReduction s v r -> Term s v
 final_term (ComputablyReduction (Reduction ts _) phi)
-    = final_subterm []
-    where final_subterm ps
-              = root (root_symbol (phi (length ps)) ps) ps
-          root_symbol n ps
-              = get_symbol (ts!!n) (NatString ps)
-          root (FunctionSymbol f) ps
-              = Function f (subterms (arity f) ps)
-          root (VariableSymbol x) _
+    = final_subterm [] 0 ts
+    where final_subterm ps n ts
+              = root root_symbol ps n' ts'
+                  where n' = max n (phi (length ps))
+                        ts' = drop (n' - n) ts
+                        root_symbol = get_symbol (head ts') (NatString ps)
+          root (FunctionSymbol f) ps n ts
+              = Function f (subterms (arity f) ps n ts)
+          root (VariableSymbol x) _ _ _
               = Variable x
-          subterms n ps
-              = array (1, n) [(i, final_subterm (ps ++ [i])) | i <- [1..n]]
+          subterms a ps n ts
+              = array (1, a) [(i, final_subterm (ps ++ [i]) n ts) | i <- [1..a]]
 
 -- Descendants
 
@@ -300,18 +301,13 @@ descendants_of_position ps (qs, (Rule l r))
           descendants' (NatString ps) (NatString qs) True
               = map (\xs -> qs ++ xs) (compute_new (drop (length qs) ps))
           compute_new ps = compute_new' ps (get_variable l ps)
-              where get_variable (Function _ _) []
-                        = Nothing
-                    get_variable (Function _ xs) (p:ps)
-                        = get_variable (xs!p) ps
-                    get_variable (Variable x) _
-                        = Just x
+              where get_variable (Function _ _) []      = Nothing
+                    get_variable (Function _ xs) (p:ps) = get_variable (xs!p) ps
+                    get_variable (Variable x) _         = Just x
           compute_new' ps Nothing  = []
           compute_new' ps (Just x) = new_positions r x (get_position l ps) []
-              where get_position (Function _ xs) (p:ps)
-                        = get_position (xs!p) ps
-                    get_position (Variable _) ps
-                        = ps
+              where get_position (Function _ xs) (p:ps) = get_position (xs!p) ps
+                    get_position (Variable _) ps        = ps
           new_positions (Variable x) y ps qs
               = if x == y then [qs ++ ps] else []
           new_positions (Function _ xs) y ps qs
@@ -324,10 +320,8 @@ descendants_of_position ps (qs, (Rule l r))
 
 descendants_across_step :: (Signature s, Variables v)
                            => [NatString] -> Step s v -> [NatString]
-descendants_across_step [] _
-    = []
-descendants_across_step (p:ps) s
-    = (descendants_of_position p s) ++ (descendants_across_step ps s)
+descendants_across_step ps s
+    = concat (map (\p -> descendants_of_position p s) ps)
 
 descendants :: (Signature s, Variables v)
                => [NatString] -> [Step s v] -> [NatString]
