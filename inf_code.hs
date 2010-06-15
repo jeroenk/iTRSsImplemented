@@ -441,19 +441,15 @@ filter_steps r s (p:ps) d = filter_steps r s' ps d
 confl_devel :: (Signature s, Variables v, RewriteSystem s v r)
                => r -> ComputablyReduction s v r -> ComputablyReduction s v r
                -> [[Step s v]]
-confl_devel r s@(ComputablyReduction (Reduction _ ps) phi_s) t
-    = confl_devel' t 0 0 [] (final_term s)
-    where confl_devel' t d n prv final
-              | less_depth d final = []
-              | otherwise          = confl_devel'' t d n prv final
-          confl_devel'' t d n prv final
-              | steps_needed = new:(confl_devel' t (succ d) n prv_new final_new)
-              | otherwise    = confl_devel' t' d (succ n) prv final
+confl_devel r (ComputablyReduction (Reduction _ ps) phi_s) t
+    = confl_devel' t ps 0 0 []
+    where confl_devel' t ps d n prev
+              | steps_needed = new:(confl_devel' t ps (succ d) n prev_new)
+              | otherwise    = confl_devel' t' (tail ps) d (succ n) prev
                     where steps_needed = (phi_s (needed_depth t d)) <= n
-                          new = filter_steps r t prv d
-                          prv_new = prv ++ new
-                          final_new = last (rewrite_steps final new)
-                          t' = fst (strip_lemma r t (ps!!n))
+                          new = filter_steps r t prev d
+                          prev_new = prev ++ new
+                          t' = fst (strip_lemma r t (head ps))
 
 confl_steps :: (Signature s, Variables v, RewriteSystem s v r)
               => r -> ComputablyReduction s v r -> ComputablyReduction s v r
