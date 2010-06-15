@@ -1,3 +1,5 @@
+import Array
+
 -- Plumbing
 
 class MyShow a where
@@ -25,26 +27,32 @@ instance (MyShow s, MyShow v, Signature s, Variables v)
 -- Terms
 
 data (Signature s, Variables v) => Term s v =
-    Function s [Term s v]
+    Function s (Array Int (Term s v))
     | Variable v
 
 constant :: (Signature s, Variables v) => s -> Term s v
-constant c | arity(c) == 0 = Function c []
-           | otherwise     = error "Input is not a constant"
+constant c | arity c == 0 = Function c (array (1,0) [])
+           | otherwise    = error "Input is not a constant"
 
 instance (MyShow s, MyShow v, Signature s, Variables v)
          => Show (Term s v) where
-    show (Function f []) = myshow f
-    show (Function f xs)  = myshow f ++ "(" ++ (show' xs True) ++ ")"
-        where show' [] _         = ""
-              show' (x:xs) True  = show x ++ show' xs False
-              show' (x:xs) False = "," ++ show x ++ show' xs False
+    show (Function f xs)
+        | arity f == 0  = myshow f
+        | otherwise     = myshow f ++ "(" ++ (show' (elems xs) True) ++ ")"
+            where show' [] _         = ""
+                  show' (x:xs) True  = show x ++ show' xs False
+                  show' (x:xs) False = "," ++ show x ++ show' xs False
     show (Variable v)   = myshow v
+
+term_height :: (Signature s, Variables v)
+               => Term s v -> Int
+term_height (Function _ xs) = 1 + foldl max 0 (map term_height (elems xs))
+term_height (Variable _)    = 0
 
 less_depth :: (Signature s, Variables v)
               => Int -> Term s v -> Bool
 less_depth n (Function _ xs)
-    = if n <= 1 then False else and (map (less_depth (pred n)) xs)
+    = if n <= 1 then False else and (map (less_depth (pred n)) (elems xs))
 less_depth n (Variable _)
     = if n <= 1 then False else True
 
@@ -75,15 +83,15 @@ position_of_term :: (Signature s, Variables v)
 position_of_term _ (NatString [])
     = True
 position_of_term (Function f xs) (NatString (n:ns))
-    | n < 1 || n > arity(f) = False
-    | otherwise             = position_of_term (xs!!(pred n)) (NatString ns)
+    | n < 1 || n > arity f = False
+    | otherwise            = position_of_term (xs!n) (NatString ns)
 position_of_term (Variable _) (NatString (_:_))
     = False
 
 positions :: (Signature s, Variables v)
              => Term s v -> [NatString]
 positions (Function _ xs)
-    = NatString [] : concat (prefix_positions (map positions xs) 1)
+    = NatString [] : concat (prefix_positions (map positions (elems xs)) 1)
     where prefix_positions [] _
               = []
           prefix_positions (x:xs) n
@@ -96,8 +104,8 @@ get_symbol :: (Signature s, Variables v)
 get_symbol (Function f _) (NatString [])
     = FunctionSymbol f
 get_symbol (Function f xs) (NatString (n:ns))
-    | n >= 1 && n <= arity(f) = get_symbol (xs!!(pred n)) (NatString ns)
-    | otherwise               = error "Getting symbol at non-existing position"
+    | 1 <= n && n <= arity f = get_symbol (xs!n) (NatString ns)
+    | otherwise              = error "Getting symbol at non-existing position"
 get_symbol (Variable x) (NatString [])
     = VariableSymbol x
 
@@ -135,7 +143,7 @@ substitute_variable (Substitution ((y,t):ss)) x
 substitute :: (Signature s, Variables v)
               => Substitution s v -> Term s v -> Term s v
 substitute sigma (Function f xs)
-    = Function f (map (substitute sigma) xs)
+    = Function f (xs // [(i, (substitute sigma (xs!i))) | i <- indices xs])
 substitute sigma (Variable x)
     = substitute_variable sigma x
 
@@ -143,7 +151,7 @@ compute_substitution :: (Signature s, Variables v)
                         => Term s v -> Term s v -> Substitution s v
 compute_substitution s t = Substitution (compute s t)
     where compute (Function f xs) (Function g ys)
-              = concat (zipWith compute xs ys)
+              = concat (zipWith compute (elems xs) (elems ys))
           compute t (Variable x)
               = [(x, t)]
 
@@ -156,13 +164,12 @@ type RegularSystem s v = Substitution s v
 
 rational_term :: (Signature s, Variables v)
                  => RegularSystem s v -> v -> Term s v
-rational_term sigma x = rational_term' (Variable x)
-    where rational_term' (Variable x)
-              = if in_substitution sigma x
-                then rational_term' (substitute_variable sigma x)
-                else (Variable x)
-          rational_term' (Function f xs)
-              = Function f (map rational_term' xs)
+rational_term sigma x = rational (Variable x)
+    where rational (Variable x)
+              | in_substitution sigma x = rational (substitute_variable sigma x)
+              | otherwise               = (Variable x)
+          rational (Function f xs)
+              = Function f (xs // [(i, rational (xs!i)) | i <- indices xs])
 
 -- Subterms
 
@@ -171,21 +178,17 @@ subterm :: (Signature s, Variables v)
 subterm s (NatString [])
     = s
 subterm (Function f xs) (NatString (n:ns))
-    | n >= 1 && n <= arity(f) = subterm (xs!!(pred n)) (NatString ns)
-    | otherwise               = error "Getting non-existing subterm"
+    | 1 <= n && n <= arity f = subterm (xs!n) (NatString ns)
+    | otherwise              = error "Getting non-existing subterm"
 
 replace_subterm :: (Signature s, Variables v)
            => Term s v -> Term s v -> NatString -> Term s v
 replace_subterm _ t (NatString [])
     = t
 replace_subterm (Function f xs) t (NatString (n:ns))
-    = Function f (replace_subterm' xs t n (NatString ns))
-    where replace_subterm' (x:xs) t 1 ns
-              = (replace_subterm x t ns):xs
-          replace_subterm' (x:xs) t n ns
-              = x:(replace_subterm' xs t (pred n) ns)
-          replace_subterm' _ _ _ _
-              = error "Replacing non-existing subterm"
+    | 1 <= n && n <= arity f = Function f subterms
+    | otherwise              = error "Replacing non-existing subterm"
+        where subterms = xs // [(n, replace_subterm (xs!n) t (NatString ns))]
 replace_subterm (Variable x) t _
     = (Variable x)
 
@@ -201,8 +204,6 @@ instance (MyShow s, MyShow v, Signature s, Variables v)
 left_height :: (Signature s, Variables v)
                => RewriteRule s v -> Int
 left_height (Rule l _) = term_height l
-    where term_height (Function _ xs) = 1 + foldl max 0 (map term_height xs)
-          term_height (Variable _)    = 0
 
 type Step s v = (NatString, RewriteRule s v)
 
@@ -275,20 +276,18 @@ initial_term (ComputablyReduction (Reduction (x:_) _) _) = x
 
 final_term :: (Signature s, Variables v, RewriteSystem s v r)
               => ComputablyReduction s v r -> Term s v
-final_term (ComputablyReduction (Reduction ss _) phi)
+final_term (ComputablyReduction (Reduction ts _) phi)
     = final_subterm []
     where final_subterm ps
               = root (root_symbol (phi (length ps)) ps) ps
           root_symbol n ps
-              = get_symbol (ss!!n) (NatString ps)
+              = get_symbol (ts!!n) (NatString ps)
           root (FunctionSymbol f) ps
-              = Function f (subterms (arity f) 1 ps)
+              = Function f (subterms (arity f) ps)
           root (VariableSymbol x) _
               = Variable x
-          subterms 0 _ _
-              = []
-          subterms n m ps
-              = (final_subterm (ps ++ [m])):(subterms (pred n) (succ m) ps)
+          subterms n ps
+              = array (1, n) [(i, final_subterm (ps ++ [i])) | i <- [1..n]]
 
 -- Descendants
 
@@ -304,19 +303,19 @@ descendants_of_position ps (qs, (Rule l r))
               where get_variable (Function _ _) []
                         = Nothing
                     get_variable (Function _ xs) (p:ps)
-                        = get_variable (xs!!(pred p)) ps
+                        = get_variable (xs!p) ps
                     get_variable (Variable x) _
                         = Just x
           compute_new' ps Nothing  = []
           compute_new' ps (Just x) = new_positions r x (get_position l ps) []
               where get_position (Function _ xs) (p:ps)
-                        = get_position (xs!!(pred p)) ps
+                        = get_position (xs!p) ps
                     get_position (Variable _) ps
                         = ps
           new_positions (Variable x) y ps qs
               = if x == y then [qs ++ ps] else []
           new_positions (Function _ xs) y ps qs
-              = concat (new_positions' xs y ps qs 1)
+              = concat (new_positions' (elems xs) y ps qs 1)
           new_positions' [] _ _ _ _
               = []
           new_positions' (x:xs) y ps qs n
@@ -509,42 +508,52 @@ instance Signature Char where
 instance Variables Char
 
 f_x :: Standard_Term
-f_x = Function 'f' [Variable 'x']
+f_x = Function 'f' (array (1, 1) [(1, Variable 'x')])
 
 f_a :: Standard_Term
-f_a = Function 'f' [constant 'a']
+f_a = Function 'f' (array (1, 1) [(1, constant 'a')])
 
 g_x :: Standard_Term
-g_x = Function 'g' [Variable 'x']
+g_x = Function 'g' (array (1, 1) [(1, Variable 'x')])
 
 h_x_x :: Standard_Term
-h_x_x = Function 'h' [Variable 'x', Variable 'x']
+h_x_x = Function 'h' (array (1, 2) [(1, Variable 'x'), (2, Variable 'x')])
 
 f_omega :: Standard_Term
-f_omega = Function 'f' [f_omega]
+f_omega = Function 'f' (array (1, 1) [(1, f_omega)])
 
 h_omega :: Standard_Term
-h_omega = Function 'h' [h_omega, h_omega]
+h_omega = Function 'h' (array (1, 2) [(1, h_omega), (2, h_omega)])
 
 h_a_f_b :: Standard_Term
-h_a_f_b = Function 'h' [constant 'a', Function 'f' [constant 'b']]
+h_a_f_b = Function 'h'
+          (array (1, 2) [(1, constant 'a'),
+                         (2, Function 'f' (array (1, 1) [(1, constant 'b')]))])
+
+f_h_a_f_b :: Standard_Term
+f_h_a_f_b = Function 'f' (array (1, 1) [(1, h_a_f_b)])
 
 h_x_omega :: Standard_Term
-h_x_omega = Function 'h' [Variable 'x', h_x_omega]
+h_x_omega = Function 'h' (array (1, 2) [(1, Variable 'x'), (2, h_x_omega)])
 
 h_x_f_y :: Standard_Term
-h_x_f_y = Function 'h' [Variable 'x', Function 'f' [Variable 'y']]
+h_x_f_y = Function 'h'
+          (array (1, 2) [(1, Variable 'x'),
+                         (2, Function 'f' (array (1, 1) [(1, Variable 'y')]))])
 
 h_x_f_x :: Standard_Term
-h_x_f_x = Function 'h' [Variable 'x', Function 'f' [Variable 'x']]
+h_x_f_x = Function 'h'
+          (array (1, 2) [(1, Variable 'x'),
+                         (2, Function 'f' (array (1, 1) [(1, Variable 'x')]))])
+
+h_a_x :: Standard_Term
+h_a_x = Function 'h' (array (1, 2) [(1, constant 'a'), (2, Variable 'x')])
 
 h_x_h_a_x :: Standard_Term
-h_x_h_a_x = Function 'h' [Variable 'x',
-                          Function 'h' [constant 'a', Variable 'x']]
+h_x_h_a_x = Function 'h' (array (1, 2) [(1, Variable 'x'), (2, h_a_x)])
 
 sigma_1 :: Standard_Substitution
-sigma_1 = Substitution [('x', Function 'f' [constant 'a']), ('y', constant 'a'),
-                        ('z', constant 'b')]
+sigma_1 = Substitution [('x', f_a), ('y', constant 'a'), ('z', constant 'b')]
 
 sigma_2 :: Standard_Substitution
 sigma_2 = Substitution [('x', f_x)]
@@ -596,7 +605,7 @@ red_1 :: (Signature Char, Variables Char, RewriteSystem Char Char System_3)
 red_1 = Reduction ts (zip ps rs)
     where ps = (iterate (\ns -> prefix_position 1 ns) (NatString [1]))
           rs = repeat rule_5
-          ts = rewrite_steps (Function 'f' [constant 'a']) (zip ps rs)
+          ts = rewrite_steps (f_a) (zip ps rs)
 
 red_2 :: (Signature Char, Variables Char, RewriteSystem Char Char System_3)
         => Reduction Char Char System_1
@@ -610,21 +619,21 @@ red_3 :: (Signature Char, Variables Char, RewriteSystem Char Char System_3)
 red_3 = Reduction ts (zip ps rs)
     where ps = [NatString [1], NatString [1]]
           rs = [rule_4, rule_6]
-          ts = rewrite_steps (Function 'f' [h_a_f_b]) (zip ps rs)
+          ts = rewrite_steps (f_h_a_f_b) (zip ps rs)
 
 red_4 :: (Signature Char, Variables Char, RewriteSystem Char Char System_3)
         => Reduction Char Char System_3
 red_4 = Reduction ts (zip ps rs)
     where ps = [NatString [], NatString [2], NatString [2,2]]
           rs = [rule_9, rule_9, rule_9]
-          ts = rewrite_steps (Function 'f' [constant 'a']) (zip ps rs)
+          ts = rewrite_steps (f_a) (zip ps rs)
 
 red_5 :: (Signature Char, Variables Char, RewriteSystem Char Char System_3)
         => Reduction Char Char System_3
 red_5 = Reduction ts (zip ps rs)
     where ps = [NatString [1], NatString [1]]
           rs = [rule_10, rule_11]
-          ts = rewrite_steps (Function 'f' [constant 'a']) (zip ps rs)
+          ts = rewrite_steps (f_a) (zip ps rs)
 
 red_6 :: (Signature Char, Variables Char, RewriteSystem Char Char System_1)
         => Reduction Char Char System_1
