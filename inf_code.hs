@@ -408,33 +408,28 @@ strip_lemma _ r s = (bottom_reduction r s, right_reduction r s)
 
 -- Confluence
 
+accumulate_depth :: (Signature s, Variables v, RewriteSystem s v r)
+                    => ComputablyReduction s v r -> Int -> ([Step s v], Int)
+accumulate_depth  (ComputablyReduction (Reduction _ ps) phi) d
+    = needed_steps (pred (phi d)) ps d
+    where needed_steps (-1) _ d
+              = ([], d)
+          needed_steps n (p:ps) d
+              | relevant  = (p:steps, d_new)
+              | otherwise = (steps, d_later)
+                  where (steps, d_later) = needed_steps (pred n) ps d
+                        redex_depth = string_length (fst p)
+                        relevant = redex_depth <= d_later
+                        rule_height = left_height (snd p)
+                        d_new = max d_later (redex_depth + rule_height - 1)
+
 needed_depth :: (Signature s, Variables v, RewriteSystem s v r)
                 => ComputablyReduction s v r -> Int -> Int
-needed_depth (ComputablyReduction (Reduction _ ps) phi) d
-    = needed_depth' (pred (phi d)) d
-    where needed_depth' (-1) d
-              = d
-          needed_depth' i d
-              | relevant  = needed_depth' (pred i) new_d
-              | otherwise = needed_depth' (pred i) d
-                  where redex_depth = string_length (fst (ps!!i))
-                        relevant = redex_depth <= d
-                        rule_height = left_height (snd (ps!!i))
-                        new_d = max d (redex_depth + rule_height - 1)
+needed_depth s d = snd (accumulate_depth s d)
 
 get_steps_to_depth :: (Signature s, Variables v, RewriteSystem s v r)
                       => ComputablyReduction s v r -> Int -> [Step s v]
-get_steps_to_depth (ComputablyReduction (Reduction _ ps) phi) d
-    = needed_steps (pred (phi d)) d
-    where needed_steps (-1) _
-              = []
-          needed_steps i d
-              | relevant  = (needed_steps (pred i) new_d) ++ [ps!!i]
-              | otherwise = (needed_steps (pred i) d)
-                  where redex_depth = string_length (fst (ps!!i))
-                        relevant = redex_depth <= d
-                        rule_height = left_height (snd (ps!!i))
-                        new_d = max d (redex_depth + rule_height - 1)
+get_steps_to_depth s d = fst (accumulate_depth s d)
 
 filter_steps :: (Signature s, Variables v, RewriteSystem s v r)
                 => r -> ComputablyReduction s v r -> [Step s v] -> Int
