@@ -15,8 +15,8 @@ class Signature s where
 
 class Eq v => Variables v
 
-data (Signature s, Variables v) => Symbol s v =
-    FunctionSymbol s
+data (Signature s, Variables v) => Symbol s v
+    = FunctionSymbol s
     | VariableSymbol v
 
 instance (MyShow s, MyShow v, Signature s, Variables v)
@@ -26,8 +26,8 @@ instance (MyShow s, MyShow v, Signature s, Variables v)
 
 -- Terms
 
-data (Signature s, Variables v) => Term s v =
-    Function s (Array Int (Term s v))
+data (Signature s, Variables v) => Term s v
+    = Function s (Array Int (Term s v))
     | Variable v
 
 constant :: (Signature s, Variables v) => s -> Term s v
@@ -194,8 +194,8 @@ replace_subterm (Variable x) t _
 
 -- Rewrite rules and systems
 
-data (Signature s, Variables v) => RewriteRule s v =
-    Rule (Term s v) (Term s v)
+data (Signature s, Variables v) => RewriteRule s v
+    = Rule (Term s v) (Term s v)
 
 instance (MyShow s, MyShow v, Signature s, Variables v)
          => Show (RewriteRule s v) where
@@ -247,8 +247,8 @@ instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r)
 type Modulus = Int -> Int
 
 data (Signature s, Variables v, RewriteSystem s v r)
-     => ComputablyReduction s v r =
-    ComputablyReduction (Reduction s v r) Modulus
+     => ComputablyReduction s v r
+    = ComputablyReduction (Reduction s v r) Modulus
 
 instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r)
          => Show (ComputablyReduction s v r) where
@@ -594,50 +594,43 @@ data System_3 = Sys3
 instance RewriteSystem Char Char System_3 where
     rules Sys3 = [rule_5, rule_6, rule_7, rule_8, rule_9, rule_10, rule_11]
 
-red_1 :: (Signature Char, Variables Char, RewriteSystem Char Char System_3)
-        => Reduction Char Char System_3
+red_1 :: Reduction Char Char System_3
 red_1 = Reduction ts (zip ps rs)
     where ps = (iterate (\ns -> prefix_position 1 ns) (NatString [1]))
           rs = repeat rule_5
           ts = rewrite_steps (f_a) (zip ps rs)
 
-red_2 :: (Signature Char, Variables Char, RewriteSystem Char Char System_3)
-        => Reduction Char Char System_1
+red_2 :: Reduction Char Char System_1
 red_2 = Reduction ts (zip ps rs)
     where ps = (iterate (\ns -> prefix_position 1 ns) (NatString []))
           rs = repeat rule_1
           ts = rewrite_steps (f_omega) (zip ps rs)
 
-red_3 :: (Signature Char, Variables Char, RewriteSystem Char Char System_3)
-        => Reduction Char Char System_1
+red_3 :: Reduction Char Char System_1
 red_3 = Reduction ts (zip ps rs)
     where ps = [NatString [1], NatString [1]]
           rs = [rule_4, rule_6]
           ts = rewrite_steps (f_h_a_f_b) (zip ps rs)
 
-red_4 :: (Signature Char, Variables Char, RewriteSystem Char Char System_3)
-        => Reduction Char Char System_3
+red_4 :: Reduction Char Char System_3
 red_4 = Reduction ts (zip ps rs)
     where ps = [NatString [], NatString [2], NatString [2,2]]
           rs = [rule_9, rule_9, rule_9]
           ts = rewrite_steps (f_a) (zip ps rs)
 
-red_5 :: (Signature Char, Variables Char, RewriteSystem Char Char System_3)
-        => Reduction Char Char System_3
+red_5 :: Reduction Char Char System_3
 red_5 = Reduction ts (zip ps rs)
     where ps = [NatString [1], NatString [1]]
           rs = [rule_10, rule_11]
           ts = rewrite_steps (f_a) (zip ps rs)
 
-red_6 :: (Signature Char, Variables Char, RewriteSystem Char Char System_1)
-        => Reduction Char Char System_1
+red_6 :: Reduction Char Char System_1
 red_6 = Reduction ts (zip ps rs)
     where ps = (NatString []):(map (\p -> prefix_position 1 (prefix_position 1 p)) ps)
           rs = rule_1:rs
           ts = rewrite_steps f_omega (zip ps rs)
 
-red_7 :: (Signature Char, Variables Char, RewriteSystem Char Char System_1)
-        => Reduction Char Char System_1
+red_7 :: Reduction Char Char System_1
 red_7 = Reduction ts (zip ps rs)
     where ps = (NatString [1]):(map (\p -> prefix_position 1 (prefix_position 1 p)) ps)
           rs = rule_1:rs
