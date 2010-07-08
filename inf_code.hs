@@ -63,13 +63,11 @@ instance (MyShow s, MyShow v, Signature s, Variables v)
                   show' (x:xs) False = "," ++ show x ++ show' xs False
     show (Variable v)   = myshow v
 
-term_height :: (Signature s, Variables v)
-               => Term s v -> Int
+term_height :: (Signature s, Variables v) => Term s v -> Int
 term_height (Function _ xs) = 1 + foldl max 0 (map term_height (elems xs))
 term_height (Variable _)    = 0
 
-less_depth :: (Signature s, Variables v)
-              => Int -> Term s v -> Bool
+less_depth :: (Signature s, Variables v) => Int -> Term s v -> Bool
 less_depth n (Function _ xs)
     = if n <= 1 then False else and (map (less_depth (pred n)) (elems xs))
 less_depth n (Variable _)
@@ -97,8 +95,7 @@ is_prefix (NatStr ns) (NatStr ms) = is_prefix' ns ms
           is_prefix' (_:_) []      = False
           is_prefix' (n:ns) (m:ms) = if n == m then is_prefix' ns ms else False
 
-position_of_term :: (Signature s, Variables v)
-                    => Term s v -> NatString -> Bool
+position_of_term :: (Signature s, Variables v) => Term s v -> NatString -> Bool
 position_of_term _ (NatStr [])
     = True
 position_of_term (Function f xs) (NatStr (n:ns))
@@ -107,8 +104,7 @@ position_of_term (Function f xs) (NatStr (n:ns))
 position_of_term (Variable _) (NatStr (_:_))
     = False
 
-positions :: (Signature s, Variables v)
-             => Term s v -> [NatString]
+positions :: (Signature s, Variables v) => Term s v -> [NatString]
 positions (Function _ xs)
     = NatStr [] : concat (prefix_positions (map positions (elems xs)) 1)
     where prefix_positions [] _
@@ -118,8 +114,7 @@ positions (Function _ xs)
 positions (Variable _)
     = [NatStr []]
 
-pos_to_depth :: (Signature s, Variables v)
-                => Term s v -> Int -> [NatString]
+pos_to_depth :: (Signature s, Variables v) => Term s v -> Int -> [NatString]
 pos_to_depth (Function _ xs) d
     | d == 0    = [NatStr []]
     | otherwise = NatStr [] : concat (prefix_positions (map ptd (elems xs)) 1)
@@ -132,8 +127,7 @@ pos (Variable _) d
     = [NatStr []]
 
 
-non_variable_pos :: (Signature s, Variables v)
-                    => Term s v -> [NatString]
+non_variable_pos :: (Signature s, Variables v) => Term s v -> [NatString]
 non_variable_pos (Function _ xs)
     = NatStr [] : concat (prefix_positions (map non_variable_pos (elems xs)) 1)
     where prefix_positions [] _
@@ -143,8 +137,7 @@ non_variable_pos (Function _ xs)
 non_variable_pos (Variable _)
     = []
 
-get_symbol :: (Signature s, Variables v)
-              => Term s v -> NatString -> Symbol s v
+get_symbol :: (Signature s, Variables v) => Term s v -> NatString -> Symbol s v
 get_symbol (Function f _) (NatStr [])
     = FunctionSymbol f
 get_symbol (Function f xs) (NatStr (n:ns))
@@ -167,29 +160,27 @@ instance (MyShow s, MyShow v, Signature s, Variables v)
               show' ((x, t):ss) False
                   = ", (" ++ myshow x ++ ", " ++ show t ++ ")" ++ show' ss False
 
-in_substitution :: Variables v
-                   =>  Substitution s v -> v -> Bool
+in_substitution :: Variables v =>  Substitution s v -> v -> Bool
 in_substitution (Subst []) x
     = False
 in_substitution (Subst ((y,t):ss)) x
     = if x == y then True else in_substitution (Subst ss) x
 
-substitute_variable :: Variables v
-                       => Substitution s v -> v -> Term s v
+substitute_variable :: Variables v => Substitution s v -> v -> Term s v
 substitute_variable (Subst []) x
     = Variable x
 substitute_variable (Subst ((y, t):ss)) x
     = if x == y then t else substitute_variable (Subst ss) x
 
 substitute :: (Signature s, Variables v)
-              => Substitution s v -> Term s v -> Term s v
+    => Substitution s v -> Term s v -> Term s v
 substitute sigma (Function f xs)
     = Function f (xs // [(i, (substitute sigma (xs!i))) | i <- indices xs])
 substitute sigma (Variable x)
     = substitute_variable sigma x
 
 compute_substitution :: (Signature s, Variables v)
-                        => Term s v -> Term s v -> Substitution s v
+    => Term s v -> Term s v -> Substitution s v
 compute_substitution s t = Subst (nubBy same_variable (compute s t))
     where compute (Function f xs) (Function g ys)
               = concat (zipWith compute (elems xs) (elems ys))
@@ -206,7 +197,7 @@ compute_substitution s t = Subst (nubBy same_variable (compute s t))
 type RegularSystem s v = Substitution s v
 
 rational_term :: (Signature s, Variables v)
-                 => RegularSystem s v -> v -> Term s v
+    => RegularSystem s v -> v -> Term s v
 rational_term sigma x = rational (Variable x)
     where rational (Variable x)
               | in_substitution sigma x = rational (substitute_variable sigma x)
@@ -216,8 +207,7 @@ rational_term sigma x = rational (Variable x)
 
 -- Subterms
 
-subterm :: (Signature s, Variables v)
-           => Term s v -> NatString -> Term s v
+subterm :: (Signature s, Variables v) => Term s v -> NatString -> Term s v
 subterm s (NatStr [])
     = s
 subterm (Function f xs) (NatStr (n:ns))
@@ -225,7 +215,7 @@ subterm (Function f xs) (NatStr (n:ns))
     | otherwise              = error "Getting non-existing subterm"
 
 replace_subterm :: (Signature s, Variables v)
-           => Term s v -> Term s v -> NatString -> Term s v
+    => Term s v -> Term s v -> NatString -> Term s v
 replace_subterm _ t (NatStr [])
     = t
 replace_subterm (Function f xs) t (NatStr (n:ns))
@@ -244,14 +234,13 @@ instance (MyShow s, MyShow v, Signature s, Variables v)
          => Show (RewriteRule s v) where
     show (Rule l r) = show l ++ " -> " ++ show r
 
-left_height :: (Signature s, Variables v)
-               => RewriteRule s v -> Int
+left_height :: (Signature s, Variables v) => RewriteRule s v -> Int
 left_height (Rule l _) = term_height l
 
 type Step s v = (NatString, RewriteRule s v)
 
 rewrite_step :: (Signature s, Variables v)
-                => Term s v -> Step s v -> Term s v
+    => Term s v -> Step s v -> Term s v
 rewrite_step t (p, Rule l r)
     | valid_position = replace_subterm t sigma_r p
     | otherwise      = error "Rewriting at non-existing position"
@@ -260,7 +249,7 @@ rewrite_step t (p, Rule l r)
               sigma_r = substitute sigma r
 
 rewrite_steps :: (Signature s, Variables v)
-                 => Term s v -> [Step s v] -> [Term s v]
+    => Term s v -> [Step s v] -> [Term s v]
 rewrite_steps t ps = t:(rewrite_steps' t ps)
     where rewrite_steps' _ []     = []
           rewrite_steps' t (p:ps) = rewrite_steps (rewrite_step t p) ps
@@ -313,11 +302,11 @@ instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r)
               show_steps (t:ts) n = " -> " ++ show t ++ show_steps ts (succ n)
 
 initial_term :: (Signature s, Variables v, RewriteSystem s v r)
-                => ComputReduction s v r -> Term s v
+    => ComputReduction s v r -> Term s v
 initial_term (CRed (Red (x:_) _) _) = x
 
 final_term :: (Signature s, Variables v, RewriteSystem s v r)
-              => ComputReduction s v r -> Term s v
+    => ComputReduction s v r -> Term s v
 final_term (CRed (Red ts _) phi)
     = final_subterm [] 0 ts
     where final_subterm ps n ts
@@ -335,7 +324,7 @@ final_term (CRed (Red ts _) phi)
 -- Descendants and Origins
 
 descendants_of_position :: (Signature s, Variables v)
-                           => NatString -> Step s v -> [NatString]
+    => NatString -> Step s v -> [NatString]
 descendants_of_position ps (qs, (Rule l r))
     = map (\xs -> NatStr xs) (descendants' ps qs (is_prefix qs ps))
     where descendants' (NatStr ps) _ False
@@ -361,17 +350,17 @@ descendants_of_position ps (qs, (Rule l r))
                 :(new_positions' xs y ps qs (succ n))
 
 descendants_across_step :: (Signature s, Variables v)
-                           => [NatString] -> Step s v -> [NatString]
+    => [NatString] -> Step s v -> [NatString]
 descendants_across_step ps s
     = concat (map (\p -> descendants_of_position p s) ps)
 
 descendants :: (Signature s, Variables v)
-               => [NatString] -> [Step s v] -> [NatString]
+    => [NatString] -> [Step s v] -> [NatString]
 descendants ps []     = ps
 descendants ps (q:qs) = descendants (descendants_across_step ps q) qs
 
 origin_of_position :: (Signature s, Variables v)
-                      => NatString -> Step s v -> [NatString]
+    => NatString -> Step s v -> [NatString]
 origin_of_position ps (qs, (Rule l r))
     = map (\xs -> NatStr xs) (origin' ps qs (is_prefix qs ps))
     where origin' (NatStr ps) _ False
@@ -398,19 +387,19 @@ origin_of_position ps (qs, (Rule l r))
                 :(old_positions' xs y ps qs (succ n))
 
 origin_across_step :: (Signature s, Variables v)
-                      => [NatString] -> Step s v -> [NatString]
+    => [NatString] -> Step s v -> [NatString]
 origin_across_step ps s
     = nub (concat (map (\p -> origin_of_position p s) ps))
 
 -- Strip Lemma
 
 sequence_steps :: (Signature s, Variables v)
-                  => [NatString] -> RewriteRule s v -> [Step s v]
+    => [NatString] -> RewriteRule s v -> [Step s v]
 sequence_steps [] _     = []
 sequence_steps (p:ps) r = (p, r):(sequence_steps ps r)
 
 bottom_develop :: (Signature s, Variables v, RewriteSystem s v r)
-                  => ComputReduction s v r -> Step s v -> [[Step s v]]
+    => ComputReduction s v r -> Step s v -> [[Step s v]]
 bottom_develop (CRed rs _) (q, r)
     = bottom_develop' rs q
     where bottom_develop' (Red _ ps) q
@@ -425,18 +414,17 @@ bottom_develop (CRed rs _) (q, r)
                     descendants_qs = descendants qs [(p, r')]
 
 bottom_steps :: (Signature s, Variables v, RewriteSystem s v r)
-                => ComputReduction s v r -> Step s v -> [Step s v]
+    => ComputReduction s v r -> Step s v -> [Step s v]
 bottom_steps rs s
     = concat (bottom_develop rs s)
 
 bottom_modulus :: (Signature s, Variables v, RewriteSystem s v r)
-                  => ComputReduction s v r -> Step s v -> Modulus
+    => ComputReduction s v r -> Step s v -> Modulus
 bottom_modulus rs@(CRed _ phi) s@(_, r) n
     = length (concat (take (phi (n + left_height r)) (bottom_develop rs s)))
 
 bottom_reduction :: (Signature s, Variables v, RewriteSystem s v r)
-                    => ComputReduction s v r -> Step s v
-                    -> ComputReduction s v r
+    => ComputReduction s v r -> Step s v -> ComputReduction s v r
 bottom_reduction r s
     = CRed reduction modulus
     where reduction = Red terms steps
@@ -445,7 +433,7 @@ bottom_reduction r s
           modulus = bottom_modulus r s
 
 right_develop :: (Signature s, Variables v, RewriteSystem s v r)
-                 => ComputReduction s v r -> Step s v -> [[Step s v]]
+    => ComputReduction s v r -> Step s v -> [[Step s v]]
 right_develop (CRed rs phi) (q, r)
     = right_develop' rs q r
     where right_develop' (Red _ ps) q r
@@ -465,18 +453,17 @@ right_develop (CRed rs phi) (q, r)
                     right_steps = sequence_steps descendants_d r
 
 right_steps :: (Signature s, Variables v, RewriteSystem s v r)
-               => ComputReduction s v r -> Step s v -> [Step s v]
+    => ComputReduction s v r -> Step s v -> [Step s v]
 right_steps rs s
     = concat (right_develop rs s)
 
 right_modulus :: (Signature s, Variables v, RewriteSystem s v r)
-                 => ComputReduction s v r -> Step s v -> Modulus
+    => ComputReduction s v r -> Step s v -> Modulus
 right_modulus rs s n
     = length (concat (take (succ n) (right_develop rs s)))
 
 right_reduction :: (Signature s, Variables v, RewriteSystem s v r)
-                   => ComputReduction s v r -> Step s v
-                   -> ComputReduction s v r
+    => ComputReduction s v r -> Step s v -> ComputReduction s v r
 right_reduction r s
     = CRed reduction modulus
     where reduction = Red terms steps
@@ -492,7 +479,7 @@ strip_lemma _ r s = (bottom_reduction r s, right_reduction r s)
 -- Confluence
 
 accumulate_essential :: (Signature s, Variables v, RewriteSystem s v r)
-                    => ComputReduction s v r -> Int -> ([Step s v], [NatString])
+    => ComputReduction s v r -> Int -> ([Step s v], [NatString])
 accumulate_essential s@(CRed (Red ss ps) phi) d
     = needed_steps used_steps last_pos
     where used_steps = take (phi d) ps
