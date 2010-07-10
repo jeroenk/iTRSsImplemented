@@ -259,9 +259,8 @@ class (Signature s, Variables v) => RewriteSystem s v r where
 
 -- Reductions
 --
--- Remark that we do not represent the final term of a reduction in case the
--- reduction is of length omega, as the term might be uncomputable in that
--- case.
+-- Remark that we do not represent the final term of a reduction. In case the
+-- reduction is of length omega, the term might be uncomputable.
 --
 -- We assume the steps and terms in reductions to be indexed starting from 0.
 
