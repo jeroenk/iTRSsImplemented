@@ -19,7 +19,7 @@ data OrdinalType
 class SystemOfNotation o where
     k :: o -> OrdinalType
     p :: o -> o
-    q :: o -> (o -> o)
+    q :: o -> (Int -> o)
     to_int :: o -> Int
 
 get_limit_pred :: (SystemOfNotation o) => o -> o
@@ -31,7 +31,7 @@ get_limit_pred n = get_limit_pred' (k n) n
 class SystemOfNotation o => UnivalentSystem o where
     leq  :: o -> o -> Bool
     zero :: o      -- Existence follows by univalence
-    suco :: o -> o -- Existence follows by univalence
+    suc  :: o -> o -- Existence follows by univalence
 
 -- Signatures and variables
 
@@ -87,6 +87,15 @@ instance Eq NatString where
 
 instance Show NatString where
     show (NatStr ns) = show ns
+
+get_symbol :: (Signature s, Variables v) => Term s v -> NatString -> Symbol s v
+get_symbol (Function f _) (NatStr [])
+    = FunctionSymbol f
+get_symbol (Function f xs) (NatStr (n:ns))
+    | 1 <= n && n <= arity f = get_symbol (xs!n) (NatStr ns)
+    | otherwise              = error "Getting symbol at non-existing position"
+get_symbol (Variable x) (NatStr [])
+    = VariableSymbol x
 
 -- Substitutions
 
@@ -178,23 +187,21 @@ class (Signature s, Variables v) => RewriteSystem s v r where
 --
 -- Remark that we do not represent the final term of a reduction. In case the
 -- reduction is of limit ordinal length, the term might be uncomputable.
---
--- We assume the steps and terms in reductions to be indexed starting from 0.
 
 data (Signature s, Variables v, RewriteSystem s v r, UnivalentSystem o)
      => Reduction s v r o
-    = Red [Term s v] [Step s v]
+    = Red [Term s v] [Step s v] o
 
 show_reduction_from :: (MyShow s, MyShow v, Signature s, Variables v,
                         RewriteSystem s v r, UnivalentSystem o)
                        => (Reduction s v r o) -> o -> String
-show_reduction_from (Red ss _) n = show' n True
+show_reduction_from (Red ss _ _) n = show' n True
     where show' n True
-              | indexof n' ss = show (ss!!n') ++ show' (suco n) False
+              | indexof n' ss = show (ss!!n') ++ show' (suc n) False
               | otherwise    = ""
                   where n' = to_int n
           show' n False
-              | indexof n' ss = " -> " ++ show (ss!!n') ++ show' (suco n) False
+              | indexof n' ss = " -> " ++ show (ss!!n') ++ show' (suc n) False
               | otherwise    = ""
                   where n' = to_int n
           indexof n []     = False
@@ -204,30 +211,61 @@ show_reduction_from (Red ss _) n = show' n True
 instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r,
           UnivalentSystem o)
          => Show (Reduction s v r o) where
-    show ss = show_reduction_from ss zero
+    show ss@(Red _ _ z) = show_reduction_from ss z
+
+type Modulus o = o -> Int -> o
+
+data (Signature s, Variables v, RewriteSystem s v r, UnivalentSystem o)
+     => ComputReduction s v r o
+    = CRed (Reduction s v r o) (Modulus o)
+
+instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r,
+          UnivalentSystem o)
+         => Show (ComputReduction s v r o) where
+    show (CRed ss _) = show ss -- No termination detection based on depth
+
+initial_term :: (Signature s, Variables v, RewriteSystem s v r,
+                 UnivalentSystem o)
+    => ComputReduction s v r o -> Term s v
+initial_term (CRed (Red ss _ z) _) = ss!!(to_int z)
+
+final_term :: (Signature s, Variables v, RewriteSystem s v r, UnivalentSystem o)
+    => ComputReduction s v r o -> Term s v
+final_term (CRed (Red ts _ _) phi)
+    = final_subterm []
+    where final_subterm ps
+              = root root_symbol ps
+                  where n = phi zero (length ps)
+                        root_symbol = get_symbol (ts!!(to_int n)) (NatStr ps)
+          root (FunctionSymbol f) ps
+              = Function f (subterms (arity f) ps)
+          root (VariableSymbol x) _
+              = Variable x
+          subterms a ps
+              = array (1, a) [(i, final_subterm (ps ++ [i])) | i <- [1..a]]
 
 -- Examples
 
-type OmegaTwoPlusOne = Int
+data OmegaTwoPlusOne = OmegaTwoPlusOneElement Int
 
 instance SystemOfNotation OmegaTwoPlusOne where
-    k n
+    k (OmegaTwoPlusOneElement n)
         | n == 0    = LimitOrdinal      -- omega.2
         | n == 1    = LimitOrdinal      -- omega
         | n == 2    = ZeroOrdinal       -- 0
         | otherwise = SuccessorOrdinal  -- even: n; odd: omega + n
-    p n
-        | n > 2     = n - 2
+    p  (OmegaTwoPlusOneElement n)
+        | n > 2     = OmegaTwoPlusOneElement (n - 2)
         | otherwise = error("Predeccessor undefined")
-    q n
-        | n == 0    = (\m -> (2 * m) + 3)
-        | n == 1    = (\m -> (2 * m) + 2)
+    q  (OmegaTwoPlusOneElement n)
+        | n == 0    = (\m -> OmegaTwoPlusOneElement ((2 * m) + 3))
+        | n == 1    = (\m -> OmegaTwoPlusOneElement ((2 * m) + 2))
         | otherwise = error("Limit function undefined")
-    to_int n
+    to_int  (OmegaTwoPlusOneElement n)
         = n
 
 instance UnivalentSystem OmegaTwoPlusOne where
-    leq m n
+    leq  (OmegaTwoPlusOneElement m)  (OmegaTwoPlusOneElement n)
         | n == m                                   = True
         | n == 0                                   = True
         | n == 1 && m > 0              && (even m) = True
@@ -237,12 +275,12 @@ instance UnivalentSystem OmegaTwoPlusOne where
         | n > 2  && m > 2  && (even n) && (even m) = m <= n
         | otherwise                                = False
     zero
-       = 2
-    suco n
+       = OmegaTwoPlusOneElement 2
+    suc (OmegaTwoPlusOneElement n)
        | n == 0    = error("omega.2 does not have a successor")
-       | n == 1    = 3
-       | n == 2    = 4
-       | otherwise = n + 2
+       | n == 1    = OmegaTwoPlusOneElement 3
+       | n == 2    = OmegaTwoPlusOneElement 4
+       | otherwise = OmegaTwoPlusOneElement (n + 2)
 
 type Standard_Term         = Term Char Char
 type Standard_Substitution = Substitution Char Char
@@ -282,7 +320,7 @@ instance RewriteSystem Char Char System_1 where
     rules Sys1 = [rule_1]
 
 red_1 :: Reduction Char Char System_1 OmegaTwoPlusOne
-red_1 = Red ts (zip ps rs)
+red_1 = Red ts (zip ps rs) zero
     where ps = step 0
               where step 0 = error("undefined step") : step 1
                     step n
@@ -305,4 +343,10 @@ red_1 = Red ts (zip ps rs)
                                   c_f t = Function 'f' (array (1, 1) [(1, t)])
                                   c_g t = Function 'g' (array (1, 1) [(1, t)])
 
-show_steps (Red _ s) = s
+cred_1 = CRed red_1 modulus
+    where modulus (OmegaTwoPlusOneElement n)
+              | n == 1 = (\m -> OmegaTwoPlusOneElement (4 + (m * 2)))
+              | n == 2 = (\m -> OmegaTwoPlusOneElement (3 + (m * 2)))
+              | otherwise = error("Invalid input to modulus")
+
+show_steps (Red _ s _) = s
