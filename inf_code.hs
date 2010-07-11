@@ -123,9 +123,8 @@ pos_to_depth (Function _ xs) d
           prefix_positions (x:xs) n
               = (map (prefix_position n) x):(prefix_positions xs (succ n))
           ptd t = pos_to_depth t (d - 1)
-pos (Variable _) d
+pos_to_depth (Variable _) d
     = [NatStr []]
-
 
 non_variable_pos :: (Signature s, Variables v) => Term s v -> [NatString]
 non_variable_pos (Function _ xs)
@@ -471,7 +470,7 @@ right_reduction r s
           modulus = right_modulus r s
 
 strip_lemma :: (Signature s, Variables v, RewriteSystem s v r)
-               => r -> ComputReduction s v r -> Step s v
+    => r -> ComputReduction s v r -> Step s v
                -> (ComputReduction s v r, ComputReduction s v r)
 strip_lemma _ r s = (bottom_reduction r s, right_reduction r s)
 
@@ -479,10 +478,10 @@ strip_lemma _ r s = (bottom_reduction r s, right_reduction r s)
 
 accumulate_essential :: (Signature s, Variables v, RewriteSystem s v r)
     => ComputReduction s v r -> Int -> ([Step s v], [NatString])
-accumulate_essential s@(CRed (Red ss ps) phi) d
+accumulate_essential (CRed (Red ts ps) phi) d
     = needed_steps used_steps last_pos
     where used_steps = take (phi d) ps
-          last_term  = last (rewrite_steps (head ss) used_steps)
+          last_term  = last (rewrite_steps (head ts) used_steps)
           last_pos   = pos_to_depth last_term d
           needed_steps [] qs
               = ([], qs)
@@ -495,22 +494,21 @@ accumulate_essential s@(CRed (Red ss ps) phi) d
                         | otherwise        = ps'
 
 needed_depth :: (Signature s, Variables v, RewriteSystem s v r)
-                => ComputReduction s v r -> Int -> Int
+    => ComputReduction s v r -> Int -> Int
 needed_depth s d = maximum (map string_length (snd (accumulate_essential s d)))
 
 get_steps_to_depth :: (Signature s, Variables v, RewriteSystem s v r)
-                      => ComputReduction s v r -> Int -> [Step s v]
+    => ComputReduction s v r -> Int -> [Step s v]
 get_steps_to_depth s d = fst (accumulate_essential s d)
 
 filter_steps :: (Signature s, Variables v, RewriteSystem s v r)
-                => r -> ComputReduction s v r -> [Step s v] -> Int -> [Step s v]
+    => r -> ComputReduction s v r -> [Step s v] -> Int -> [Step s v]
 filter_steps r s [] d     = get_steps_to_depth s d
 filter_steps r s (p:ps) d = filter_steps r s' ps d
     where s' = fst (strip_lemma r s p)
 
 confl_devel :: (Signature s, Variables v, RewriteSystem s v r)
-               => r -> ComputReduction s v r -> ComputReduction s v r
-               -> [[Step s v]]
+    => r -> ComputReduction s v r -> ComputReduction s v r -> [[Step s v]]
 confl_devel r (CRed (Red _ ps) phi_s) t
     = confl_devel' t ps 0 0 []
     where confl_devel' t ps d n prev
@@ -522,17 +520,15 @@ confl_devel r (CRed (Red _ ps) phi_s) t
                           t' = fst (strip_lemma r t (head ps))
 
 confl_steps :: (Signature s, Variables v, RewriteSystem s v r)
-               => r -> ComputReduction s v r -> ComputReduction s v r
-               -> [Step s v]
+    => r -> ComputReduction s v r -> ComputReduction s v r -> [Step s v]
 confl_steps r s t = concat (confl_devel r s t)
 
 confl_modulus :: (Signature s, Variables v, RewriteSystem s v r)
-                 => r -> ComputReduction s v r
-                 -> ComputReduction s v r -> Modulus
+    => r -> ComputReduction s v r -> ComputReduction s v r -> Modulus
 confl_modulus r s t n = length (concat (take (succ n) (confl_devel r s t)))
 
 confl_side :: (Signature s, Variables v, RewriteSystem s v r)
-              => r -> ComputReduction s v r -> ComputReduction s v r
+    => r -> ComputReduction s v r -> ComputReduction s v r
               -> ComputReduction s v r
 confl_side r s t = CRed reduction modulus
     where reduction = Red terms steps
@@ -541,7 +537,7 @@ confl_side r s t = CRed reduction modulus
           modulus = confl_modulus r s t
 
 confluence :: (Signature s, Variables v, RewriteSystem s v r)
-              => r -> (ComputReduction s v r, ComputReduction s v r)
+    => r -> (ComputReduction s v r, ComputReduction s v r)
               -> (ComputReduction s v r, ComputReduction s v r)
 confluence r (s, t) = (confl_side r s t, confl_side r t s)
 

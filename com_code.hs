@@ -13,8 +13,14 @@ instance MyShow Char where
 
 data OrdinalType
     = ZeroOrdinal
-    | SuccessorOrdinal
+    | SuccOrdinal
     | LimitOrdinal
+
+instance Eq OrdinalType where
+    ZeroOrdinal == ZeroOrdinal   = True
+    SuccOrdinal == SuccOrdinal   = True
+    LimitOrdinal == LimitOrdinal = True
+    _ == _                       = False
 
 class SystemOfNotation o where
     k :: o -> OrdinalType
@@ -24,14 +30,36 @@ class SystemOfNotation o where
 
 get_limit_pred :: (SystemOfNotation o) => o -> o
 get_limit_pred n = get_limit_pred' (k n) n
-    where get_limit_pred' ZeroOrdinal n      = n
-          get_limit_pred' SuccessorOrdinal n = get_limit_pred (p n)
-          get_limit_pred' LimitOrdinal n     = n
+    where get_limit_pred' ZeroOrdinal n  = n
+          get_limit_pred' SuccOrdinal n  = get_limit_pred (p n)
+          get_limit_pred' LimitOrdinal n = n
 
 class SystemOfNotation o => UnivalentSystem o where
     leq  :: o -> o -> Bool
     zero :: o      -- Existence follows by univalence
     suc  :: o -> o -- Existence follows by univalence
+
+data Omega = OmegaElement Int
+
+instance SystemOfNotation Omega where
+    k (OmegaElement n)
+        | n == 0    = ZeroOrdinal
+        | otherwise = SuccOrdinal
+    p  (OmegaElement n)
+        | n > 0     = OmegaElement (n - 1)
+        | otherwise = error("Predeccessor undefined")
+    q  (OmegaElement n)
+        = error("Limit function undefined")
+    to_int  (OmegaElement n)
+        = n
+
+instance UnivalentSystem Omega where
+    leq (OmegaElement m)  (OmegaElement n)
+        = m <= n
+    zero
+        = OmegaElement 0
+    suc (OmegaElement n)
+        = OmegaElement (n + 1)
 
 -- Signatures and variables
 
@@ -69,15 +97,6 @@ instance (MyShow s, MyShow v, Signature s, Variables v)
                   show' (x:xs) False = "," ++ show x ++ show' xs False
     show (Variable v)   = myshow v
 
-position_of_term :: (Signature s, Variables v) => Term s v -> NatString -> Bool
-position_of_term _ (NatStr [])
-    = True
-position_of_term (Function f xs) (NatStr (n:ns))
-    | n < 1 || n > arity f = False
-    | otherwise            = position_of_term (xs!n) (NatStr ns)
-position_of_term (Variable _) (NatStr (_:_))
-    = False
-
 -- Strings of natural numbers
 
 data NatString = NatStr [Int]
@@ -87,6 +106,49 @@ instance Eq NatString where
 
 instance Show NatString where
     show (NatStr ns) = show ns
+
+string_length :: NatString -> Int
+string_length (NatStr ns) = length ns
+
+prefix_position :: Int -> NatString -> NatString
+prefix_position n (NatStr ns) = NatStr (n:ns)
+
+is_prefix :: NatString -> NatString -> Bool
+is_prefix (NatStr ns) (NatStr ms) = is_prefix' ns ms
+    where is_prefix' [] _          = True
+          is_prefix' (_:_) []      = False
+          is_prefix' (n:ns) (m:ms) = if n == m then is_prefix' ns ms else False
+
+position_of_term :: (Signature s, Variables v) => Term s v -> NatString -> Bool
+position_of_term _ (NatStr [])
+    = True
+position_of_term (Function f xs) (NatStr (n:ns))
+    | n < 1 || n > arity f = False
+    | otherwise            = position_of_term (xs!n) (NatStr ns)
+position_of_term (Variable _) (NatStr (_:_))
+    = False
+
+pos_to_depth :: (Signature s, Variables v) => Term s v -> Int -> [NatString]
+pos_to_depth (Function _ xs) d
+    | d == 0    = [NatStr []]
+    | otherwise = NatStr [] : concat (prefix_positions (map ptd (elems xs)) 1)
+    where prefix_positions [] _
+              = []
+          prefix_positions (x:xs) n
+              = (map (prefix_position n) x):(prefix_positions xs (succ n))
+          ptd t = pos_to_depth t (d - 1)
+pos_to_depth (Variable _) d
+    = [NatStr []]
+
+non_variable_pos :: (Signature s, Variables v) => Term s v -> [NatString]
+non_variable_pos (Function _ xs)
+    = NatStr [] : concat (prefix_positions (map non_variable_pos (elems xs)) 1)
+    where prefix_positions [] _
+              = []
+          prefix_positions (x:xs) n
+              = (map (prefix_position n) x):(prefix_positions xs (succ n))
+non_variable_pos (Variable _)
+    = []
 
 get_symbol :: (Signature s, Variables v) => Term s v -> NatString -> Symbol s v
 get_symbol (Function f _) (NatStr [])
@@ -187,6 +249,8 @@ class (Signature s, Variables v) => RewriteSystem s v r where
 --
 -- Remark that we do not represent the final term of a reduction. In case the
 -- reduction is of limit ordinal length, the term might be uncomputable.
+--
+-- The initial index of terms and steps should be equal and given explicitly.
 
 data (Signature s, Variables v, RewriteSystem s v r, UnivalentSystem o)
      => Reduction s v r o
@@ -231,11 +295,11 @@ initial_term (CRed (Red ss _ z) _) = ss!!(to_int z)
 
 final_term :: (Signature s, Variables v, RewriteSystem s v r, UnivalentSystem o)
     => ComputReduction s v r o -> Term s v
-final_term (CRed (Red ts _ _) phi)
+final_term (CRed (Red ts _ z) phi)
     = final_subterm []
     where final_subterm ps
               = root root_symbol ps
-                  where n = phi zero (length ps)
+                  where n = phi z (length ps)
                         root_symbol = get_symbol (ts!!(to_int n)) (NatStr ps)
           root (FunctionSymbol f) ps
               = Function f (subterms (arity f) ps)
@@ -244,16 +308,164 @@ final_term (CRed (Red ts _ _) phi)
           subterms a ps
               = array (1, a) [(i, final_subterm (ps ++ [i])) | i <- [1..a]]
 
+-- Descendants and Origins
+
+descendants_of_position :: (Signature s, Variables v)
+    => NatString -> Step s v -> [NatString]
+descendants_of_position ps (qs, (Rule l r))
+    = map (\xs -> NatStr xs) (descendants' ps qs (is_prefix qs ps))
+    where descendants' (NatStr ps) _ False
+              = [ps]
+          descendants' (NatStr ps) (NatStr qs) True
+              = map (\xs -> qs ++ xs) (compute_new (drop (length qs) ps))
+          compute_new ps = compute_new' ps (get_variable l ps)
+              where get_variable (Function _ _) []      = Nothing
+                    get_variable (Function _ xs) (p:ps) = get_variable (xs!p) ps
+                    get_variable (Variable x) _         = Just x
+          compute_new' ps Nothing  = []
+          compute_new' ps (Just x) = new_positions r x (get_position l ps) []
+              where get_position (Function _ xs) (p:ps) = get_position (xs!p) ps
+                    get_position (Variable _) ps        = ps
+          new_positions (Function _ xs) y ps qs
+              = concat (new_positions' (elems xs) y ps qs 1)
+          new_positions (Variable x) y ps qs
+              = if x == y then [qs ++ ps] else []
+          new_positions' [] _ _ _ _
+              = []
+          new_positions' (x:xs) y ps qs n
+              = (new_positions x y ps (qs ++ [n]))
+                :(new_positions' xs y ps qs (succ n))
+
+descendants_across_step :: (Signature s, Variables v)
+    => [NatString] -> Step s v -> [NatString]
+descendants_across_step ps s
+    = concat (map (\p -> descendants_of_position p s) ps)
+
+descendants :: (Signature s, Variables v)
+    => [NatString] -> [Step s v] -> [NatString]
+descendants ps []     = ps
+descendants ps (q:qs) = descendants (descendants_across_step ps q) qs
+
+origin_of_position :: (Signature s, Variables v)
+    => NatString -> Step s v -> [NatString]
+origin_of_position ps (qs, (Rule l r))
+    = map (\xs -> NatStr xs) (origin' ps qs (is_prefix qs ps))
+    where origin' (NatStr ps) _ False
+              = [ps]
+          origin' (NatStr ps) (NatStr qs) True
+              = map (\xs -> qs ++ xs) (compute_old (drop (length qs) ps))
+          compute_old ps = compute_old' ps (get_variable r ps)
+              where get_variable (Function _ _) []      = Nothing
+                    get_variable (Function _ xs) (p:ps) = get_variable (xs!p) ps
+                    get_variable (Variable x) _         = Just x
+          compute_old' ps Nothing  = map plain (non_variable_pos l)
+              where plain (NatStr ps) = ps
+          compute_old' ps (Just x) = old_positions l x (get_position r ps) []
+              where get_position (Function _ xs) (p:ps) = get_position (xs!p) ps
+                    get_position (Variable _) ps        = ps
+          old_positions (Function _ xs) y ps qs
+              = concat (old_positions' (elems xs) y ps qs 1)
+          old_positions (Variable x) y ps qs
+              = if x == y then [qs ++ ps] else []
+          old_positions' [] _ _ _ _
+              = []
+          old_positions' (x:xs) y ps qs n
+              = (old_positions x y ps (qs ++ [n]))
+                :(old_positions' xs y ps qs (succ n))
+
+origin_across_step :: (Signature s, Variables v)
+    => [NatString] -> Step s v -> [NatString]
+origin_across_step ps s
+    = nub (concat (map (\p -> origin_of_position p s) ps))
+
+-- Compression
+
+accumulate_essential :: (Signature s, Variables v, RewriteSystem s v r,
+                         UnivalentSystem o)
+    => ComputReduction s v r o -> Int -> [(Step s v, o)]
+accumulate_essential s@(CRed (Red _ ps z) phi) d
+    = needed_steps (pos_to_depth (final_term s) d) n (k n)
+    where n = phi z d
+          needed_steps qs n SuccOrdinal
+              | leq n z   = []
+              | otherwise = ss_new
+                  where q@(q', _) = ps!!(to_int (p n))
+                        qs_new = origin_across_step qs q
+                        ss_new
+                            | q' `elem` qs_new = ss' ++ [(q, p n)]
+                            | otherwise        = ss'
+                        ss' = needed_steps qs_new (p n) (k (p n))
+          needed_steps qs n LimitOrdinal
+              | leq n z   = []
+              | otherwise = needed_steps qs n' (k n')
+                  where n' = phi n (maximum (map string_length qs))
+          needed_steps qs n ZeroOrdinal
+              | leq n z   = []
+              | otherwise = error("Greater than 0 while being equal or smaller")
+
+filter_steps :: (Signature s, Variables v, UnivalentSystem o)
+    => [(Step s v, o)] -> [(Step s v, o)] -> [Step s v]
+filter_steps prev total = filter' prev total []
+    where filter' [] left ss = ss ++ (project_over' ss (map fst left))
+          filter' prev@((s, n):prev') ((t, m):left') ss
+              | (leq n m) && (leq m n) = filter' prev' left' ss
+              | otherwise              = filter' prev left' ss_new
+                  where ss_new = project_over' ss (project_over prev t)
+          project_over ps t = project_over' (map fst ps) [t]
+          project_over' ss []
+              = []
+          project_over' ss ((ps, r):qs)
+              = add_ss ++ (project_over' (ss ++ add_ss) qs)
+              where add_ps = descendants [ps] ss
+                    add_ss = map (\p -> (p, r)) add_ps
+
+compr_devel :: (Signature s, Variables v, RewriteSystem s v r,
+                UnivalentSystem o)
+    => ComputReduction s v r o -> [[Step s v]]
+compr_devel s = (map fst initial) : (compr_devel' 1 initial)
+    where initial
+              = accumulate_essential s 0
+          compr_devel' d prev
+              = new : (compr_devel' (succ d) total)
+                  where total = accumulate_essential s d
+                        new   = filter_steps prev total
+
+compr_steps :: (Signature s, Variables v, RewriteSystem s v r,
+                UnivalentSystem o)
+    => ComputReduction s v r o -> [Step s v]
+compr_steps s = concat (compr_devel s)
+
+compr_modulus :: (Signature s, Variables v, RewriteSystem s v r,
+                  UnivalentSystem o)
+    => ComputReduction s v r o -> (Modulus Omega)
+compr_modulus s (OmegaElement n)
+    | n == 0
+        = (\m -> OmegaElement (length (concat (take (succ m) (compr_devel s)))))
+    | otherwise
+        = error("Modulus only defined for 0")
+
+compression :: (Signature s, Variables v, RewriteSystem s v r,
+                UnivalentSystem o)
+    => r -> (ComputReduction s v r o) -> (ComputReduction s v r Omega)
+compression r s = CRed reduction modulus
+    where reduction = Red terms steps zero
+          terms = (rewrite_steps (initial_term s) steps)
+          steps = compr_steps s
+          modulus = compr_modulus s
+
 -- Examples
 
 data OmegaTwoPlusOne = OmegaTwoPlusOneElement Int
 
+instance Show OmegaTwoPlusOne where
+    show (OmegaTwoPlusOneElement n) = show n
+
 instance SystemOfNotation OmegaTwoPlusOne where
     k (OmegaTwoPlusOneElement n)
-        | n == 0    = LimitOrdinal      -- omega.2
-        | n == 1    = LimitOrdinal      -- omega
-        | n == 2    = ZeroOrdinal       -- 0
-        | otherwise = SuccessorOrdinal  -- even: n; odd: omega + n
+        | n == 0    = LimitOrdinal  -- omega.2
+        | n == 1    = LimitOrdinal  -- omega
+        | n == 2    = ZeroOrdinal   -- 0
+        | otherwise = SuccOrdinal   -- even: n; odd: omega + n
     p  (OmegaTwoPlusOneElement n)
         | n > 2     = OmegaTwoPlusOneElement (n - 2)
         | otherwise = error("Predeccessor undefined")
@@ -349,4 +561,4 @@ cred_1 = CRed red_1 modulus
               | n == 2 = (\m -> OmegaTwoPlusOneElement (3 + (m * 2)))
               | otherwise = error("Invalid input to modulus")
 
-show_steps (Red _ s _) = s
+show_steps (CRed (Red _ s _) _) = s
