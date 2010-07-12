@@ -405,19 +405,19 @@ accumulate_essential s@(CRed (Red _ ps z) phi) d
 
 filter_steps :: (Signature s, Variables v, UnivalentSystem o)
     => [(Step s v, o)] -> [(Step s v, o)] -> [Step s v]
-filter_steps prev total = filter' prev total []
-    where filter' [] left ss = ss ++ (project_over' ss (map fst left))
-          filter' prev@((s, n):prev') ((t, m):left') ss
-              | (leq n m) && (leq m n) = filter' prev' left' ss
-              | otherwise              = filter' prev left' ss_new
-                  where ss_new = project_over' ss (project_over prev t)
-          project_over ps t = project_over' (map fst ps) [t]
-          project_over' ss []
+filter_steps prev total = filter_steps' prev total []
+    where filter_steps' [] left ss =  ss ++ (map fst left)
+          filter_steps' prev@((s, n):prev') ((t, m):left') ss
+              | (leq n m) && (leq m n)
+                  = filter_steps' prev' left' (project_over [s] ss)
+              | otherwise
+                  = filter_steps' prev left' (ss ++ [t])
+          project_over ss []
               = []
-          project_over' ss ((ps, r):qs)
-              = add_ss ++ (project_over' (ss ++ add_ss) qs)
-              where add_ps = descendants [ps] ss
-                    add_ss = map (\p -> (p, r)) add_ps
+          project_over ss ((ps, r):qs)
+              = ss_new ++ (project_over ss_new qs)
+              where ps_add = descendants [ps] ss
+                    ss_new = map (\p -> (p, r)) ps_add
 
 compr_devel :: (Signature s, Variables v, RewriteSystem s v r,
                 UnivalentSystem o)
@@ -509,11 +509,17 @@ instance Signature Char where
 
 instance Variables Char
 
+a :: Standard_Term
+a = constant 'a'
+
 f_x :: Standard_Term
 f_x = Function 'f' (array (1, 1) [(1, Variable 'x')])
 
 g_x :: Standard_Term
 g_x = Function 'g' (array (1, 1) [(1, Variable 'x')])
+
+f_a :: Standard_Term
+f_a = Function 'f' (array (1, 1) [(1, constant 'a')])
 
 f_omega :: Standard_Term
 f_omega = Function 'f' (array (1, 1) [(1, f_omega)])
@@ -526,10 +532,17 @@ g_f_omega = Function 'g' (array (1, 1) [(1, f_g_omega)])
 
 rule_1 = Rule f_x g_x
 
+rule_2 = Rule a f_a
+
 data System_1 = Sys1
 
 instance RewriteSystem Char Char System_1 where
     rules Sys1 = [rule_1]
+
+data System_2 = Sys2
+
+instance RewriteSystem Char Char System_2 where
+    rules Sys2 = [rule_1, rule_2]
 
 red_1 :: Reduction Char Char System_1 OmegaTwoPlusOne
 red_1 = Red ts (zip ps rs) zero
@@ -555,7 +568,37 @@ red_1 = Red ts (zip ps rs) zero
                                   c_f t = Function 'f' (array (1, 1) [(1, t)])
                                   c_g t = Function 'g' (array (1, 1) [(1, t)])
 
+red_2 :: Reduction Char Char System_2 OmegaTwoPlusOne
+red_2 = Red ts (zip ps rs) zero
+    where ps = step 0
+              where step 0 = error("undefined step") : step 1
+                    step n
+                        | even n = NatStr (ones ((n - 2) `div` 2))
+                                   : step (n + 1)
+                        | odd n  = NatStr (ones ((n - 1) `div` 2))
+                                   : step (n + 1)
+                            where ones 0 = []
+                                  ones n = 1 : (ones (n - 1))
+          rs = rule_2 : rule_1 : rs
+          ts = term 0
+              where term 0 = error("Undefined term") : term 1
+                    term n
+                        | even n = f_n (n `div` 2 - 1) : term (n + 1)
+                        | odd n  = g_n ((n - 1) `div` 2) : term (n + 1)
+                            where f_n 0 = a
+                                  f_n n = c_f (f_n (n - 1))
+                                  g_n 0 = f_omega
+                                  g_n n = c_g (g_n (n - 1))
+                                  c_f t = Function 'f' (array (1, 1) [(1, t)])
+                                  c_g t = Function 'g' (array (1, 1) [(1, t)]) 
+
 cred_1 = CRed red_1 modulus
+    where modulus (OmegaTwoPlusOneElement n)
+              | n == 1 = (\m -> OmegaTwoPlusOneElement (4 + (m * 2)))
+              | n == 2 = (\m -> OmegaTwoPlusOneElement (3 + (m * 2)))
+              | otherwise = error("Invalid input to modulus")
+
+cred_2 = CRed red_2 modulus
     where modulus (OmegaTwoPlusOneElement n)
               | n == 1 = (\m -> OmegaTwoPlusOneElement (4 + (m * 2)))
               | n == 2 = (\m -> OmegaTwoPlusOneElement (3 + (m * 2)))
