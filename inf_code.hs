@@ -67,7 +67,7 @@ instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r)
                   | otherwise      = (show_d ts n d) ++ (show' ts' n' d' l')
                       where n' = max n (phi d)
                             d' = succ d
-                            l' = head (drop ((n' - n) - 1) ts)
+                            l' = head (drop (n' - n) ts)
                             ts' = drop (n' - n) ts
               show_d ts n d
                   | (n' - n) < 1 = ""
