@@ -24,7 +24,6 @@ import RationalTerms
 import RulesAndSystems
 
 import Array
-import List
 
 -- Plumbing
 
@@ -96,51 +95,6 @@ final_term (CRed (Red ts _) phi)
               = Variable x
           subterms a ps n ts
               = array (1, a) [(i, final_subterm (ps ++ [i]) n ts) | i <- [1..a]]
-
--- Descendants and Origins
-
-descendants_of_position :: (Signature s, Variables v)
-    => NatString -> Step s v -> [NatString]
-descendants_of_position ns (ms, Rule l r)
-    | not (is_prefix ms ns)    = [ns]
-    | elem ns' (non_var_pos l) = []
-    | otherwise                = [ms ++ ms' ++ ns'' | ms' <- var_pos r x]
-        where ns' = drop (length ms) ns
-              (x, ns'') = get_var_and_pos l ns'
-              get_var_and_pos (Function f ts) (n:ns)
-                  | 1 <= n && n <= arity f = get_var_and_pos (ts!n) ns
-                  | otherwise              = error "Illegal descendant"
-              get_var_and_pos (Variable x) ns
-                  = (x, ns)
-
-descendants_across_step :: (Signature s, Variables v)
-    => [NatString] -> Step s v -> [NatString]
-descendants_across_step ps s
-    = concat (map (\p -> descendants_of_position p s) ps)
-
-descendants :: (Signature s, Variables v)
-    => [NatString] -> [Step s v] -> [NatString]
-descendants ps []     = ps
-descendants ps (q:qs) = descendants (descendants_across_step ps q) qs
-
-origins_of_position :: (Signature s, Variables v)
-    => NatString -> Step s v -> [NatString]
-origins_of_position ns (ms, Rule l r)
-    | not (is_prefix ms ns)    = [ns]
-    | elem ns' (non_var_pos r) = [ms ++ ms' | ms' <- non_var_pos l]
-    | otherwise                = [ms ++ ms' ++ ns'' | ms' <- var_pos l x]
-        where ns' = drop (length ms) ns
-              (x, ns'') = get_var_and_pos r ns'
-              get_var_and_pos (Function f ts) (n:ns)
-                  | 1 <= n && n <= arity f = get_var_and_pos (ts!n) ns
-                  | otherwise              = error "Illegal descendant"
-              get_var_and_pos (Variable x) ns
-                  = (x, ns)
-
-origin_across_step :: (Signature s, Variables v)
-    => [NatString] -> Step s v -> [NatString]
-origin_across_step ps s
-    = nub (concat (map (\p -> origins_of_position p s) ps))
 
 -- Strip Lemma
 
@@ -241,7 +195,7 @@ accumulate_essential (CRed (Red ts ps) phi) d
           needed_steps (p@(p', _):ps) qs
               = (ps_new, qs_new)
               where (ps', qs') = needed_steps ps qs
-                    qs_new = origin_across_step qs' p
+                    qs_new = origins_across qs' p
                     ps_new
                         | p' `elem` qs_new = p : ps'
                         | otherwise        = ps'

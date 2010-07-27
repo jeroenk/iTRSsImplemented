@@ -22,6 +22,7 @@ module RulesAndSystems (
     left_height,
     Step,
     rewrite_step, rewrite_steps,
+    descendants, origins_across,
     RewriteSystem
 ) where
 
@@ -30,6 +31,9 @@ import SignatureAndVariables
 import Terms
 import PositionsAndSubterms
 import Substitutions
+
+import Array
+import List
 
 -- Rules consist of a left-hand and a right-hand side
 data (Signature s, Variables v) => RewriteRule s v
@@ -61,6 +65,53 @@ rewrite_steps :: (Signature s, Variables v)
 rewrite_steps t ps = t:(rewrite_steps' t ps)
     where rewrite_steps' _ []     = []
           rewrite_steps' t (p:ps) = rewrite_steps (rewrite_step t p) ps
+
+-- Descendants across a rewrite step
+descendants_of_position :: (Signature s, Variables v)
+    => NatString -> Step s v -> [NatString]
+descendants_of_position ns (ms, Rule l r)
+    | not (is_prefix ms ns)    = [ns]
+    | elem ns' (non_var_pos l) = []
+    | otherwise                = [ms ++ ms' ++ ns'' | ms' <- var_pos r x]
+        where ns' = drop (length ms) ns
+              (x, ns'') = get_var_and_pos l ns'
+              get_var_and_pos (Function f ts) (n:ns)
+                  | 1 <= n && n <= arity f = get_var_and_pos (ts!n) ns
+                  | otherwise              = error "Illegal descendant"
+              get_var_and_pos (Variable x) ns
+                  = (x, ns)
+
+descendants_across :: (Signature s, Variables v)
+    => [NatString] -> Step s v -> [NatString]
+descendants_across ps s
+    = concat (map (\p -> descendants_of_position p s) ps)
+
+-- Descendants across multiple steps
+descendants :: (Signature s, Variables v)
+    => [NatString] -> [Step s v] -> [NatString]
+descendants ps []     = ps
+descendants ps (q:qs) = descendants (descendants_across ps q) qs
+
+-- Origins across a rewrite step
+
+origins_of_position :: (Signature s, Variables v)
+    => NatString -> Step s v -> [NatString]
+origins_of_position ns (ms, Rule l r)
+    | not (is_prefix ms ns)    = [ns]
+    | elem ns' (non_var_pos r) = [ms ++ ms' | ms' <- non_var_pos l]
+    | otherwise                = [ms ++ ms' ++ ns'' | ms' <- var_pos l x]
+        where ns' = drop (length ms) ns
+              (x, ns'') = get_var_and_pos r ns'
+              get_var_and_pos (Function f ts) (n:ns)
+                  | 1 <= n && n <= arity f = get_var_and_pos (ts!n) ns
+                  | otherwise              = error "Illegal descendant"
+              get_var_and_pos (Variable x) ns
+                  = (x, ns)
+
+origins_across :: (Signature s, Variables v)
+    => [NatString] -> Step s v -> [NatString]
+origins_across ps s
+    = nub (concat (map (\p -> origins_of_position p s) ps))
 
 -- A rewrite system is a singleton set with an associated rule function
 class (Signature s, Variables v) => RewriteSystem s v r where

@@ -6,7 +6,6 @@ import Substitutions
 import RulesAndSystems
 
 import Array
-import List
 
 -- Plumbing
 
@@ -128,75 +127,6 @@ final_term (CRed (Red ts _ z) phi)
           subterms a ps
               = array (1, a) [(i, final_subterm (ps ++ [i])) | i <- [1..a]]
 
--- Descendants and Origins
-
-descendants_of_position :: (Signature s, Variables v)
-    => NatString -> Step s v -> [NatString]
-descendants_of_position ps (qs, (Rule l r))
-    = descendants' ps qs (is_prefix qs ps)
-    where descendants' ps _ False
-              = [ps]
-          descendants' ps qs True
-              = map (\xs -> qs ++ xs) (compute_new (drop (length qs) ps))
-          compute_new ps = compute_new' ps (get_variable l ps)
-              where get_variable (Function _ _) []      = Nothing
-                    get_variable (Function _ xs) (p:ps) = get_variable (xs!p) ps
-                    get_variable (Variable x) _         = Just x
-          compute_new' ps Nothing  = []
-          compute_new' ps (Just x) = new_positions r x (get_position l ps) []
-              where get_position (Function _ xs) (p:ps) = get_position (xs!p) ps
-                    get_position (Variable _) ps        = ps
-          new_positions (Function _ xs) y ps qs
-              = concat (new_positions' (elems xs) y ps qs 1)
-          new_positions (Variable x) y ps qs
-              = if x == y then [qs ++ ps] else []
-          new_positions' [] _ _ _ _
-              = []
-          new_positions' (x:xs) y ps qs n
-              = (new_positions x y ps (qs ++ [n]))
-                :(new_positions' xs y ps qs (succ n))
-
-descendants_across_step :: (Signature s, Variables v)
-    => [NatString] -> Step s v -> [NatString]
-descendants_across_step ps s
-    = concat (map (\p -> descendants_of_position p s) ps)
-
-descendants :: (Signature s, Variables v)
-    => [NatString] -> [Step s v] -> [NatString]
-descendants ps []     = ps
-descendants ps (q:qs) = descendants (descendants_across_step ps q) qs
-
-origin_of_position :: (Signature s, Variables v)
-    => NatString -> Step s v -> [NatString]
-origin_of_position ps (qs, (Rule l r))
-    = origin' ps qs (is_prefix qs ps)
-    where origin' ps _ False
-              = [ps]
-          origin' ps qs True
-              = map (\xs -> qs ++ xs) (compute_old (drop (length qs) ps))
-          compute_old ps = compute_old' ps (get_variable r ps)
-              where get_variable (Function _ _) []      = Nothing
-                    get_variable (Function _ xs) (p:ps) = get_variable (xs!p) ps
-                    get_variable (Variable x) _         = Just x
-          compute_old' ps Nothing  = non_var_pos l
-          compute_old' ps (Just x) = old_positions l x (get_position r ps) []
-              where get_position (Function _ xs) (p:ps) = get_position (xs!p) ps
-                    get_position (Variable _) ps        = ps
-          old_positions (Function _ xs) y ps qs
-              = concat (old_positions' (elems xs) y ps qs 1)
-          old_positions (Variable x) y ps qs
-              = if x == y then [qs ++ ps] else []
-          old_positions' [] _ _ _ _
-              = []
-          old_positions' (x:xs) y ps qs n
-              = (old_positions x y ps (qs ++ [n]))
-                :(old_positions' xs y ps qs (succ n))
-
-origin_across_step :: (Signature s, Variables v)
-    => [NatString] -> Step s v -> [NatString]
-origin_across_step ps s
-    = nub (concat (map (\p -> origin_of_position p s) ps))
-
 -- Compression
 
 accumulate_essential :: (Signature s, Variables v, RewriteSystem s v r,
@@ -209,7 +139,7 @@ accumulate_essential s@(CRed (Red _ ps z) phi) d
               | leq n z   = []
               | otherwise = ss_new
                   where q@(q', _) = ps!!(to_int (p n))
-                        qs_new = origin_across_step qs q
+                        qs_new = origins_across qs q
                         ss_new
                             | q' `elem` qs_new = ss' ++ [(q, p n)]
                             | otherwise        = ss'
