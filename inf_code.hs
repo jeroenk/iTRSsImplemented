@@ -20,6 +20,7 @@ import SignatureAndVariables
 import Terms
 import Positions
 import Substitutions
+import RationalTerms
 
 import Array
 import List
@@ -31,22 +32,6 @@ instance MyShow Char where
 
 prefix_position :: Int -> NatString -> NatString
 prefix_position n ns = n:ns
-
--- Excursion: Rational Terms
---
--- Remark that a finite system of regular equations is a substitution where
--- the terms are not allowed to be variables.
-
-type RegularSystem s v = Substitution s v
-
-rational_term :: (Signature s, Variables v)
-    => RegularSystem s v -> v -> Term s v
-rational_term sigma x = rational (Variable x)
-    where rational (Variable x)
-              | in_substitution sigma x = rational (substitute_variable sigma x)
-              | otherwise               = (Variable x)
-          rational (Function f xs)
-              = Function f (xs // [(i, rational (xs!i)) | i <- indices xs])
 
 -- Subterms
 
