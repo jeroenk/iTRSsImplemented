@@ -21,60 +21,9 @@ import Terms
 import PositionsAndSubterms
 import Substitutions
 import RulesAndSystems
+import SystemsOfNotation
 
 import Array
-
--- Systems of notation
-
-data OrdinalType
-    = ZeroOrdinal
-    | SuccOrdinal
-    | LimitOrdinal
-
-instance Eq OrdinalType where
-    ZeroOrdinal == ZeroOrdinal   = True
-    SuccOrdinal == SuccOrdinal   = True
-    LimitOrdinal == LimitOrdinal = True
-    _ == _                       = False
-
-class SystemOfNotation o where
-    k :: o -> OrdinalType
-    p :: o -> o
-    q :: o -> (Int -> o)
-    to_int :: o -> Int
-
-get_limit_pred :: (SystemOfNotation o) => o -> o
-get_limit_pred n = get_limit_pred' (k n) n
-    where get_limit_pred' ZeroOrdinal n  = n
-          get_limit_pred' SuccOrdinal n  = get_limit_pred (p n)
-          get_limit_pred' LimitOrdinal n = n
-
-class SystemOfNotation o => UnivalentSystem o where
-    leq  :: o -> o -> Bool
-    zero :: o      -- Existence follows by univalence
-    suc  :: o -> o -- Existence follows by univalence
-
-data Omega = OmegaElement Int
-
-instance SystemOfNotation Omega where
-    k (OmegaElement n)
-        | n == 0    = ZeroOrdinal
-        | otherwise = SuccOrdinal
-    p  (OmegaElement n)
-        | n > 0     = OmegaElement (n - 1)
-        | otherwise = error("Predeccessor undefined")
-    q  (OmegaElement n)
-        = error("Limit function undefined")
-    to_int  (OmegaElement n)
-        = n
-
-instance UnivalentSystem Omega where
-    leq (OmegaElement m)  (OmegaElement n)
-        = m <= n
-    zero
-        = OmegaElement 0
-    suc (OmegaElement n)
-        = OmegaElement (n + 1)
 
 -- Reductions
 --
@@ -209,7 +158,7 @@ compression :: (Signature s, Variables v, RewriteSystem s v r,
                 UnivalentSystem o)
     => r -> (ComputReduction s v r o) -> (ComputReduction s v r Omega)
 compression r s = CRed reduction modulus
-    where reduction = Red terms steps zero
+    where reduction = Red terms steps zer
           terms = (rewrite_steps (initial_term s) steps)
           steps = compr_steps s
           modulus = compr_modulus s
@@ -250,7 +199,7 @@ instance UnivalentSystem OmegaTwoPlusOne where
         | n > 2  && m > 2  && (odd n)  && (even m) = True
         | n > 2  && m > 2  && (even n) && (even m) = m <= n
         | otherwise                                = False
-    zero
+    zer
        = OmegaTwoPlusOneElement 2
     suc (OmegaTwoPlusOneElement n)
        | n == 0    = error("omega.2 does not have a successor")
@@ -309,7 +258,7 @@ instance RewriteSystem Char Char System_2 where
     rules Sys2 = [rule_1, rule_2]
 
 red_1 :: Reduction Char Char System_1 OmegaTwoPlusOne
-red_1 = Red ts (zip ps rs) zero
+red_1 = Red ts (zip ps rs) zer
     where ps = step 0
               where step 0 = error("undefined step") : step 1
                     step n
@@ -331,7 +280,7 @@ red_1 = Red ts (zip ps rs) zero
                                   c_g t = Function 'g' (array (1, 1) [(1, t)])
 
 red_2 :: Reduction Char Char System_2 OmegaTwoPlusOne
-red_2 = Red ts (zip ps rs) zero
+red_2 = Red ts (zip ps rs) zer
     where ps = step 0
               where step 0 = error("undefined step") : step 1
                     step n
