@@ -25,14 +25,6 @@ import RulesAndSystems
 
 import Array
 
--- Plumbing
-
-instance MyShow Char where
-    myshow x = [x]
-
-prefix_position :: Int -> NatString -> NatString
-prefix_position n ns = n:ns
-
 -- Reductions
 --
 -- Remark that we do not represent the final term of a reduction. In case the
@@ -249,6 +241,12 @@ confluence :: (Signature s, Variables v, RewriteSystem s v r)
 confluence r (s, t) = (confl_side r s t, confl_side r t s)
 
 -- Examples
+
+instance MyShow Char where
+    myshow x = [x]
+
+prefix_position :: Int -> NatString -> NatString
+prefix_position n ns = n:ns
 
 type Standard_Term         = Term Char Char
 type Standard_Substitution = Substitution Char Char
