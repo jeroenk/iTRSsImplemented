@@ -3,6 +3,7 @@ import SignatureAndVariables
 import Terms
 import PositionsAndSubterms
 import Substitutions
+import RulesAndSystems
 
 import Array
 import List
@@ -63,35 +64,6 @@ instance UnivalentSystem Omega where
         = OmegaElement 0
     suc (OmegaElement n)
         = OmegaElement (n + 1)
-
--- Rewrite rules and systems
-
-data (Signature s, Variables v) => RewriteRule s v
-    = Rule (Term s v) (Term s v)
-
-instance (MyShow s, MyShow v, Signature s, Variables v)
-         => Show (RewriteRule s v) where
-    show (Rule l r) = show l ++ " -> " ++ show r
-
-type Step s v = (NatString, RewriteRule s v)
-
-rewrite_step :: (Signature s, Variables v)
-    => Term s v -> Step s v -> Term s v
-rewrite_step t (p, Rule l r)
-    | valid_position = replace_subterm t p sigma_r
-    | otherwise      = error "Rewriting at non-existing position"
-        where valid_position = position_of_term t p
-              sigma = match l (subterm t p)
-              sigma_r = substitute sigma r
-
-rewrite_steps :: (Signature s, Variables v)
-    => Term s v -> [Step s v] -> [Term s v]
-rewrite_steps t ps = t:(rewrite_steps' t ps)
-    where rewrite_steps' _ []     = []
-          rewrite_steps' t (p:ps) = rewrite_steps (rewrite_step t p) ps
-
-class (Signature s, Variables v) => RewriteSystem s v r where
-    rules :: r -> [RewriteRule s v]
 
 -- Reductions
 --
