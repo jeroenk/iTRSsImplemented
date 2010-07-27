@@ -33,16 +33,13 @@ import Terms
 import Array
 
 -- Strings of natural numbers
-
 type NatString = [Int]
 
 -- Establish if one string is a prefix of another string
-
 is_prefix :: NatString -> NatString -> Bool
 is_prefix ns ms = ns == (take (length ns) ms)
 
 -- Establish if a position occurs in a term
-
 position_of_term :: (Signature s, Variables v)
     => Term s v -> NatString -> Bool
 position_of_term _ []
@@ -53,40 +50,39 @@ position_of_term (Function f xs) (n:ns)
 position_of_term (Variable _) (_:_)
     = False
 
--- Helper for positions of a term (satisfying certain constraints)
-
+-- Helper function for obtaining the positions of a term
+--
+-- The function processes an array of subterms based on a function f and
+-- prefixes each of the positions returned by f with the appropriate
+-- natural number (based on the location of the subterms in the array).
 subterm_pos :: (Signature s, Variables v)
-    => (Term s v -> [NatString]) -> [Term s v] -> [NatString]
-subterm_pos f ts = concat (prefix (map f ts) 1)
+    => (Term s v -> [NatString]) -> Array Int (Term s v) -> [NatString]
+subterm_pos f ts = concat (prefix (map f (elems ts)) 1)
     where prefix [] _     = []
           prefix (x:xs) n = (map (prefix_pos n) x) : (prefix xs (succ n))
               where prefix_pos n ns = n:ns
 
 -- All positions
-
 pos :: (Signature s, Variables v)
     => Term s v -> [NatString]
-pos (Function _ ts) = [] : subterm_pos pos (elems ts)
+pos (Function _ ts) = [] : subterm_pos pos ts
 pos (Variable _)    = [[]]
 
 -- Positions up to and including a certain depth
-
 pos_to_depth :: (Signature s, Variables v)
     => Term s v -> Int -> [NatString]
 pos_to_depth _ 0               = [[]]
-pos_to_depth (Function _ ts) d = [] : subterm_pos pos_to_depth' (elems ts)
+pos_to_depth (Function _ ts) d = [] : subterm_pos pos_to_depth' ts
     where pos_to_depth' t = pos_to_depth t (pred d)
 pos_to_depth (Variable _) _    = [[]]
 
 -- Non-variable positions
-
 non_variable_pos :: (Signature s, Variables v)
     => Term s v -> [NatString]
-non_variable_pos (Function _ ts) = [] : subterm_pos non_variable_pos (elems ts)
+non_variable_pos (Function _ ts) = [] : subterm_pos non_variable_pos ts
 non_variable_pos (Variable _)    = []
 
 -- Yield the symbol at a certain position
-
 get_symbol :: (Signature s, Variables v)
     => Term s v -> NatString -> Symbol s v
 get_symbol (Function f _) []

@@ -26,16 +26,13 @@ module SignatureAndVariables (
 import MyShow
 
 -- A signature is a set with an arity function
-
 class Signature s where
     arity :: s -> Int
 
 -- A set of variables has a comparison operator
-
 class Eq v => Variables v
 
 -- Symbols are either from the signature or from the set of variables
-
 data (Signature s, Variables v) => Symbol s v
     = FunctionSymbol s
     | VariableSymbol v
