@@ -45,7 +45,7 @@ instance (MyShow s, MyShow v, Signature s, Variables v)
                   show' (x:xs) False = "," ++ show x ++ show' xs False
     show (Variable v)   = myshow v
 
--- Wrapper for the definition of constant terms
+-- Wrapper for the definition of terms which are constants
 
 constant :: (Signature s, Variables v)
     => s -> Term s v
@@ -58,7 +58,8 @@ constant c
 term_height :: (Signature s, Variables v)
     => Term s v -> Int
 term_height (Function _ xs)
-    = foldl max 0 (map (\x -> 1 + term_height x) (elems xs))
+    = foldl max 0 (map term_height' (elems xs))
+    where term_height' t = 1 + term_height t
 term_height (Variable _)
     = 0
 
@@ -67,8 +68,9 @@ term_height (Variable _)
 less_height :: (Signature s, Variables v)
     => Term s v -> Int -> Bool
 less_height (Function _ xs) n
-    | n > 0     = and (map (\x -> less_height x (pred n)) (elems xs))
+    | n > 0     = and (map less_height' (elems xs))
     | otherwise = False
+        where less_height' t = less_height t (pred n)
 less_height (Variable _) n
     | n > 0     = True
     | otherwise = False
