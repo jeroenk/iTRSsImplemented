@@ -25,8 +25,8 @@ module SignatureAndVariables (
 
 import MyShow
 
--- A signature is a set with an arity function
-class Signature s where
+-- A signature is a set with an comparison operator and an arity function
+class Eq s => Signature s where
     arity :: s -> Int
 
 -- A set of variables has a comparison operator

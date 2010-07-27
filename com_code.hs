@@ -2,6 +2,7 @@ import MyShow
 import SignatureAndVariables
 import Terms
 import Positions
+import Substitutions
 
 import Array
 import List
@@ -63,43 +64,6 @@ instance UnivalentSystem Omega where
     suc (OmegaElement n)
         = OmegaElement (n + 1)
 
--- Substitutions
-
-data Substitution s v = Subst [(v, Term s v)]
-
-instance (MyShow s, MyShow v, Signature s, Variables v)
-         => Show (Substitution s v) where
-    show (Subst xs) = "{" ++ show' xs True ++ "}"
-        where show' [] _
-                  = ""
-              show' ((x, t):ss) True
-                  = "(" ++ myshow x ++ ", " ++ show t ++ ")" ++ show' ss False
-              show' ((x, t):ss) False
-                  = ", (" ++ myshow x ++ ", " ++ show t ++ ")" ++ show' ss False
-
-substitute_variable :: Variables v => Substitution s v -> v -> Term s v
-substitute_variable (Subst []) x
-    = Variable x
-substitute_variable (Subst ((y, t):ss)) x
-    = if x == y then t else substitute_variable (Subst ss) x
-
-substitute :: (Signature s, Variables v)
-    => Substitution s v -> Term s v -> Term s v
-substitute sigma (Function f xs)
-    = Function f (xs // [(i, (substitute sigma (xs!i))) | i <- indices xs])
-substitute sigma (Variable x)
-    = substitute_variable sigma x
-
-compute_substitution :: (Signature s, Variables v)
-    => Term s v -> Term s v -> Substitution s v
-compute_substitution s t = Subst (nubBy same_variable (compute s t))
-    where compute (Function f xs) (Function g ys)
-              = concat (zipWith compute (elems xs) (elems ys))
-          compute t (Variable x)
-              = [(x, t)]
-          same_variable (x, s) (y, t)
-              = x == y
-
 -- Subterms
 
 subterm :: (Signature s, Variables v) => Term s v -> NatString -> Term s v
@@ -137,7 +101,7 @@ rewrite_step t (p, Rule l r)
     | valid_position = replace_subterm t sigma_r p
     | otherwise      = error "Rewriting at non-existing position"
         where valid_position = position_of_term t p
-              sigma = compute_substitution (subterm t p) l
+              sigma = match l (subterm t p)
               sigma_r = substitute sigma r
 
 rewrite_steps :: (Signature s, Variables v)

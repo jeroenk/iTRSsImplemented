@@ -19,6 +19,7 @@ import MyShow
 import SignatureAndVariables
 import Terms
 import Positions
+import Substitutions
 
 import Array
 import List
@@ -30,49 +31,6 @@ instance MyShow Char where
 
 prefix_position :: Int -> NatString -> NatString
 prefix_position n ns = n:ns
-
--- Substitutions
-
-data Substitution s v = Subst [(v, Term s v)]
-
-instance (MyShow s, MyShow v, Signature s, Variables v)
-         => Show (Substitution s v) where
-    show (Subst xs) = "{" ++ show' xs True ++ "}"
-        where show' [] _
-                  = ""
-              show' ((x, t):ss) True
-                  = "(" ++ myshow x ++ ", " ++ show t ++ ")" ++ show' ss False
-              show' ((x, t):ss) False
-                  = ", (" ++ myshow x ++ ", " ++ show t ++ ")" ++ show' ss False
-
-in_substitution :: Variables v =>  Substitution s v -> v -> Bool
-in_substitution (Subst []) x
-    = False
-in_substitution (Subst ((y,t):ss)) x
-    = if x == y then True else in_substitution (Subst ss) x
-
-substitute_variable :: Variables v => Substitution s v -> v -> Term s v
-substitute_variable (Subst []) x
-    = Variable x
-substitute_variable (Subst ((y, t):ss)) x
-    = if x == y then t else substitute_variable (Subst ss) x
-
-substitute :: (Signature s, Variables v)
-    => Substitution s v -> Term s v -> Term s v
-substitute sigma (Function f xs)
-    = Function f (xs // [(i, (substitute sigma (xs!i))) | i <- indices xs])
-substitute sigma (Variable x)
-    = substitute_variable sigma x
-
-compute_substitution :: (Signature s, Variables v)
-    => Term s v -> Term s v -> Substitution s v
-compute_substitution s t = Subst (nubBy same_variable (compute s t))
-    where compute (Function f xs) (Function g ys)
-              = concat (zipWith compute (elems xs) (elems ys))
-          compute t (Variable x)
-              = [(x, t)]
-          same_variable (x, s) (y, t)
-              = x == y
 
 -- Excursion: Rational Terms
 --
@@ -130,7 +88,7 @@ rewrite_step t (p, Rule l r)
     | valid_position = replace_subterm t sigma_r p
     | otherwise      = error "Rewriting at non-existing position"
         where valid_position = position_of_term t p
-              sigma = compute_substitution (subterm t p) l
+              sigma = match l (subterm t p)
               sigma_r = substitute sigma r
 
 rewrite_steps :: (Signature s, Variables v)
@@ -489,10 +447,10 @@ h_x_h_a_x :: Standard_Term
 h_x_h_a_x = Function 'h' (array (1, 2) [(1, Variable 'x'), (2, h_a_x)])
 
 sigma_1 :: Standard_Substitution
-sigma_1 = Subst [('x', f_a), ('y', constant 'a'), ('z', constant 'b')]
+sigma_1 = [('x', f_a), ('y', constant 'a'), ('z', constant 'b')]
 
 sigma_2 :: Standard_Substitution
-sigma_2 = Subst [('x', f_x)]
+sigma_2 = [('x', f_x)]
 
 f_omega' :: Standard_Term
 f_omega' = rational_term sigma_2 'x'
