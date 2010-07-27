@@ -15,16 +15,18 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
--- This module defines strings of natural numbers and positions of terms
+-- This module defines positions of terms and the subterm that occur at those
+-- postitions
+--
+-- As usual, positions are represented by lists of natural numbers
 
-module Positions (
+module PositionsAndSubterms (
     NatString,
     is_prefix,
     position_of_term,
-    pos,
-    pos_to_depth,
-    non_variable_pos,
-    get_symbol
+    pos, pos_to_depth, non_variable_pos,
+    get_symbol,
+    subterm, replace_subterm
 ) where
 
 import SignatureAndVariables
@@ -94,3 +96,24 @@ get_symbol (Variable x) []
     = VariableSymbol x
 get_symbol (Variable _) _
     = error "Getting symbol at a non-existing position"
+
+-- Yield the subterm at a certain position
+subterm :: (Signature s, Variables v)
+    => Term s v -> NatString -> Term s v
+subterm s []
+    = s
+subterm (Function f xs) (n:ns)
+    | 1 <= n && n <= arity f = subterm (xs!n) ns
+    | otherwise              = error "Getting non-existing subterm"
+
+-- Replace a subterm at a certain position
+replace_subterm :: (Signature s, Variables v)
+    => Term s v -> NatString -> Term s v -> Term s v
+replace_subterm _ [] t
+    = t
+replace_subterm (Function f xs) (n:ns) t
+    | 1 <= n && n <= arity f = Function f subterms
+    | otherwise              = error "Replacing non-existing subterm"
+        where subterms = xs // [(n, replace_subterm (xs!n) ns t)]
+replace_subterm (Variable x) _ _
+    = error "Replacing non-existing subterm"

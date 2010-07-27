@@ -21,8 +21,7 @@ module Substitutions (
     Substitution,
     in_substitution,
     substitute_variable,
-    substitute,
-    match
+    substitute, match
 ) where
 
 import MyShow

@@ -20,8 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Terms (
     Term(Function, Variable),
     constant,
-    term_height,
-    less_height
+    term_height, less_height
 ) where
 
 import MyShow

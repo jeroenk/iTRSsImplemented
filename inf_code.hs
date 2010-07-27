@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import MyShow
 import SignatureAndVariables
 import Terms
-import Positions
+import PositionsAndSubterms
 import Substitutions
 import RationalTerms
 
@@ -32,26 +32,6 @@ instance MyShow Char where
 
 prefix_position :: Int -> NatString -> NatString
 prefix_position n ns = n:ns
-
--- Subterms
-
-subterm :: (Signature s, Variables v) => Term s v -> NatString -> Term s v
-subterm s []
-    = s
-subterm (Function f xs) (n:ns)
-    | 1 <= n && n <= arity f = subterm (xs!n) ns
-    | otherwise              = error "Getting non-existing subterm"
-
-replace_subterm :: (Signature s, Variables v)
-    => Term s v -> Term s v -> NatString -> Term s v
-replace_subterm _ t []
-    = t
-replace_subterm (Function f xs) t (n:ns)
-    | 1 <= n && n <= arity f = Function f subterms
-    | otherwise              = error "Replacing non-existing subterm"
-        where subterms = xs // [(n, replace_subterm (xs!n) t ns)]
-replace_subterm (Variable x) t _
-    = (Variable x)
 
 -- Rewrite rules and systems
 
@@ -70,7 +50,7 @@ type Step s v = (NatString, RewriteRule s v)
 rewrite_step :: (Signature s, Variables v)
     => Term s v -> Step s v -> Term s v
 rewrite_step t (p, Rule l r)
-    | valid_position = replace_subterm t sigma_r p
+    | valid_position = replace_subterm t p sigma_r
     | otherwise      = error "Rewriting at non-existing position"
         where valid_position = position_of_term t p
               sigma = match l (subterm t p)
