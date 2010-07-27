@@ -50,10 +50,10 @@ type Step s v = (NatString, RewriteRule s v)
 -- Apply a rewrite rule to a term
 rewrite_step :: (Signature s, Variables v)
     => Term s v -> Step s v -> Term s v
-rewrite_step t (p, Rule l r)
-    | position_of_term t p = replace_subterm t p sigma_r
-    | otherwise            = error "Rewriting at non-existing position"
-        where sigma_r = substitute (match l (subterm t p)) r
+rewrite_step t (ns, Rule l r)
+    | position_of_term t ns = replace_subterm t ns sigma_r
+    | otherwise             = error "Rewriting at non-existing position"
+        where sigma_r = substitute (match l (subterm t ns)) r
 
 -- Apply multiple rewrite steps in sequence, yielding a list of terms 
 rewrite_steps :: (Signature s, Variables v)

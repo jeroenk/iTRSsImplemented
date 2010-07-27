@@ -41,5 +41,5 @@ rational_term sigma x = rational (Variable x)
     where rational (Variable x)
               | in_substitution sigma x = rational (substitute_variable sigma x)
               | otherwise               = Variable x
-          rational (Function f xs)
-              = Function f (xs // [(i, rational (xs!i)) | i <- indices xs])
+          rational (Function f ts)
+              = Function f (ts // [(i, rational (ts!i)) | i <- indices ts])

@@ -101,29 +101,17 @@ final_term (CRed (Red ts _) phi)
 
 descendants_of_position :: (Signature s, Variables v)
     => NatString -> Step s v -> [NatString]
-descendants_of_position ps (qs, (Rule l r))
-    = descendants' ps qs (is_prefix qs ps)
-    where descendants' ps _ False
-              = [ps]
-          descendants' ps qs True
-              = map (\xs -> qs ++ xs) (compute_new (drop (length qs) ps))
-          compute_new ps = compute_new' ps (get_variable l ps)
-              where get_variable (Function _ _) []      = Nothing
-                    get_variable (Function _ xs) (p:ps) = get_variable (xs!p) ps
-                    get_variable (Variable x) _         = Just x
-          compute_new' ps Nothing  = []
-          compute_new' ps (Just x) = new_positions r x (get_position l ps) []
-              where get_position (Function _ xs) (p:ps) = get_position (xs!p) ps
-                    get_position (Variable _) ps        = ps
-          new_positions (Function _ xs) y ps qs
-              = concat (new_positions' (elems xs) y ps qs 1)
-          new_positions (Variable x) y ps qs
-              = if x == y then [qs ++ ps] else []
-          new_positions' [] _ _ _ _
-              = []
-          new_positions' (x:xs) y ps qs n
-              = (new_positions x y ps (qs ++ [n]))
-                :(new_positions' xs y ps qs (succ n))
+descendants_of_position ns (ms, Rule l r)
+    | not (is_prefix ms ns)    = [ns]
+    | elem ns' (non_var_pos l) = []
+    | otherwise                = [ms ++ ms' ++ ns'' | ms' <- var_pos r x]
+        where ns' = drop (length ms) ns
+              (x, ns'') = get_var_and_pos l ns'
+              get_var_and_pos (Function f ts) (n:ns)
+                  | 1 <= n && n <= arity f = get_var_and_pos (ts!n) ns
+                  | otherwise              = error "Illegal descendant"
+              get_var_and_pos (Variable x) ns
+                  = (x, ns)
 
 descendants_across_step :: (Signature s, Variables v)
     => [NatString] -> Step s v -> [NatString]
@@ -135,36 +123,24 @@ descendants :: (Signature s, Variables v)
 descendants ps []     = ps
 descendants ps (q:qs) = descendants (descendants_across_step ps q) qs
 
-origin_of_position :: (Signature s, Variables v)
+origins_of_position :: (Signature s, Variables v)
     => NatString -> Step s v -> [NatString]
-origin_of_position ps (qs, (Rule l r))
-    = origin' ps qs (is_prefix qs ps)
-    where origin' ps _ False
-              = [ps]
-          origin' ps qs True
-              = map (\xs -> qs ++ xs) (compute_old (drop (length qs) ps))
-          compute_old ps = compute_old' ps (get_variable r ps)
-              where get_variable (Function _ _) []      = Nothing
-                    get_variable (Function _ xs) (p:ps) = get_variable (xs!p) ps
-                    get_variable (Variable x) _         = Just x
-          compute_old' ps Nothing  = non_variable_pos l
-          compute_old' ps (Just x) = old_positions l x (get_position r ps) []
-              where get_position (Function _ xs) (p:ps) = get_position (xs!p) ps
-                    get_position (Variable _) ps        = ps
-          old_positions (Function _ xs) y ps qs
-              = concat (old_positions' (elems xs) y ps qs 1)
-          old_positions (Variable x) y ps qs
-              = if x == y then [qs ++ ps] else []
-          old_positions' [] _ _ _ _
-              = []
-          old_positions' (x:xs) y ps qs n
-              = (old_positions x y ps (qs ++ [n]))
-                :(old_positions' xs y ps qs (succ n))
+origins_of_position ns (ms, Rule l r)
+    | not (is_prefix ms ns)    = [ns]
+    | elem ns' (non_var_pos r) = [ms ++ ms' | ms' <- non_var_pos l]
+    | otherwise                = [ms ++ ms' ++ ns'' | ms' <- var_pos l x]
+        where ns' = drop (length ms) ns
+              (x, ns'') = get_var_and_pos r ns'
+              get_var_and_pos (Function f ts) (n:ns)
+                  | 1 <= n && n <= arity f = get_var_and_pos (ts!n) ns
+                  | otherwise              = error "Illegal descendant"
+              get_var_and_pos (Variable x) ns
+                  = (x, ns)
 
 origin_across_step :: (Signature s, Variables v)
     => [NatString] -> Step s v -> [NatString]
 origin_across_step ps s
-    = nub (concat (map (\p -> origin_of_position p s) ps))
+    = nub (concat (map (\p -> origins_of_position p s) ps))
 
 -- Strip Lemma
 

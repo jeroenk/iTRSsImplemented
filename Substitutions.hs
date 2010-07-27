@@ -55,8 +55,8 @@ substitute_variable ((y, t):sigma') x
 -- Apply a substitution to a term
 substitute :: (Signature s, Variables v)
     => Substitution s v -> Term s v -> Term s v
-substitute sigma (Function f xs)
-    = Function f (xs // [(i, substitute sigma (xs!i)) | i <- indices xs])
+substitute sigma (Function f ts)
+    = Function f (ts // [(i, substitute sigma (ts!i)) | i <- indices ts])
 substitute sigma (Variable x)
     = substitute_variable sigma x
 
@@ -64,8 +64,8 @@ substitute sigma (Variable x)
 match :: (Signature s, Variables v)
     => Term s v -> Term s v -> Substitution s v
 match s t = nubBy equal_variables (compute_match s t)
-    where compute_match (Function f xs) (Function g ys)
-              | f == g    = concat (zipWith compute_match (elems xs) (elems ys))
+    where compute_match (Function f ts) (Function g ss)
+              | f == g    = concat (zipWith compute_match (elems ts) (elems ss))
               | otherwise = error "Cannot match terms"
           compute_match (Variable x) t
               = [(x, t)]

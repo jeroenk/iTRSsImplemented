@@ -35,9 +35,9 @@ data (Signature s, Variables v) => Term s v
 
 instance (MyShow s, MyShow v, Signature s, Variables v)
     => Show (Term s v) where
-    show (Function f xs)
+    show (Function f ts)
         | arity f == 0  = myshow f
-        | otherwise     = myshow f ++ "(" ++ (show' (elems xs) True) ++ ")"
+        | otherwise     = myshow f ++ "(" ++ (show' (elems ts) True) ++ ")"
             where show' [] _         = ""
                   show' (x:xs) True  = show x ++ show' xs False
                   show' (x:xs) False = "," ++ show x ++ show' xs False
@@ -53,8 +53,8 @@ constant c
 -- The height of a term: height(t) = max {|p| : p in Pos(t)}
 term_height :: (Signature s, Variables v)
     => Term s v -> Int
-term_height (Function _ xs)
-    = foldl max 0 (map term_height' (elems xs))
+term_height (Function _ ts)
+    = foldl max 0 (map term_height' (elems ts))
     where term_height' t = 1 + term_height t
 term_height (Variable _)
     = 0
@@ -62,8 +62,8 @@ term_height (Variable _)
 -- Establish if a term t is of height less than n
 less_height :: (Signature s, Variables v)
     => Term s v -> Int -> Bool
-less_height (Function _ xs) n
-    | n > 0     = and (map less_height' (elems xs))
+less_height (Function _ ts) n
+    | n > 0     = and (map less_height' (elems ts))
     | otherwise = False
         where less_height' t = less_height t (pred n)
 less_height (Variable _) n

@@ -178,7 +178,7 @@ origin_of_position ps (qs, (Rule l r))
               where get_variable (Function _ _) []      = Nothing
                     get_variable (Function _ xs) (p:ps) = get_variable (xs!p) ps
                     get_variable (Variable x) _         = Just x
-          compute_old' ps Nothing  = non_variable_pos l
+          compute_old' ps Nothing  = non_var_pos l
           compute_old' ps (Just x) = old_positions l x (get_position r ps) []
               where get_position (Function _ xs) (p:ps) = get_position (xs!p) ps
                     get_position (Variable _) ps        = ps
