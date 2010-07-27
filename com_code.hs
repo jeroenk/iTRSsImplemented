@@ -1,6 +1,8 @@
 import MyShow
 import SignatureAndVariables
 import Terms
+import Positions
+
 import Array
 import List
 
@@ -61,68 +63,6 @@ instance UnivalentSystem Omega where
     suc (OmegaElement n)
         = OmegaElement (n + 1)
 
--- Strings of natural numbers
-
-data NatString = NatStr [Int]
-
-instance Eq NatString where
-    (NatStr ns) == (NatStr ms) = ns == ms
-
-instance Show NatString where
-    show (NatStr ns) = show ns
-
-string_length :: NatString -> Int
-string_length (NatStr ns) = length ns
-
-prefix_position :: Int -> NatString -> NatString
-prefix_position n (NatStr ns) = NatStr (n:ns)
-
-is_prefix :: NatString -> NatString -> Bool
-is_prefix (NatStr ns) (NatStr ms) = is_prefix' ns ms
-    where is_prefix' [] _          = True
-          is_prefix' (_:_) []      = False
-          is_prefix' (n:ns) (m:ms) = if n == m then is_prefix' ns ms else False
-
-position_of_term :: (Signature s, Variables v) => Term s v -> NatString -> Bool
-position_of_term _ (NatStr [])
-    = True
-position_of_term (Function f xs) (NatStr (n:ns))
-    | n < 1 || n > arity f = False
-    | otherwise            = position_of_term (xs!n) (NatStr ns)
-position_of_term (Variable _) (NatStr (_:_))
-    = False
-
-pos_to_depth :: (Signature s, Variables v) => Term s v -> Int -> [NatString]
-pos_to_depth (Function _ xs) d
-    | d == 0    = [NatStr []]
-    | otherwise = NatStr [] : concat (prefix_positions (map ptd (elems xs)) 1)
-    where prefix_positions [] _
-              = []
-          prefix_positions (x:xs) n
-              = (map (prefix_position n) x):(prefix_positions xs (succ n))
-          ptd t = pos_to_depth t (d - 1)
-pos_to_depth (Variable _) d
-    = [NatStr []]
-
-non_variable_pos :: (Signature s, Variables v) => Term s v -> [NatString]
-non_variable_pos (Function _ xs)
-    = NatStr [] : concat (prefix_positions (map non_variable_pos (elems xs)) 1)
-    where prefix_positions [] _
-              = []
-          prefix_positions (x:xs) n
-              = (map (prefix_position n) x):(prefix_positions xs (succ n))
-non_variable_pos (Variable _)
-    = []
-
-get_symbol :: (Signature s, Variables v) => Term s v -> NatString -> Symbol s v
-get_symbol (Function f _) (NatStr [])
-    = FunctionSymbol f
-get_symbol (Function f xs) (NatStr (n:ns))
-    | 1 <= n && n <= arity f = get_symbol (xs!n) (NatStr ns)
-    | otherwise              = error "Getting symbol at non-existing position"
-get_symbol (Variable x) (NatStr [])
-    = VariableSymbol x
-
 -- Substitutions
 
 data Substitution s v = Subst [(v, Term s v)]
@@ -163,20 +103,20 @@ compute_substitution s t = Subst (nubBy same_variable (compute s t))
 -- Subterms
 
 subterm :: (Signature s, Variables v) => Term s v -> NatString -> Term s v
-subterm s (NatStr [])
+subterm s []
     = s
-subterm (Function f xs) (NatStr (n:ns))
-    | 1 <= n && n <= arity f = subterm (xs!n) (NatStr ns)
+subterm (Function f xs) (n:ns)
+    | 1 <= n && n <= arity f = subterm (xs!n) ns
     | otherwise              = error "Getting non-existing subterm"
 
 replace_subterm :: (Signature s, Variables v)
     => Term s v -> Term s v -> NatString -> Term s v
-replace_subterm _ t (NatStr [])
+replace_subterm _ t []
     = t
-replace_subterm (Function f xs) t (NatStr (n:ns))
+replace_subterm (Function f xs) t (n:ns)
     | 1 <= n && n <= arity f = Function f subterms
     | otherwise              = error "Replacing non-existing subterm"
-        where subterms = xs // [(n, replace_subterm (xs!n) t (NatStr ns))]
+        where subterms = xs // [(n, replace_subterm (xs!n) t ns)]
 replace_subterm (Variable x) t _
     = (Variable x)
 
@@ -264,7 +204,7 @@ final_term (CRed (Red ts _ z) phi)
     where final_subterm ps
               = root root_symbol ps
                   where n = phi z (length ps)
-                        root_symbol = get_symbol (ts!!(to_int n)) (NatStr ps)
+                        root_symbol = get_symbol (ts!!(to_int n)) ps
           root (FunctionSymbol f) ps
               = Function f (subterms (arity f) ps)
           root (VariableSymbol x) _
@@ -277,10 +217,10 @@ final_term (CRed (Red ts _ z) phi)
 descendants_of_position :: (Signature s, Variables v)
     => NatString -> Step s v -> [NatString]
 descendants_of_position ps (qs, (Rule l r))
-    = map (\xs -> NatStr xs) (descendants' ps qs (is_prefix qs ps))
-    where descendants' (NatStr ps) _ False
+    = descendants' ps qs (is_prefix qs ps)
+    where descendants' ps _ False
               = [ps]
-          descendants' (NatStr ps) (NatStr qs) True
+          descendants' ps qs True
               = map (\xs -> qs ++ xs) (compute_new (drop (length qs) ps))
           compute_new ps = compute_new' ps (get_variable l ps)
               where get_variable (Function _ _) []      = Nothing
@@ -313,17 +253,16 @@ descendants ps (q:qs) = descendants (descendants_across_step ps q) qs
 origin_of_position :: (Signature s, Variables v)
     => NatString -> Step s v -> [NatString]
 origin_of_position ps (qs, (Rule l r))
-    = map (\xs -> NatStr xs) (origin' ps qs (is_prefix qs ps))
-    where origin' (NatStr ps) _ False
+    = origin' ps qs (is_prefix qs ps)
+    where origin' ps _ False
               = [ps]
-          origin' (NatStr ps) (NatStr qs) True
+          origin' ps qs True
               = map (\xs -> qs ++ xs) (compute_old (drop (length qs) ps))
           compute_old ps = compute_old' ps (get_variable r ps)
               where get_variable (Function _ _) []      = Nothing
                     get_variable (Function _ xs) (p:ps) = get_variable (xs!p) ps
                     get_variable (Variable x) _         = Just x
-          compute_old' ps Nothing  = map plain (non_variable_pos l)
-              where plain (NatStr ps) = ps
+          compute_old' ps Nothing  = non_variable_pos l
           compute_old' ps (Just x) = old_positions l x (get_position r ps) []
               where get_position (Function _ xs) (p:ps) = get_position (xs!p) ps
                     get_position (Variable _) ps        = ps
@@ -362,7 +301,7 @@ accumulate_essential s@(CRed (Red _ ps z) phi) d
           needed_steps qs n LimitOrdinal
               | leq n z   = []
               | otherwise = needed_steps qs n' (k n')
-                  where n' = phi n (maximum (map string_length qs))
+                  where n' = phi n (maximum (map length qs))
           needed_steps qs n ZeroOrdinal
               | leq n z   = []
               | otherwise = error("Greater than 0 while being equal or smaller")
@@ -513,10 +452,8 @@ red_1 = Red ts (zip ps rs) zero
     where ps = step 0
               where step 0 = error("undefined step") : step 1
                     step n
-                        | even n = NatStr (1 : (ones ((n `div` 2) - 1)))
-                                   : step (n + 1)
-                        | odd n  = NatStr (ones ((n - 1) `div` 2))
-                                   : step (n + 1)
+                        | even n = (1 : (ones ((n `div` 2) - 1))) : step (n + 1)
+                        | odd n  = (ones ((n - 1) `div` 2)) : step (n + 1)
                             where ones 0 = []
                                   ones n = 1 : 1: (ones (n - 1))
           rs = rule_1:rs
@@ -537,10 +474,8 @@ red_2 = Red ts (zip ps rs) zero
     where ps = step 0
               where step 0 = error("undefined step") : step 1
                     step n
-                        | even n = NatStr (ones ((n - 2) `div` 2))
-                                   : step (n + 1)
-                        | odd n  = NatStr (ones ((n - 1) `div` 2))
-                                   : step (n + 1)
+                        | even n = (ones ((n - 2) `div` 2)) : step (n + 1)
+                        | odd n  = (ones ((n - 1) `div` 2)) : step (n + 1)
                             where ones 0 = []
                                   ones n = 1 : (ones (n - 1))
           rs = rule_2 : rule_1 : rs
