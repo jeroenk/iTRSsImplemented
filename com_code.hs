@@ -1,10 +1,10 @@
+import MyShow
+import SignatureAndVariables
+import Terms
 import Array
 import List
 
 -- Plumbing
-
-class MyShow a where
-    myshow :: a -> String
 
 instance MyShow Char where
     myshow x = [x]
@@ -60,42 +60,6 @@ instance UnivalentSystem Omega where
         = OmegaElement 0
     suc (OmegaElement n)
         = OmegaElement (n + 1)
-
--- Signatures and variables
-
-class Signature s where
-    arity :: s -> Int
-
-class Eq v => Variables v
-
-data (Signature s, Variables v) => Symbol s v
-    = FunctionSymbol s
-    | VariableSymbol v
-
-instance (MyShow s, MyShow v, Signature s, Variables v)
-         => Show (Symbol s v) where
-    show (FunctionSymbol f) = myshow f
-    show (VariableSymbol x) = myshow x
-
--- Terms
-
-data (Signature s, Variables v) => Term s v
-    = Function s (Array Int (Term s v))
-    | Variable v
-
-constant :: (Signature s, Variables v) => s -> Term s v
-constant c | arity c == 0 = Function c (array (1,0) [])
-           | otherwise    = error "Input is not a constant"
-
-instance (MyShow s, MyShow v, Signature s, Variables v)
-         => Show (Term s v) where
-    show (Function f xs)
-        | arity f == 0  = myshow f
-        | otherwise     = myshow f ++ "(" ++ (show' (elems xs) True) ++ ")"
-            where show' [] _         = ""
-                  show' (x:xs) True  = show x ++ show' xs False
-                  show' (x:xs) False = "," ++ show x ++ show' xs False
-    show (Variable v)   = myshow v
 
 -- Strings of natural numbers
 

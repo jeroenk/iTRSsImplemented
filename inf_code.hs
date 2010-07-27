@@ -15,63 +15,16 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-
+import MyShow
+import SignatureAndVariables
+import Terms
 import Array
 import List
 
 -- Plumbing
 
-class MyShow a where
-    myshow :: a -> String
-
 instance MyShow Char where
     myshow x = [x]
-
--- Signatures and variables
-
-class Signature s where
-    arity :: s -> Int
-
-class Eq v => Variables v
-
-data (Signature s, Variables v) => Symbol s v
-    = FunctionSymbol s
-    | VariableSymbol v
-
-instance (MyShow s, MyShow v, Signature s, Variables v)
-         => Show (Symbol s v) where
-    show (FunctionSymbol f) = myshow f
-    show (VariableSymbol x) = myshow x
-
--- Terms
-
-data (Signature s, Variables v) => Term s v
-    = Function s (Array Int (Term s v))
-    | Variable v
-
-constant :: (Signature s, Variables v) => s -> Term s v
-constant c | arity c == 0 = Function c (array (1,0) [])
-           | otherwise    = error "Input is not a constant"
-
-instance (MyShow s, MyShow v, Signature s, Variables v)
-         => Show (Term s v) where
-    show (Function f xs)
-        | arity f == 0  = myshow f
-        | otherwise     = myshow f ++ "(" ++ (show' (elems xs) True) ++ ")"
-            where show' [] _         = ""
-                  show' (x:xs) True  = show x ++ show' xs False
-                  show' (x:xs) False = "," ++ show x ++ show' xs False
-    show (Variable v)   = myshow v
-
-term_height :: (Signature s, Variables v) => Term s v -> Int
-term_height (Function _ xs) = 1 + foldl max 0 (map term_height (elems xs))
-term_height (Variable _)    = 0
-
-less_depth :: (Signature s, Variables v) => Int -> Term s v -> Bool
-less_depth n (Function _ xs)
-    = if n <= 1 then False else and (map (less_depth (pred n)) (elems xs))
-less_depth n (Variable _)
-    = if n <= 1 then False else True
 
 -- Strings of natural numbers
 
@@ -104,14 +57,14 @@ position_of_term (Function f xs) (NatStr (n:ns))
 position_of_term (Variable _) (NatStr (_:_))
     = False
 
-positions :: (Signature s, Variables v) => Term s v -> [NatString]
-positions (Function _ xs)
-    = NatStr [] : concat (prefix_positions (map positions (elems xs)) 1)
+pos :: (Signature s, Variables v) => Term s v -> [NatString]
+pos (Function _ xs)
+    = NatStr [] : concat (prefix_positions (map pos (elems xs)) 1)
     where prefix_positions [] _
               = []
           prefix_positions (x:xs) n
               = (map (prefix_position n) x):(prefix_positions xs (succ n))
-positions (Variable _)
+pos (Variable _)
     = [NatStr []]
 
 pos_to_depth :: (Signature s, Variables v) => Term s v -> Int -> [NatString]
@@ -285,7 +238,7 @@ instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r)
         where show' [] _ _ _
                   = ""
               show' ts n d l
-                  | less_depth d l = (if n == 0 then "" else " -> ") ++ show l
+                  | less_height l d = (if n == 0 then "" else " -> ") ++ show l
                   | otherwise      = (show_d ts n d) ++ (show' ts' n' d' l')
                       where n' = max n (phi d)
                             d' = succ d
