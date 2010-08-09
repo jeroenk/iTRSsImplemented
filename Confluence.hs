@@ -211,12 +211,12 @@ confl_devel :: (Signature s, Variables v, RewriteSystem s v r)
 confl_devel r (CRed (Red _ ps) phi_s) t
     = confl_devel' t ps 0 0 []
     where confl_devel' t ps d n prev
-              | steps_needed = new:(confl_devel' t ps (succ d) n prev_new)
-              | otherwise    = confl_devel' t' (tail ps) d (succ n) prev
+              | steps_needed = steps_new:(confl_devel' t ps (succ d) n prev_new)
+              | otherwise    = confl_devel' t_new (tail ps) d (succ n) prev
                     where steps_needed = (phi_s (needed_depth t d)) <= n
-                          new = filter_steps r t prev d
-                          prev_new = prev ++ new
-                          t' = fst (strip_lemma r t (head ps))
+                          steps_new = filter_steps r t prev d
+                          prev_new = prev ++ steps_new
+                          t_new = fst (strip_lemma r t (head ps))
 
 confl_steps :: (Signature s, Variables v, RewriteSystem s v r)
     => r -> ComputReduction s v r -> ComputReduction s v r -> [Step s v]
@@ -244,9 +244,6 @@ confluence r (s, t) = (confl_side r s t, confl_side r t s)
 
 instance MyShow Char where
     myshow x = [x]
-
-prefix_position :: Int -> NatString -> NatString
-prefix_position n ns = n:ns
 
 type Standard_Term         = Term Char Char
 type Standard_Substitution = Substitution Char Char
@@ -358,13 +355,13 @@ instance RewriteSystem Char Char System_3 where
 
 red_1 :: Reduction Char Char System_3
 red_1 = Red ts (zip ps rs)
-    where ps = (iterate (\ns -> prefix_position 1 ns) [1])
+    where ps = (iterate (\ns -> 1:ns) [1])
           rs = repeat rule_5
           ts = rewrite_steps (f_a) (zip ps rs)
 
 red_2 :: Reduction Char Char System_1
 red_2 = Red ts (zip ps rs)
-    where ps = (iterate (\ns -> prefix_position 1 ns) [])
+    where ps = (iterate (\ns -> 1:ns) [])
           rs = repeat rule_1
           ts = rewrite_steps (f_omega) (zip ps rs)
 
@@ -388,13 +385,13 @@ red_5 = Red ts (zip ps rs)
 
 red_6 :: Reduction Char Char System_1
 red_6 = Red ts (zip ps rs)
-    where ps = []:(map (\p -> prefix_position 1 (prefix_position 1 p)) ps)
+    where ps = []:(map (\p -> 1:1:p) ps)
           rs = rule_1:rs
           ts = rewrite_steps f_omega (zip ps rs)
 
 red_7 :: Reduction Char Char System_1
 red_7 = Red ts (zip ps rs)
-    where ps = [1]:(map (\p -> prefix_position 1 (prefix_position 1 p)) ps)
+    where ps = [1]:(map (\p -> 1:1:p) ps)
           rs = rule_1:rs
           ts = rewrite_steps f_omega (zip ps rs)
 
