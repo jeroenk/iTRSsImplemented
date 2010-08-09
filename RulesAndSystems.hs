@@ -23,7 +23,7 @@ module RulesAndSystems (
     Step,
     rewrite_step, rewrite_steps,
     descendants, origins_across,
-    RewriteSystem
+    RewriteSystem(rules)
 ) where
 
 import MyShow
