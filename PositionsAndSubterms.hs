@@ -61,7 +61,7 @@ subterm_pos :: (Signature s, Variables v)
     => (Term s v -> [NatString]) -> Array Int (Term s v) -> [NatString]
 subterm_pos f ts = concat (prefix (map f (elems ts)) 1)
     where prefix [] _     = []
-          prefix (x:xs) n = (map (prefix_pos n) x) : (prefix xs (succ n))
+          prefix (x:xs) n = (map (prefix_pos n) x) : (prefix xs (n + 1))
               where prefix_pos n ns = n:ns
 
 -- All positions
@@ -75,7 +75,7 @@ pos_to_depth :: (Signature s, Variables v)
     => Term s v -> Int -> [NatString]
 pos_to_depth _ 0               = [[]]
 pos_to_depth (Function _ ts) d = [] : subterm_pos pos_to_depth' ts
-    where pos_to_depth' t = pos_to_depth t (pred d)
+    where pos_to_depth' t = pos_to_depth t (d - 1)
 pos_to_depth (Variable _) _    = [[]]
 
 -- Non-variable positions
@@ -90,7 +90,7 @@ var_pos :: (Signature s, Variables v)
 var_pos (Function _ ts) x = subterm_pos (\t -> var_pos t x) ts
 var_pos (Variable y) x    = if x == y then [[]] else []
 
--- Yield the symbol at a certain position
+-- Yield the symbol at a position
 get_symbol :: (Signature s, Variables v)
     => Term s v -> NatString -> Symbol s v
 get_symbol (Function f _) []
@@ -103,7 +103,7 @@ get_symbol (Variable x) []
 get_symbol (Variable _) _
     = error "Getting symbol at a non-existing position"
 
--- Yield the subterm at a certain position
+-- Yield the subterm at a position
 subterm :: (Signature s, Variables v)
     => Term s v -> NatString -> Term s v
 subterm s []

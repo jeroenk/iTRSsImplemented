@@ -20,8 +20,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Substitutions (
     Substitution,
     in_substitution,
-    substitute_variable,
-    substitute, match
+    substitute,
+    match
 ) where
 
 import MyShow
@@ -60,7 +60,7 @@ substitute sigma (Function f ts)
 substitute sigma (Variable x)
     = substitute_variable sigma x
 
--- 
+-- Match a linear term s with instance t and yield the matching substitution
 match :: (Signature s, Variables v)
     => Term s v -> Term s v -> Substitution s v
 match s t = nubBy equal_variables (compute_match s t)

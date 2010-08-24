@@ -20,7 +20,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Terms (
     Term(Function, Variable),
     constant,
-    term_height, less_height
+    term_height,
+    less_height
 ) where
 
 import MyShow
@@ -65,7 +66,7 @@ less_height :: (Signature s, Variables v)
 less_height (Function _ ts) n
     | n > 0     = and (map less_height' (elems ts))
     | otherwise = False
-        where less_height' t = less_height t (pred n)
+        where less_height' t = less_height t (n - 1)
 less_height (Variable _) n
     | n > 0     = True
     | otherwise = False

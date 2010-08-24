@@ -77,7 +77,7 @@ descendants_of_position ns (ms, Rule l r)
               (x, ns'') = get_var_and_pos l ns'
               get_var_and_pos (Function f ts) (n:ns)
                   | 1 <= n && n <= arity f = get_var_and_pos (ts!n) ns
-                  | otherwise              = error "Illegal descendant"
+                  | otherwise              = error "Illegal position"
               get_var_and_pos (Variable x) ns
                   = (x, ns)
 
@@ -104,7 +104,7 @@ origins_of_position ns (ms, Rule l r)
               (x, ns'') = get_var_and_pos r ns'
               get_var_and_pos (Function f ts) (n:ns)
                   | 1 <= n && n <= arity f = get_var_and_pos (ts!n) ns
-                  | otherwise              = error "Illegal descendant"
+                  | otherwise              = error "Illegal position"
               get_var_and_pos (Variable x) ns
                   = (x, ns)
 

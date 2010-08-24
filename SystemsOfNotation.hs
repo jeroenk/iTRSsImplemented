@@ -40,8 +40,8 @@ instance Eq OrdinalType where
 -- A system of notation defines the functions k, p, and q
 --
 -- Because we want some flexibility, we leave the actual type of a system of
--- notation unspecified (we do not default to natural numbers). We do now need
--- a way to unpack an element of the type into a natural number (to_int).
+-- notation unspecified (we do not default to natural numbers). This means we
+-- do need a way to unpack an element of the type to a natural number (to_int).
 class SystemOfNotation o where
     k :: o -> OrdinalType
     p :: o -> o
@@ -73,7 +73,7 @@ instance SystemOfNotation Omega where
         | n > 0     = OmegaElement (n - 1)
         | otherwise = error("Predeccessor undefined")
     q  (OmegaElement n)
-        = error("Limit function undefined")
+        = error("Limit function undefined") -- omega has no limit ordinals
     to_int  (OmegaElement n)
         = n
 
