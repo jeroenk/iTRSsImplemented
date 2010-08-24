@@ -22,71 +22,9 @@ import PositionsAndSubterms
 import Substitutions
 import RationalTerms
 import RulesAndSystems
+import OmegaReductions
 
 import Array
-
--- Reductions
---
--- Remark that we do not represent the final term of a reduction. In case the
--- reduction is of length omega, the term might be uncomputable.
---
--- We assume the steps and terms in reductions to be indexed starting from 0.
-
-data (Signature s, Variables v, RewriteSystem s v r) => Reduction s v r
-    = Red [Term s v] [Step s v]
-
-instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r)
-         => Show (Reduction s v r) where
-    show (Red [] _) = ""
-    show (Red ss _) = show' ss True
-        where show' [] _   = ""
-              show' (s:ss) True  = show s ++ show' ss False
-              show' (s:ss) False = " -> " ++ show s ++ show' ss False
-
-type Modulus = Int -> Int
-
-data (Signature s, Variables v, RewriteSystem s v r) => ComputReduction s v r
-    = CRed (Reduction s v r) Modulus
-
-instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r)
-         => Show (ComputReduction s v r) where
-    show (CRed (Red ts _) phi) = show' ts 0 0 (head ts)
-        where show' [] _ _ _
-                  = ""
-              show' ts n d l
-                  | less_height l d = (if n == 0 then "" else " -> ") ++ show l
-                  | otherwise      = (show_d ts n d) ++ (show' ts' n' d' l')
-                      where n' = max n (phi d)
-                            d' = succ d
-                            l' = head (drop (n' - n) ts)
-                            ts' = drop (n' - n) ts
-              show_d ts n d
-                  | (n' - n) < 1 = ""
-                  | otherwise    = show_steps (take (n' - n) ts) n
-                      where n' = max n (phi d)
-              show_steps [] _     = ""
-              show_steps (t:ts) 0 = show t ++ show_steps ts 1
-              show_steps (t:ts) n = " -> " ++ show t ++ show_steps ts (succ n)
-
-initial_term :: (Signature s, Variables v, RewriteSystem s v r)
-    => ComputReduction s v r -> Term s v
-initial_term (CRed (Red (x:_) _) _) = x
-
-final_term :: (Signature s, Variables v, RewriteSystem s v r)
-    => ComputReduction s v r -> Term s v
-final_term (CRed (Red ts _) phi)
-    = final_subterm [] 0 ts
-    where final_subterm ps n ts
-              = root root_symbol ps n' ts'
-                  where n' = max n (phi (length ps))
-                        ts' = drop (n' - n) ts
-                        root_symbol = get_symbol (head ts') ps
-          root (FunctionSymbol f) ps n ts
-              = Function f (subterms (arity f) ps n ts)
-          root (VariableSymbol x) _ _ _
-              = Variable x
-          subterms a ps n ts
-              = array (1, a) [(i, final_subterm (ps ++ [i]) n ts) | i <- [1..a]]
 
 -- Strip Lemma
 
@@ -96,10 +34,10 @@ sequence_steps [] _     = []
 sequence_steps (p:ps) r = (p, r):(sequence_steps ps r)
 
 bottom_develop :: (Signature s, Variables v, RewriteSystem s v r)
-    => ComputReduction s v r -> Step s v -> [[Step s v]]
-bottom_develop (CRed rs _) (q, r)
+    => CReduction s v r -> Step s v -> [[Step s v]]
+bottom_develop (CRConst rs _) (q, r)
     = bottom_develop' rs q
-    where bottom_develop' (Red _ ps) q
+    where bottom_develop' (RConst _ ps) q
               = steps ps [q]
           steps [] _
               = []
@@ -111,29 +49,29 @@ bottom_develop (CRed rs _) (q, r)
                     descendants_qs = descendants qs [(p, r')]
 
 bottom_steps :: (Signature s, Variables v, RewriteSystem s v r)
-    => ComputReduction s v r -> Step s v -> [Step s v]
+    => CReduction s v r -> Step s v -> [Step s v]
 bottom_steps rs s
     = concat (bottom_develop rs s)
 
 bottom_modulus :: (Signature s, Variables v, RewriteSystem s v r)
-    => ComputReduction s v r -> Step s v -> Modulus
-bottom_modulus rs@(CRed _ phi) s@(_, r) n
+    => CReduction s v r -> Step s v -> Modulus
+bottom_modulus rs@(CRConst _ phi) s@(_, r) n
     = length (concat (take (phi (n + left_height r)) (bottom_develop rs s)))
 
 bottom_reduction :: (Signature s, Variables v, RewriteSystem s v r)
-    => ComputReduction s v r -> Step s v -> ComputReduction s v r
+    => CReduction s v r -> Step s v -> CReduction s v r
 bottom_reduction r s
-    = CRed reduction modulus
-    where reduction = Red terms steps
+    = CRConst reduction modulus
+    where reduction = RConst terms steps
           terms = (rewrite_steps (rewrite_step (initial_term r) s) steps)
           steps = bottom_steps r s
           modulus = bottom_modulus r s
 
 right_develop :: (Signature s, Variables v, RewriteSystem s v r)
-    => ComputReduction s v r -> Step s v -> [[Step s v]]
-right_develop (CRed rs phi) (q, r)
+    => CReduction s v r -> Step s v -> [[Step s v]]
+right_develop (CRConst rs phi) (q, r)
     = right_develop' rs q r
-    where right_develop' (Red _ ps) q r
+    where right_develop' (RConst _ ps) q r
               = steps ps [q] 0 0
           steps _ [] _ _
               = []
@@ -150,34 +88,34 @@ right_develop (CRed rs phi) (q, r)
                     right_steps = sequence_steps descendants_d r
 
 right_steps :: (Signature s, Variables v, RewriteSystem s v r)
-    => ComputReduction s v r -> Step s v -> [Step s v]
+    => CReduction s v r -> Step s v -> [Step s v]
 right_steps rs s
     = concat (right_develop rs s)
 
 right_modulus :: (Signature s, Variables v, RewriteSystem s v r)
-    => ComputReduction s v r -> Step s v -> Modulus
+    => CReduction s v r -> Step s v -> Modulus
 right_modulus rs s n
     = length (concat (take (succ n) (right_develop rs s)))
 
 right_reduction :: (Signature s, Variables v, RewriteSystem s v r)
-    => ComputReduction s v r -> Step s v -> ComputReduction s v r
+    => CReduction s v r -> Step s v -> CReduction s v r
 right_reduction r s
-    = CRed reduction modulus
-    where reduction = Red terms steps
+    = CRConst reduction modulus
+    where reduction = RConst terms steps
           terms = (rewrite_steps (final_term r) steps)
           steps = right_steps r s
           modulus = right_modulus r s
 
 strip_lemma :: (Signature s, Variables v, RewriteSystem s v r)
-    => r -> ComputReduction s v r -> Step s v
-               -> (ComputReduction s v r, ComputReduction s v r)
+    => r -> CReduction s v r -> Step s v
+               -> (CReduction s v r, CReduction s v r)
 strip_lemma _ r s = (bottom_reduction r s, right_reduction r s)
 
 -- Confluence
 
 accumulate_essential :: (Signature s, Variables v, RewriteSystem s v r)
-    => ComputReduction s v r -> Int -> ([Step s v], [NatString])
-accumulate_essential (CRed (Red ts ps) phi) d
+    => CReduction s v r -> Int -> ([Step s v], [NatString])
+accumulate_essential (CRConst (RConst ts ps) phi) d
     = needed_steps used_steps last_pos
     where used_steps = take (phi d) ps
           last_term  = last (rewrite_steps (head ts) used_steps)
@@ -193,22 +131,22 @@ accumulate_essential (CRed (Red ts ps) phi) d
                         | otherwise        = ps'
 
 needed_depth :: (Signature s, Variables v, RewriteSystem s v r)
-    => ComputReduction s v r -> Int -> Int
+    => CReduction s v r -> Int -> Int
 needed_depth s d = maximum (map length (snd (accumulate_essential s d)))
 
 get_steps_to_depth :: (Signature s, Variables v, RewriteSystem s v r)
-    => ComputReduction s v r -> Int -> [Step s v]
+    => CReduction s v r -> Int -> [Step s v]
 get_steps_to_depth s d = fst (accumulate_essential s d)
 
 filter_steps :: (Signature s, Variables v, RewriteSystem s v r)
-    => r -> ComputReduction s v r -> [Step s v] -> Int -> [Step s v]
+    => r -> CReduction s v r -> [Step s v] -> Int -> [Step s v]
 filter_steps r s [] d     = get_steps_to_depth s d
 filter_steps r s (p:ps) d = filter_steps r s' ps d
     where s' = fst (strip_lemma r s p)
 
 confl_devel :: (Signature s, Variables v, RewriteSystem s v r)
-    => r -> ComputReduction s v r -> ComputReduction s v r -> [[Step s v]]
-confl_devel r (CRed (Red _ ps) phi_s) t
+    => r -> CReduction s v r -> CReduction s v r -> [[Step s v]]
+confl_devel r (CRConst (RConst _ ps) phi_s) t
     = confl_devel' t ps 0 0 []
     where confl_devel' t ps d n prev
               | steps_needed = steps_new:(confl_devel' t ps (succ d) n prev_new)
@@ -219,25 +157,25 @@ confl_devel r (CRed (Red _ ps) phi_s) t
                           t_new = fst (strip_lemma r t (head ps))
 
 confl_steps :: (Signature s, Variables v, RewriteSystem s v r)
-    => r -> ComputReduction s v r -> ComputReduction s v r -> [Step s v]
+    => r -> CReduction s v r -> CReduction s v r -> [Step s v]
 confl_steps r s t = concat (confl_devel r s t)
 
 confl_modulus :: (Signature s, Variables v, RewriteSystem s v r)
-    => r -> ComputReduction s v r -> ComputReduction s v r -> Modulus
+    => r -> CReduction s v r -> CReduction s v r -> Modulus
 confl_modulus r s t n = length (concat (take (succ n) (confl_devel r s t)))
 
 confl_side :: (Signature s, Variables v, RewriteSystem s v r)
-    => r -> ComputReduction s v r -> ComputReduction s v r
-              -> ComputReduction s v r
-confl_side r s t = CRed reduction modulus
-    where reduction = Red terms steps
+    => r -> CReduction s v r -> CReduction s v r
+              -> CReduction s v r
+confl_side r s t = CRConst reduction modulus
+    where reduction = RConst terms steps
           terms = (rewrite_steps (final_term s) steps)
           steps = confl_steps r s t
           modulus = confl_modulus r s t
 
 confluence :: (Signature s, Variables v, RewriteSystem s v r)
-    => r -> (ComputReduction s v r, ComputReduction s v r)
-              -> (ComputReduction s v r, ComputReduction s v r)
+    => r -> (CReduction s v r, CReduction s v r)
+              -> (CReduction s v r, CReduction s v r)
 confluence r (s, t) = (confl_side r s t, confl_side r t s)
 
 -- Examples
@@ -354,62 +292,62 @@ instance RewriteSystem Char Char System_3 where
     rules Sys3 = [rule_5, rule_6, rule_7, rule_8, rule_9, rule_10, rule_11]
 
 red_1 :: Reduction Char Char System_3
-red_1 = Red ts (zip ps rs)
+red_1 = RConst ts (zip ps rs)
     where ps = (iterate (\ns -> 1:ns) [1])
           rs = repeat rule_5
           ts = rewrite_steps (f_a) (zip ps rs)
 
 red_2 :: Reduction Char Char System_1
-red_2 = Red ts (zip ps rs)
+red_2 = RConst ts (zip ps rs)
     where ps = (iterate (\ns -> 1:ns) [])
           rs = repeat rule_1
           ts = rewrite_steps (f_omega) (zip ps rs)
 
 red_3 :: Reduction Char Char System_1
-red_3 = Red ts (zip ps rs)
+red_3 = RConst ts (zip ps rs)
     where ps = [[1], [1]]
           rs = [rule_4, rule_6]
           ts = rewrite_steps (f_h_a_f_b) (zip ps rs)
 
 red_4 :: Reduction Char Char System_3
-red_4 = Red ts (zip ps rs)
+red_4 = RConst ts (zip ps rs)
     where ps = [[], [2], [2,2]]
           rs = [rule_9, rule_9, rule_9]
           ts = rewrite_steps (f_a) (zip ps rs)
 
 red_5 :: Reduction Char Char System_3
-red_5 = Red ts (zip ps rs)
+red_5 = RConst ts (zip ps rs)
     where ps = [[1], [1]]
           rs = [rule_10, rule_11]
           ts = rewrite_steps (f_a) (zip ps rs)
 
 red_6 :: Reduction Char Char System_1
-red_6 = Red ts (zip ps rs)
+red_6 = RConst ts (zip ps rs)
     where ps = []:(map (\p -> 1:1:p) ps)
           rs = rule_1:rs
           ts = rewrite_steps f_omega (zip ps rs)
 
 red_7 :: Reduction Char Char System_1
-red_7 = Red ts (zip ps rs)
+red_7 = RConst ts (zip ps rs)
     where ps = [1]:(map (\p -> 1:1:p) ps)
           rs = rule_1:rs
           ts = rewrite_steps f_omega (zip ps rs)
 
-cred_1 = CRed red_1 (\x -> succ x)
+cred_1 = CRConst red_1 (\x -> succ x)
 
-cred_2 = CRed red_2 (\x -> succ x)
+cred_2 = CRConst red_2 (\x -> succ x)
 
-cred_3 = CRed red_3 (\x -> 2)
+cred_3 = CRConst red_3 (\x -> 2)
 
-cred_4 = CRed red_4 (\x -> min 3 (succ x))
+cred_4 = CRConst red_4 (\x -> min 3 (succ x))
 
-cred_5 = CRed red_5 (\x -> if x == 0 then 0 else 2)
+cred_5 = CRConst red_5 (\x -> if x == 0 then 0 else 2)
 
-cred_6 = CRed red_6 (\x -> succ x)
+cred_6 = CRConst red_6 (\x -> succ x)
 
-cred_7 = CRed red_7 (\x -> x)
+cred_7 = CRConst red_7 (\x -> x)
 
-show_steps (CRed (Red _ s) _) = s
+show_steps (CRConst (RConst _ s) _) = s
 
-show_phi (CRed _ phi) = show_phi' 0
+show_phi (CRConst _ phi) = show_phi' 0
     where show_phi' d = (show (phi d)) ++ (show_phi' (succ d))

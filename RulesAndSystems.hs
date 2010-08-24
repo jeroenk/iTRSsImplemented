@@ -66,6 +66,15 @@ rewrite_steps t ps = t:(rewrite_steps' t ps)
     where rewrite_steps' _ []     = []
           rewrite_steps' t (p:ps) = rewrite_steps (rewrite_step t p) ps
 
+-- Helper function for descendants and origins
+get_var_and_pos :: (Signature s, Variables v)
+    => Term s v -> NatString -> (v, NatString)
+get_var_and_pos (Function f ts) (n:ns)
+    | 1 <= n && n <= arity f = get_var_and_pos (ts!n) ns
+    | otherwise              = error "Illegal position"
+get_var_and_pos (Variable x) ns
+    = (x, ns)
+
 -- Descendants across a rewrite step
 descendants_of_position :: (Signature s, Variables v)
     => NatString -> Step s v -> [NatString]
@@ -75,11 +84,6 @@ descendants_of_position ns (ms, Rule l r)
     | otherwise                = [ms ++ ms' ++ ns'' | ms' <- var_pos r x]
         where ns' = drop (length ms) ns
               (x, ns'') = get_var_and_pos l ns'
-              get_var_and_pos (Function f ts) (n:ns)
-                  | 1 <= n && n <= arity f = get_var_and_pos (ts!n) ns
-                  | otherwise              = error "Illegal position"
-              get_var_and_pos (Variable x) ns
-                  = (x, ns)
 
 descendants_across :: (Signature s, Variables v)
     => [NatString] -> Step s v -> [NatString]
@@ -102,11 +106,6 @@ origins_of_position ns (ms, Rule l r)
     | otherwise                = [ms ++ ms' ++ ns'' | ms' <- var_pos l x]
         where ns' = drop (length ms) ns
               (x, ns'') = get_var_and_pos r ns'
-              get_var_and_pos (Function f ts) (n:ns)
-                  | 1 <= n && n <= arity f = get_var_and_pos (ts!n) ns
-                  | otherwise              = error "Illegal position"
-              get_var_and_pos (Variable x) ns
-                  = (x, ns)
 
 origins_across :: (Signature s, Variables v)
     => [NatString] -> Step s v -> [NatString]
