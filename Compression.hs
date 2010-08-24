@@ -22,78 +22,16 @@ import PositionsAndSubterms
 import Substitutions
 import RulesAndSystems
 import SystemsOfNotation
+import TransfiniteReductions
 
 import Array
-
--- Reductions
---
--- Remark that we do not represent the final term of a reduction. In case the
--- reduction is of limit ordinal length, the term might be uncomputable.
---
--- The initial index of terms and steps should be equal and given explicitly.
-
-data (Signature s, Variables v, RewriteSystem s v r, UnivalentSystem o)
-     => Reduction s v r o
-    = Red [Term s v] [Step s v] o
-
-show_reduction_from :: (MyShow s, MyShow v, Signature s, Variables v,
-                        RewriteSystem s v r, UnivalentSystem o)
-                       => (Reduction s v r o) -> o -> String
-show_reduction_from (Red ss _ _) n = show' n True
-    where show' n True
-              | indexof n' ss = show (ss!!n') ++ show' (suc n) False
-              | otherwise    = ""
-                  where n' = to_int n
-          show' n False
-              | indexof n' ss = " -> " ++ show (ss!!n') ++ show' (suc n) False
-              | otherwise    = ""
-                  where n' = to_int n
-          indexof n []     = False
-          indexof 0 _      = True
-          indexof n (_:ss) = indexof (n - 1) ss
-
-instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r,
-          UnivalentSystem o)
-         => Show (Reduction s v r o) where
-    show ss@(Red _ _ z) = show_reduction_from ss z
-
-type Modulus o = o -> Int -> o
-
-data (Signature s, Variables v, RewriteSystem s v r, UnivalentSystem o)
-     => ComputReduction s v r o
-    = CRed (Reduction s v r o) (Modulus o)
-
-instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r,
-          UnivalentSystem o)
-         => Show (ComputReduction s v r o) where
-    show (CRed ss _) = show ss -- No termination detection based on depth
-
-initial_term :: (Signature s, Variables v, RewriteSystem s v r,
-                 UnivalentSystem o)
-    => ComputReduction s v r o -> Term s v
-initial_term (CRed (Red ss _ z) _) = ss!!(to_int z)
-
-final_term :: (Signature s, Variables v, RewriteSystem s v r, UnivalentSystem o)
-    => ComputReduction s v r o -> Term s v
-final_term (CRed (Red ts _ z) phi)
-    = final_subterm []
-    where final_subterm ps
-              = root root_symbol ps
-                  where n = phi z (length ps)
-                        root_symbol = get_symbol (ts!!(to_int n)) ps
-          root (FunctionSymbol f) ps
-              = Function f (subterms (arity f) ps)
-          root (VariableSymbol x) _
-              = Variable x
-          subterms a ps
-              = array (1, a) [(i, final_subterm (ps ++ [i])) | i <- [1..a]]
 
 -- Compression
 
 accumulate_essential :: (Signature s, Variables v, RewriteSystem s v r,
                          UnivalentSystem o)
-    => ComputReduction s v r o -> Int -> [(Step s v, o)]
-accumulate_essential s@(CRed (Red _ ps z) phi) d
+    => CReduction s v r o -> Int -> [(Step s v, o)]
+accumulate_essential s@(CRConst (RConst _ ps z) phi) d
     = needed_steps (pos_to_depth (final_term s) d) n (k n)
     where n = phi z d
           needed_steps qs n SuccOrdinal
@@ -131,7 +69,7 @@ filter_steps prev total = filter_steps' prev total []
 
 compr_devel :: (Signature s, Variables v, RewriteSystem s v r,
                 UnivalentSystem o)
-    => ComputReduction s v r o -> [[Step s v]]
+    => CReduction s v r o -> [[Step s v]]
 compr_devel s = (map fst initial) : (compr_devel' 1 initial)
     where initial
               = accumulate_essential s 0
@@ -142,12 +80,12 @@ compr_devel s = (map fst initial) : (compr_devel' 1 initial)
 
 compr_steps :: (Signature s, Variables v, RewriteSystem s v r,
                 UnivalentSystem o)
-    => ComputReduction s v r o -> [Step s v]
+    => CReduction s v r o -> [Step s v]
 compr_steps s = concat (compr_devel s)
 
 compr_modulus :: (Signature s, Variables v, RewriteSystem s v r,
                   UnivalentSystem o)
-    => ComputReduction s v r o -> (Modulus Omega)
+    => CReduction s v r o -> (Modulus Omega)
 compr_modulus s (OmegaElement n)
     | n == 0
         = (\m -> OmegaElement (length (concat (take (succ m) (compr_devel s)))))
@@ -156,9 +94,9 @@ compr_modulus s (OmegaElement n)
 
 compression :: (Signature s, Variables v, RewriteSystem s v r,
                 UnivalentSystem o)
-    => r -> (ComputReduction s v r o) -> (ComputReduction s v r Omega)
-compression r s = CRed reduction modulus
-    where reduction = Red terms steps zer
+    => r -> (CReduction s v r o) -> (CReduction s v r Omega)
+compression r s = CRConst reduction modulus
+    where reduction = RConst terms steps zer
           terms = (rewrite_steps (initial_term s) steps)
           steps = compr_steps s
           modulus = compr_modulus s
@@ -258,7 +196,7 @@ instance RewriteSystem Char Char System_2 where
     rules Sys2 = [rule_1, rule_2]
 
 red_1 :: Reduction Char Char System_1 OmegaTwoPlusOne
-red_1 = Red ts (zip ps rs) zer
+red_1 = RConst ts (zip ps rs) zer
     where ps = step 0
               where step 0 = error("undefined step") : step 1
                     step n
@@ -280,7 +218,7 @@ red_1 = Red ts (zip ps rs) zer
                                   c_g t = Function 'g' (array (1, 1) [(1, t)])
 
 red_2 :: Reduction Char Char System_2 OmegaTwoPlusOne
-red_2 = Red ts (zip ps rs) zer
+red_2 = RConst ts (zip ps rs) zer
     where ps = step 0
               where step 0 = error("undefined step") : step 1
                     step n
@@ -301,16 +239,27 @@ red_2 = Red ts (zip ps rs) zer
                                   c_f t = Function 'f' (array (1, 1) [(1, t)])
                                   c_g t = Function 'g' (array (1, 1) [(1, t)]) 
 
-cred_1 = CRed red_1 modulus
+red_3 :: Reduction Char Char System_2 Omega
+red_3 = RConst ts (zip ps rs) zer
+    where ts = [a, f_a]
+          ps = [[]]
+          rs = [rule_2]
+
+cred_1 = CRConst red_1 modulus
     where modulus (OmegaTwoPlusOneElement n)
               | n == 1 = (\m -> OmegaTwoPlusOneElement (4 + (m * 2)))
               | n == 2 = (\m -> OmegaTwoPlusOneElement (3 + (m * 2)))
               | otherwise = error("Invalid input to modulus")
 
-cred_2 = CRed red_2 modulus
+cred_2 = CRConst red_2 modulus
     where modulus (OmegaTwoPlusOneElement n)
               | n == 1 = (\m -> OmegaTwoPlusOneElement (4 + (m * 2)))
               | n == 2 = (\m -> OmegaTwoPlusOneElement (3 + (m * 2)))
               | otherwise = error("Invalid input to modulus")
 
-show_steps (CRed (Red _ s _) _) = s
+cred_3 = CRConst red_3 modulus
+    where modulus (OmegaElement n)
+              | n == 0 = (\m -> OmegaElement 1)
+              | otherwise = error("Invalid input to modulus")
+
+show_steps (CRConst (RConst _ s _) _) = s

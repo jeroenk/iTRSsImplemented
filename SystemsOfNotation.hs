@@ -78,7 +78,7 @@ instance SystemOfNotation Omega where
         = n
 
 instance UnivalentSystem Omega where
-    leq (OmegaElement m)  (OmegaElement n)
+    leq (OmegaElement m) (OmegaElement n)
         = m <= n
     zer
         = OmegaElement 0
