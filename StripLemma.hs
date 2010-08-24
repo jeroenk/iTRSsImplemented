@@ -26,21 +26,20 @@ import PositionsAndSubterms
 import RulesAndSystems
 import OmegaReductions
 
+-- Yield a sequence of steps all employing the same rule r given a set of
+-- parallel positions and a rule r
 sequence_steps :: (Signature s, Variables v)
     => [NatString] -> RewriteRule s v -> [Step s v]
-sequence_steps [] _     = []
-sequence_steps (p:ps) r = (p, r):(sequence_steps ps r)
+sequence_steps ps r = map (\p -> (p, r)) ps
 
 bottom_develop :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Step s v -> [[Step s v]]
-bottom_develop (CRConst rs _) (q, r)
-    = bottom_develop' rs q
-    where bottom_develop' (RConst _ ps) q
-              = steps ps [q]
-          steps [] _
+bottom_develop (CRConst (RConst _ ps) _) (q, r)
+    = steps ps [q]
+    where steps [] _
               = []
-          steps ((p, r'):ps) qs
-              = bottom_steps:(steps ps descendants_qs)
+          steps ((p, r') : ps) qs
+              = bottom_steps : (steps ps descendants_qs)
               where down_steps     = sequence_steps qs r
                     descendants_p  = descendants [p] down_steps
                     bottom_steps   = sequence_steps descendants_p r'
@@ -59,22 +58,19 @@ bottom_modulus rs@(CRConst _ phi) s@(_, r) n
 bottom_reduction :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Step s v -> CReduction s v r
 bottom_reduction r s
-    = CRConst reduction modulus
-    where reduction = RConst terms steps
-          terms = (rewrite_steps (rewrite_step (initial_term r) s) steps)
+    = CRConst (RConst terms steps) modulus
+    where terms = (rewrite_steps (rewrite_step (initial_term r) s) steps)
           steps = bottom_steps r s
           modulus = bottom_modulus r s
 
 right_develop :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Step s v -> [[Step s v]]
-right_develop (CRConst rs phi) (q, r)
-    = right_develop' rs q r
-    where right_develop' (RConst _ ps) q r
-              = steps ps [q] 0 0
-          steps _ [] _ _
+right_develop (CRConst (RConst _ ps) phi) (q, r)
+    = steps ps [q] 0 0
+    where steps _ [] _ _
               = []
           steps ps qs m d
-              = right_steps:(steps ps_left descendants_nd m_new (d + 1))
+              = right_steps : (steps ps_left descendants_nd m_new (d + 1))
               where m_new          = max m (phi d)
                     ps_use         = take (m_new - m) ps
                     ps_left        = drop (m_new - m) ps
@@ -98,9 +94,8 @@ right_modulus rs s n
 right_reduction :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Step s v -> CReduction s v r
 right_reduction r s
-    = CRConst reduction modulus
-    where reduction = RConst terms steps
-          terms = (rewrite_steps (final_term r) steps)
+    = CRConst (RConst terms steps) modulus
+    where terms = (rewrite_steps (final_term r) steps)
           steps = right_steps r s
           modulus = right_modulus r s
 
