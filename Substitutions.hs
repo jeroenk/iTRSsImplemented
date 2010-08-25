@@ -24,7 +24,6 @@ module Substitutions (
     match
 ) where
 
-import MyShow
 import SignatureAndVariables
 import Terms
 
@@ -37,9 +36,9 @@ type Substitution s v = [(v, Term s v)]
 -- Establish if a variable occurs in a substitution
 in_substitution :: Variables v
     => Substitution s v -> v -> Bool
-in_substitution [] x
+in_substitution [] _
     = False
-in_substitution ((y,t):sigma') x
+in_substitution ((y, _):sigma') x
     | x == y    = True
     | otherwise =  in_substitution sigma' x
 
@@ -67,7 +66,9 @@ match s t = nubBy equal_variables (compute_match s t)
     where compute_match (Function f ts) (Function g ss)
               | f == g    = concat (zipWith compute_match (elems ts) (elems ss))
               | otherwise = error "Cannot match terms"
-          compute_match (Variable x) t
-              = [(x, t)]
-          equal_variables (x, s) (y, t)
+          compute_match (Variable x) t'
+              = [(x, t')]
+          compute_match _ _
+              = error "Cannot match terms"
+          equal_variables (x, _) (y, _)
               = x == y

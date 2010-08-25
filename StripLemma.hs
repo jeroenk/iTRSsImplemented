@@ -41,18 +41,18 @@ bottom_develop (CRConst (RConst _ ps) _) (q, r)
     = project ps [q]
     where project [] _
               = []
-          project ((p, r'):ps) qs
-              = bottom_steps : (project ps descendants_qs)
-              where down_steps     = sequence_steps qs r
-                    descendants_p  = descendants [p] down_steps
-                    bottom_steps   = sequence_steps descendants_p r'
-                    descendants_qs = descendants qs [(p, r')]
+          project ((p', r'):ps') qs
+              = new_steps : (project ps' descendants_qs)
+              where down_steps = sequence_steps qs r
+                    descendants_p = descendants [p'] down_steps
+                    new_steps = sequence_steps descendants_p r'
+                    descendants_qs = descendants qs [(p', r')]
 
 -- Concatenate the developments of the bottom reduction to obtain all steps
 bottom_steps :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Step s v -> [Step s v]
-bottom_steps rs s
-    = concat (bottom_develop rs s)
+bottom_steps r p
+    = concat (bottom_develop r p)
 
 -- Compute the modulus of the bottom reduction using the observation that in
 -- the worse case a variable in the left-hand side of a rewrite rule is moved
@@ -81,30 +81,30 @@ right_develop (CRConst (RConst _ ps) phi) (q, r)
     = project ps [q] 0 0
     where project _ [] _ _
               = []
-          project ps qs n d
-              = right_steps : (project ps_left descendants_nd n' (d + 1))
+          project ps' qs n d
+              = new_steps : (project ps_left descendants_nd n' (d + 1))
               where n' = max n (phi d)
-                    ps_use = take (n' - n) ps
-                    ps_left = drop (n' - n) ps
+                    ps_use = take (n' - n) ps'
+                    ps_left = drop (n' - n) ps'
                     descendants_qs = descendants qs ps_use
                     descendants_d  = filter at_d descendants_qs
-                        where at_d qs = (length qs) == d
+                        where at_d xs = (length xs) == d
                     descendants_nd = filter not_at_d descendants_qs
-                        where not_at_d qs = (length qs) /= d
-                    right_steps = sequence_steps descendants_d r
+                        where not_at_d xs = (length xs) /= d
+                    new_steps = sequence_steps descendants_d r
 
 -- Concatenate the lists of the right-most reduction to obtain all steps
 right_steps :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Step s v -> [Step s v]
-right_steps rs s
-    = concat (right_develop rs s)
+right_steps r p
+    = concat (right_develop r p)
 
 -- Compute the modulus of the right-most reduction using that the ith element
 -- of the list produced by right_develop has all steps at depth i.
 right_modulus :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Step s v -> Modulus
-right_modulus rs s n
-    = length (concat (take (n + 1) (right_develop rs s)))
+right_modulus r p n
+    = length (concat (take (n + 1) (right_develop r p)))
 
 -- Yield the right-most reduction of the Strip Lemma
 right_reduction :: (Signature s, Variables v, RewriteSystem s v r)

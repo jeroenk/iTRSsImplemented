@@ -100,22 +100,31 @@ sigma_2 = [('x', f_x)]
 f_omega' :: Standard_Term
 f_omega' = rational_term sigma_2 'x'
 
+rule_1 :: RewriteRule Char Char
 rule_1 = Rule f_x g_x
 
+rule_2 :: RewriteRule Char Char
 rule_2 = Rule (constant 'a') f_omega
 
+rule_3 :: RewriteRule Char Char
 rule_3 = Rule h_x_f_y (constant 'a')
 
+rule_4 :: RewriteRule Char Char
 rule_4 = Rule h_x_f_y f_x
 
+rule_5 :: RewriteRule Char Char
 rule_5 = Rule (constant 'a') f_a
 
+rule_6 :: RewriteRule Char Char
 rule_6 = Rule f_x h_x_h_a_x
 
+rule_7 :: RewriteRule Char Char
 rule_7 = Rule f_x h_x_x
 
+rule_8 :: RewriteRule Char Char
 rule_8 = Rule f_x (constant 'a')
 
+rule_9 :: RewriteRule Char Char
 rule_9 = Rule f_x h_x_f_x
 
 rule_10 :: Standard_Rule
@@ -184,23 +193,31 @@ red_7 = RConst ts (zip ps rs)
 red_8 :: Reduction Char Char System_1
 red_8 = RConst [constant 'a'] []
 
+cred_1 :: CReduction Char Char System_3
 cred_1 = CRConst red_1 (\x -> succ x)
 
+cred_2 :: CReduction Char Char System_1
 cred_2 = CRConst red_2 (\x -> succ x)
 
-cred_3 = CRConst red_3 (\x -> 2)
+cred_3 :: CReduction Char Char System_1
+cred_3 = CRConst red_3 (\_ -> 2)
 
+cred_4 :: CReduction Char Char System_3
 cred_4 = CRConst red_4 (\x -> min 3 (succ x))
 
+cred_5 :: CReduction Char Char System_3
 cred_5 = CRConst red_5 (\x -> if x == 0 then 0 else 2)
 
+cred_6 :: CReduction Char Char System_1
 cred_6 = CRConst red_6 (\x -> succ x)
 
+cred_7 :: CReduction Char Char System_1
 cred_7 = CRConst red_7 (\x -> x)
 
-cred_8 = CRConst red_8 (\x -> 0)
+cred_8 :: CReduction Char Char System_1
+cred_8 = CRConst red_8 (\_ -> 0)
 
-show_steps (CRConst (RConst _ s) _) = s
+-- show_steps (CRConst (RConst _ s) _) = s
 
-show_phi (CRConst _ phi) = show_phi' 0
-    where show_phi' d = (show (phi d)) ++ (show_phi' (succ d))
+-- show_phi (CRConst _ phi) = show_phi' 0
+--     where show_phi' d = (show (phi d)) ++ (show_phi' (succ d))

@@ -27,6 +27,16 @@ import RulesAndSystems
 import OmegaReductions
 import StripLemma
 
+needed_steps :: (Signature s, Variables v)
+    => [Step s v] -> [NatString] -> ([Step s v], [NatString])
+needed_steps [] qs             = ([], qs)
+needed_steps (p@(p', _):ps) qs = (ps_new, qs_new)
+    where (ps', qs') = needed_steps ps qs
+          qs_new = origins_across qs' p
+          ps_new
+              | p' `elem` qs_new = p : ps'
+              | otherwise        = ps'
+
 accumulate :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Int -> ([Step s v], [NatString])
 accumulate (CRConst (RConst ts ps) phi) d
@@ -34,15 +44,6 @@ accumulate (CRConst (RConst ts ps) phi) d
     where used_steps = take (phi d) ps
           last_term  = last (rewrite_steps (head ts) used_steps)
           last_pos   = pos_to_depth last_term d
-          needed_steps [] qs
-              = ([], qs)
-          needed_steps (p@(p', _):ps) qs
-              = (ps_new, qs_new)
-              where (ps', qs') = needed_steps ps qs
-                    qs_new = origins_across qs' p
-                    ps_new
-                        | p' `elem` qs_new = p : ps'
-                        | otherwise        = ps'
 
 needed_depth :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Int -> Int
@@ -54,21 +55,21 @@ get_steps_to_depth s d = fst (accumulate s d)
 
 filter_steps :: (Signature s, Variables v, RewriteSystem s v r)
     => r -> CReduction s v r -> [Step s v] -> Int -> [Step s v]
-filter_steps r s [] d     = get_steps_to_depth s d
+filter_steps _ s [] d     = get_steps_to_depth s d
 filter_steps r s (p:ps) d = filter_steps r s' ps d
     where s' = fst (strip_lemma r s p)
 
 confl_devel :: (Signature s, Variables v, RewriteSystem s v r)
     => r -> CReduction s v r -> CReduction s v r -> [[Step s v]]
-confl_devel r (CRConst (RConst _ ps) phi_s) t
-    = confl_devel' t ps 0 0 []
-    where confl_devel' t ps d n prev
-              | steps_needed = steps_new:(confl_devel' t ps (d + 1) n prev_new)
-              | otherwise    = confl_devel' t_new (tail ps) d (n + 1) prev
+confl_devel r (CRConst (RConst _ ps) phi_s) s
+    = confl_devel' s ps 0 0 []
+    where confl_devel' t qs d n prev
+              | steps_needed = steps_new:(confl_devel' t qs (d + 1) n prev_new)
+              | otherwise    = confl_devel' t_new (tail qs) d (n + 1) prev
                     where steps_needed = (phi_s (needed_depth t d)) <= n
                           steps_new = filter_steps r t prev d
                           prev_new = prev ++ steps_new
-                          t_new = fst (strip_lemma r t (head ps))
+                          t_new = fst (strip_lemma r t (head qs))
 
 confl_steps :: (Signature s, Variables v, RewriteSystem s v r)
     => r -> CReduction s v r -> CReduction s v r -> [Step s v]

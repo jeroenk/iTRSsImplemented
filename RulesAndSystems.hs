@@ -62,9 +62,9 @@ rewrite_step t (ns, Rule l r)
 -- Apply multiple rewrite steps in sequence, yielding a list of terms 
 rewrite_steps :: (Signature s, Variables v)
     => Term s v -> [Step s v] -> [Term s v]
-rewrite_steps t ps = t:(rewrite_steps' t ps)
+rewrite_steps t ps = t : (rewrite_steps' t ps)
     where rewrite_steps' _ []     = []
-          rewrite_steps' t (p:ps) = rewrite_steps (rewrite_step t p) ps
+          rewrite_steps' s (q:qs) = rewrite_steps (rewrite_step s q) qs
 
 -- Helper function for descendants and origins
 get_var_and_pos :: (Signature s, Variables v)
@@ -72,6 +72,8 @@ get_var_and_pos :: (Signature s, Variables v)
 get_var_and_pos (Function f ts) (n:ns)
     | 1 <= n && n <= arity f = get_var_and_pos (ts!n) ns
     | otherwise              = error "Illegal position"
+get_var_and_pos (Function _ _) _
+    = error "Illegal position"
 get_var_and_pos (Variable x) ns
     = (x, ns)
 

@@ -59,23 +59,23 @@ get_zero (RConst _ _ z) = z
 show_from :: (MyShow s, MyShow v,
               Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => (Reduction s v r o) -> o -> String
-show_from (RConst ss _ _) a
-    | indexof (to_int a) ss = show' a True True
+show_from (RConst ts _ _) a
+    | indexof (to_int a) ts = show' a True True
     | otherwise             = error "Cannot show empty reductions"
-        where show' a True frst = fst_term ++ lst_terms
-                  where n = to_int a
-                        fst_term = (if frst then "" else " -> ") ++ show (ss!!n)
-                        lst_terms = show' (suc a) is_index False
-                        is_index = indexof (to_int (suc a)) ss
+        where show' b True frst = fst_term ++ lst_terms
+                  where n = to_int b
+                        fst_term = (if frst then "" else " -> ") ++ show (ts!!n)
+                        lst_terms = show' (suc b) is_index False
+                        is_index = indexof (to_int (suc b)) ts
               show' _ False _   = ""
-              indexof n []     = False
+              indexof _ []     = False
               indexof 0 _      = True
               indexof n (_:ss) = indexof (n - 1) ss
 
 instance (MyShow s, MyShow v,
           Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => Show (Reduction s v r o) where
-    show ss = show_from ss (get_zero ss)
+    show r = show_from r (get_zero r)
 
 -- Moduli of convergence are functions from limit ordinals to functions from
 -- natural numbers to ordinals (where the ordinals come from a designated
@@ -107,13 +107,13 @@ instance (MyShow s, MyShow v,
                   | otherwise = ""
                       where n = to_int a
                             a' = suc a
-              show_t t True = show t
-              show_t t False = " -> " ++ show t
+              show_t s True = show s
+              show_t s False = " -> " ++ show s
 
 -- Yield the initial term of a computably convergent reduction
 initial_term :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => CReduction s v r o -> Term s v
-initial_term (CRConst (RConst ss _ z) _) = ss!!(to_int z)
+initial_term (CRConst (RConst ts _ z) _) = ts!!(to_int z)
 
 -- Yield the final term of a computably convergent reduction
 final_term :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)

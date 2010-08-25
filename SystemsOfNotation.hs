@@ -52,9 +52,9 @@ class SystemOfNotation o where
 -- certain other ordinal 
 get_limit_pred :: (SystemOfNotation o) => o -> o
 get_limit_pred n = get_limit_pred' (k n) n
-    where get_limit_pred' ZeroOrdinal n  = n
-          get_limit_pred' SuccOrdinal n  = get_limit_pred (p n)
-          get_limit_pred' LimitOrdinal n = n
+    where get_limit_pred' ZeroOrdinal m  = m
+          get_limit_pred' SuccOrdinal m  = get_limit_pred (p m)
+          get_limit_pred' LimitOrdinal m = m
 
 -- In a univalent system of notation it is possible to compare two ordinals
 class SystemOfNotation o => UnivalSystem o where
@@ -72,7 +72,7 @@ instance SystemOfNotation Omega where
     p  (OmegaElement n)
         | n > 0     = OmegaElement (n - 1)
         | otherwise = error "Predeccessor undefined"
-    q  (OmegaElement n)
+    q  (OmegaElement _)
         = error "Limit function undefined" -- omega has no limit ordinals
     to_int  (OmegaElement n)
         = n

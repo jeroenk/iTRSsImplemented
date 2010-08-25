@@ -62,7 +62,7 @@ subterm_pos :: (Signature s, Variables v)
 subterm_pos f ts = concat (prefix (map f (elems ts)) 1)
     where prefix [] _     = []
           prefix (x:xs) n = (map (prefix_pos n) x) : (prefix xs (n + 1))
-              where prefix_pos n ns = n:ns
+              where prefix_pos m ms = m:ms
 
 -- All positions
 pos :: (Signature s, Variables v)
@@ -111,6 +111,8 @@ subterm s []
 subterm (Function f ts) (n:ns)
     | 1 <= n && n <= arity f = subterm (ts!n) ns
     | otherwise              = error "Getting non-existing subterm"
+subterm (Variable _) _
+    = error "Getting non-existing subterm"
 
 -- Replace a subterm at a certain position
 replace_subterm :: (Signature s, Variables v)
@@ -121,5 +123,5 @@ replace_subterm (Function f ts) (n:ns) t
     | 1 <= n && n <= arity f = Function f subterms
     | otherwise              = error "Replacing non-existing subterm"
         where subterms = ts // [(n, replace_subterm (ts!n) ns t)]
-replace_subterm (Variable x) _ _
+replace_subterm (Variable _) _ _
     = error "Replacing non-existing subterm"

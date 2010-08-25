@@ -45,7 +45,7 @@ data (Signature s, Variables v, RewriteSystem s v r) => Reduction s v r
 instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r)
     => Show (Reduction s v r) where
     show (RConst [] _) = error "Cannot show empty reductions"
-    show (RConst ss _) = show' ss True
+    show (RConst ts _) = show' ts True
         where show' [] _   = ""
               show' (s:ss) True  = show s ++ show' ss False
               show' (s:ss) False = " -> " ++ show s ++ show' ss False
@@ -65,33 +65,36 @@ instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r)
     => Show (CReduction s v r) where
     show (CRConst (RConst [] _) _)   = error "Cannot show empty reductions"
     show (CRConst (RConst ts _) phi) = show' ts 0 0
-        where show' ts n d
-                  | less_height (head ts) d = show_steps (take 1 ts) (n == 0)
+        where show' ss n d
+                  | less_height (head ss) d = show_steps (take 1 ss) (n == 0)
                   | otherwise               = fst_steps ++ lst_steps
                       where n' = max n (phi d)
-                            fst_steps = show_steps (take (n' - n) ts) (n == 0)
-                            lst_steps = show' (drop (n' - n) ts) n' (d + 1)
+                            fst_steps = show_steps (take (n' - n) ss) (n == 0)
+                            lst_steps = show' (drop (n' - n) ss) n' (d + 1)
               show_steps [] _     = ""
-              show_steps (t:ts) True = show t ++ show_steps ts False
-              show_steps (t:ts) False = " -> " ++ show t ++ show_steps ts False
+              show_steps (s:ss) True = show s ++ show_steps ss False
+              show_steps (s:ss) False = " -> " ++ show s ++ show_steps ss False
 
 -- Yield the initial term of a computably convergent reduction
 initial_term :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Term s v
-initial_term (CRConst (RConst (x:_) _) _) = x
+initial_term (CRConst (RConst (x:_) _) _)
+    = x
+initial_term _
+    = error "Empty reduction, no initial term"
 
 -- Yield the final term of a computably convergent reduction
 final_term :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Term s v
 final_term (CRConst (RConst ts _) phi) = final_subterm [] 0 ts
-    where final_subterm ps n ts
-              = construct_subterm top ps n' ts'
+    where final_subterm ps n ss
+              = construct_subterm top ps n' ss'
                   where n' = max n (phi (length ps))
-                        ts' = drop (n' - n) ts
-                        top = get_symbol (head ts') ps
-          construct_subterm (FunctionSymbol f) ps n ts
-              = function_term f ss
+                        ss' = drop (n' - n) ss
+                        top = get_symbol (head ss') ps
+          construct_subterm (FunctionSymbol f) ps n ss
+              = function_term f s
                   where a = arity f
-                        ss = [(i, final_subterm (ps ++ [i]) n ts) | i <- [1..a]]
+                        s = [(i, final_subterm (ps ++ [i]) n ss) | i <- [1..a]]
           construct_subterm (VariableSymbol x) _ _ _
               = Variable x
