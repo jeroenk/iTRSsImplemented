@@ -32,29 +32,37 @@ sequence_steps :: (Signature s, Variables v)
     => [NatString] -> RewriteRule s v -> [Step s v]
 sequence_steps ps r = map (\p -> (p, r)) ps
 
+-- The function bottom_develop computes developments of the bottom reduction
+-- of the Strip Lemma. The computation proceeds from left to right and each
+-- development is represented by a list of steps.
 bottom_develop :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Step s v -> [[Step s v]]
 bottom_develop (CRConst (RConst _ ps) _) (q, r)
-    = steps ps [q]
-    where steps [] _
+    = project ps [q]
+    where project [] _
               = []
-          steps ((p, r') : ps) qs
-              = bottom_steps : (steps ps descendants_qs)
+          project ((p, r'):ps) qs
+              = bottom_steps : (project ps descendants_qs)
               where down_steps     = sequence_steps qs r
                     descendants_p  = descendants [p] down_steps
                     bottom_steps   = sequence_steps descendants_p r'
                     descendants_qs = descendants qs [(p, r')]
 
+-- Concatenate the developments of the bottom reduction to obtain all steps
 bottom_steps :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Step s v -> [Step s v]
 bottom_steps rs s
     = concat (bottom_develop rs s)
 
+-- Compute the modulus of the bottom reduction using the observation that in
+-- the worse case a variable in the left-hand side of a rewrite rule is moved
+-- all the way to the top of the right-hand side term.
 bottom_modulus :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Step s v -> Modulus
 bottom_modulus rs@(CRConst _ phi) s@(_, r) n
     = length (concat (take (phi (n + left_height r)) (bottom_develop rs s)))
 
+-- Yield the bottom reduction of the Strip Lemma
 bottom_reduction :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Step s v -> CReduction s v r
 bottom_reduction r s
@@ -63,17 +71,21 @@ bottom_reduction r s
           steps = bottom_steps r s
           modulus = bottom_modulus r s
 
+-- The function right_develop computes the right-most reduction of the Strip
+-- Lemma (which is a development). The steps of the reduction are returned as
+-- a list of lists of steps, where it is ensured for the ith item in the list
+-- that all its steps occur at depth i.
 right_develop :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Step s v -> [[Step s v]]
 right_develop (CRConst (RConst _ ps) phi) (q, r)
-    = steps ps [q] 0 0
-    where steps _ [] _ _
+    = project ps [q] 0 0
+    where project _ [] _ _
               = []
-          steps ps qs m d
-              = right_steps : (steps ps_left descendants_nd m_new (d + 1))
-              where m_new          = max m (phi d)
-                    ps_use         = take (m_new - m) ps
-                    ps_left        = drop (m_new - m) ps
+          project ps qs n d
+              = right_steps : (project ps_left descendants_nd n' (d + 1))
+              where n' = max n (phi d)
+                    ps_use = take (n' - n) ps
+                    ps_left = drop (n' - n) ps
                     descendants_qs = descendants qs ps_use
                     descendants_d  = filter at_d descendants_qs
                         where at_d qs = (length qs) == d
@@ -81,16 +93,20 @@ right_develop (CRConst (RConst _ ps) phi) (q, r)
                         where not_at_d qs = (length qs) /= d
                     right_steps = sequence_steps descendants_d r
 
+-- Concatenate the lists of the right-most reduction to obtain all steps
 right_steps :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Step s v -> [Step s v]
 right_steps rs s
     = concat (right_develop rs s)
 
+-- Compute the modulus of the right-most reduction using that the ith element
+-- of the list produced by right_develop has all steps at depth i.
 right_modulus :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Step s v -> Modulus
 right_modulus rs s n
     = length (concat (take (n + 1) (right_develop rs s)))
 
+-- Yield the right-most reduction of the Strip Lemma
 right_reduction :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Step s v -> CReduction s v r
 right_reduction r s
@@ -99,6 +115,7 @@ right_reduction r s
           steps = right_steps r s
           modulus = right_modulus r s
 
+-- Strip Lemma
 strip_lemma :: (Signature s, Variables v, RewriteSystem s v r)
     => r -> CReduction s v r -> Step s v -> (CReduction s v r, CReduction s v r)
 strip_lemma _ r s = (bottom_reduction r s, right_reduction r s)
