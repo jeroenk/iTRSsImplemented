@@ -79,9 +79,9 @@ get_var_and_pos (Variable x) ns
 descendants_of_position :: (Signature s, Variables v)
     => NatString -> Step s v -> [NatString]
 descendants_of_position ns (ms, Rule l r)
-    | not (is_prefix ms ns)    = [ns]
-    | elem ns' (non_var_pos l) = []
-    | otherwise                = [ms ++ ms' ++ ns'' | ms' <- var_pos r x]
+    | not (is_prefix ms ns)      = [ns]
+    | ns' `elem` (non_var_pos l) = []
+    | otherwise                  = [ms ++ ms' ++ ns'' | ms' <- var_pos r x]
         where ns' = drop (length ms) ns
               (x, ns'') = get_var_and_pos l ns'
 
@@ -101,9 +101,9 @@ descendants ps (q:qs) = descendants (descendants_across ps q) qs
 origins_of_position :: (Signature s, Variables v)
     => NatString -> Step s v -> [NatString]
 origins_of_position ns (ms, Rule l r)
-    | not (is_prefix ms ns)    = [ns]
-    | elem ns' (non_var_pos r) = [ms ++ ms' | ms' <- non_var_pos l]
-    | otherwise                = [ms ++ ms' ++ ns'' | ms' <- var_pos l x]
+    | not (is_prefix ms ns)      = [ns]
+    | ns' `elem` (non_var_pos r) = [ms ++ ms' | ms' <- non_var_pos l]
+    | otherwise                  = [ms ++ ms' ++ ns'' | ms' <- var_pos l x]
         where ns' = drop (length ms) ns
               (x, ns'') = get_var_and_pos r ns'
 

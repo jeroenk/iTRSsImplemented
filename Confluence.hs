@@ -27,9 +27,9 @@ import RulesAndSystems
 import OmegaReductions
 import StripLemma
 
-accumulate_essential :: (Signature s, Variables v, RewriteSystem s v r)
+accumulate :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Int -> ([Step s v], [NatString])
-accumulate_essential (CRConst (RConst ts ps) phi) d
+accumulate (CRConst (RConst ts ps) phi) d
     = needed_steps used_steps last_pos
     where used_steps = take (phi d) ps
           last_term  = last (rewrite_steps (head ts) used_steps)
@@ -46,11 +46,11 @@ accumulate_essential (CRConst (RConst ts ps) phi) d
 
 needed_depth :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Int -> Int
-needed_depth s d = maximum (map length (snd (accumulate_essential s d)))
+needed_depth s d = maximum (map length (snd (accumulate s d)))
 
 get_steps_to_depth :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Int -> [Step s v]
-get_steps_to_depth s d = fst (accumulate_essential s d)
+get_steps_to_depth s d = fst (accumulate s d)
 
 filter_steps :: (Signature s, Variables v, RewriteSystem s v r)
     => r -> CReduction s v r -> [Step s v] -> Int -> [Step s v]
@@ -63,8 +63,8 @@ confl_devel :: (Signature s, Variables v, RewriteSystem s v r)
 confl_devel r (CRConst (RConst _ ps) phi_s) t
     = confl_devel' t ps 0 0 []
     where confl_devel' t ps d n prev
-              | steps_needed = steps_new:(confl_devel' t ps (succ d) n prev_new)
-              | otherwise    = confl_devel' t_new (tail ps) d (succ n) prev
+              | steps_needed = steps_new:(confl_devel' t ps (d + 1) n prev_new)
+              | otherwise    = confl_devel' t_new (tail ps) d (n + 1) prev
                     where steps_needed = (phi_s (needed_depth t d)) <= n
                           steps_new = filter_steps r t prev d
                           prev_new = prev ++ steps_new
@@ -76,14 +76,12 @@ confl_steps r s t = concat (confl_devel r s t)
 
 confl_modulus :: (Signature s, Variables v, RewriteSystem s v r)
     => r -> CReduction s v r -> CReduction s v r -> Modulus
-confl_modulus r s t n = length (concat (take (succ n) (confl_devel r s t)))
+confl_modulus r s t n = length (concat (take (n + 1) (confl_devel r s t)))
 
 confl_side :: (Signature s, Variables v, RewriteSystem s v r)
-    => r -> CReduction s v r -> CReduction s v r
-              -> CReduction s v r
-confl_side r s t = CRConst reduction modulus
-    where reduction = RConst terms steps
-          terms = (rewrite_steps (final_term s) steps)
+    => r -> CReduction s v r -> CReduction s v r -> CReduction s v r
+confl_side r s t = CRConst (RConst terms steps) modulus
+    where terms = (rewrite_steps (final_term s) steps)
           steps = confl_steps r s t
           modulus = confl_modulus r s t
 

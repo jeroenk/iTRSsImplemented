@@ -47,17 +47,17 @@ import SystemsOfNotation
 --
 -- The initial index of terms and steps is given explicitly (and is assumed to
 -- be the same for both).
-data (Signature s, Variables v, RewriteSystem s v r, UnivalentSystem o)
+data (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
      => Reduction s v r o
     = RConst [Term s v] [Step s v] o
 
-get_zero :: (Signature s, Variables v, RewriteSystem s v r, UnivalentSystem o)
+get_zero :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => (Reduction s v r o) -> o
 get_zero (RConst _ _ z) = z
 
 -- Helper function for show
-show_from :: (MyShow s, MyShow v, Signature s, Variables v,
-              RewriteSystem s v r, UnivalentSystem o)
+show_from :: (MyShow s, MyShow v,
+              Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => (Reduction s v r o) -> o -> String
 show_from (RConst ss _ _) a
     | indexof (to_int a) ss = show' a True True
@@ -72,8 +72,8 @@ show_from (RConst ss _ _) a
               indexof 0 _      = True
               indexof n (_:ss) = indexof (n - 1) ss
 
-instance (MyShow s, MyShow v, Signature s, Variables v,
-          RewriteSystem s v r, UnivalentSystem o)
+instance (MyShow s, MyShow v,
+          Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => Show (Reduction s v r o) where
     show ss = show_from ss (get_zero ss)
 
@@ -83,7 +83,7 @@ instance (MyShow s, MyShow v, Signature s, Variables v,
 type Modulus o = o -> Int -> o
 
 -- Computably convergent reductions are reductions with an associated modulus
-data (Signature s, Variables v, RewriteSystem s v r, UnivalentSystem o)
+data (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => CReduction s v r o
     = CRConst (Reduction s v r o) (Modulus o)
 
@@ -91,8 +91,8 @@ data (Signature s, Variables v, RewriteSystem s v r, UnivalentSystem o)
 --
 -- The function detects whether more terms need to be shown based on the
 -- modulus associated with the reduction.
-instance (MyShow s, MyShow v, Signature s, Variables v,
-          RewriteSystem s v r, UnivalentSystem o)
+instance (MyShow s, MyShow v,
+          Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => Show (CReduction s v r o) where
     show (CRConst (RConst [] _ _) _)   = error "Cannot show empty reductions"
     show (CRConst (RConst ts _ z) phi) = show' z 0
@@ -111,13 +111,12 @@ instance (MyShow s, MyShow v, Signature s, Variables v,
               show_t t False = " -> " ++ show t
 
 -- Yield the initial term of a computably convergent reduction
-initial_term :: (Signature s, Variables v,
-                 RewriteSystem s v r, UnivalentSystem o)
+initial_term :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => CReduction s v r o -> Term s v
 initial_term (CRConst (RConst ss _ z) _) = ss!!(to_int z)
 
 -- Yield the final term of a computably convergent reduction
-final_term :: (Signature s, Variables v, RewriteSystem s v r, UnivalentSystem o)
+final_term :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => CReduction s v r o -> Term s v
 final_term (CRConst (RConst ts _ z) phi)
     = final_subterm []

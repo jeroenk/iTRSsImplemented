@@ -52,7 +52,7 @@ instance SystemOfNotation OmegaTwoPlusOne where
     to_int  (OmegaTwoPlusOneElement n)
         = n
 
-instance UnivalentSystem OmegaTwoPlusOne where
+instance UnivalSystem OmegaTwoPlusOne where
     leq  (OmegaTwoPlusOneElement m)  (OmegaTwoPlusOneElement n)
         | n == m                                   = True
         | n == 0                                   = True

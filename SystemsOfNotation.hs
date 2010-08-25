@@ -21,7 +21,7 @@ module SystemsOfNotation (
     OrdinalType(ZeroOrdinal, SuccOrdinal, LimitOrdinal),
     SystemOfNotation(k, p, q, to_int),
     get_limit_pred,
-    UnivalentSystem(leq, zer, suc),
+    UnivalSystem(leq, zer, suc),
     Omega(OmegaElement)
 ) where
 
@@ -57,7 +57,7 @@ get_limit_pred n = get_limit_pred' (k n) n
           get_limit_pred' LimitOrdinal n = n
 
 -- In a univalent system of notation it is possible to compare two ordinals
-class SystemOfNotation o => UnivalentSystem o where
+class SystemOfNotation o => UnivalSystem o where
     leq :: o -> o -> Bool
     zer :: o      -- Existence follows by univalence
     suc :: o -> o -- Existence follows by univalence
@@ -77,7 +77,7 @@ instance SystemOfNotation Omega where
     to_int  (OmegaElement n)
         = n
 
-instance UnivalentSystem Omega where
+instance UnivalSystem Omega where
     leq (OmegaElement m) (OmegaElement n)
         = m <= n
     zer
