@@ -16,13 +16,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
 import MyShow
-import SignatureAndVariables
 import Terms
 import Substitutions
 import RationalTerms
 import RulesAndSystems
 import OmegaReductions
 import Confluence
+import ExampleTerms
 
 import Array
 
@@ -35,37 +35,14 @@ type Standard_Term         = Term Char Char
 type Standard_Substitution = Substitution Char Char
 type Standard_Rule         = RewriteRule Char Char
 
-instance Signature Char where
-    arity 'a' = 0
-    arity 'b' = 0
-    arity 'c' = 0
-    arity 'f' = 1
-    arity 'g' = 1
-    arity 'h' = 2
-    arity _   = error "Character not in signature"
-
-instance Variables Char
-
-f_x :: Standard_Term
-f_x = Function 'f' (array (1, 1) [(1, Variable 'x')])
-
 f_y :: Standard_Term
 f_y = Function 'f' (array (1, 1) [(1, Variable 'y')])
-
-f_a :: Standard_Term
-f_a = Function 'f' (array (1, 1) [(1, constant 'a')])
 
 f_b :: Standard_Term
 f_b = Function 'f' (array (1, 1) [(1, constant 'b')])
 
-g_x :: Standard_Term
-g_x = Function 'g' (array (1, 1) [(1, Variable 'x')])
-
 h_x_x :: Standard_Term
 h_x_x = Function 'h' (array (1, 2) [(1, Variable 'x'), (2, Variable 'x')])
-
-f_omega :: Standard_Term
-f_omega = Function 'f' (array (1, 1) [(1, f_omega)])
 
 h_omega :: Standard_Term
 h_omega = Function 'h' (array (1, 2) [(1, h_omega), (2, h_omega)])
