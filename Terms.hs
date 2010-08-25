@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Terms (
     Term(Function, Variable),
     constant,
+    function_term,
     term_height,
     less_height
 ) where
@@ -50,6 +51,18 @@ constant :: (Signature s, Variables v)
 constant c
     | arity c == 0 = Function c (array (1,0) [])
     | otherwise    = error "Input is not a constant"
+
+-- Wrapper for the definition of a terms with a function symbol at the root and
+-- a number of subterms
+function_term :: (Signature s, Variables v)
+    => s -> [(Int, Term s v)] -> Term s v
+function_term f ss
+    | exact_length a ss = Function f (array (1, a) ss)
+    | otherwise         = error "Provided subterms do not match arity"
+        where a = arity f
+              exact_length 0 []     = True
+              exact_length _ []     = False
+              exact_length n (_:xs) = exact_length (n - 1) xs
 
 -- The height of a term: height(t) = max {|p| : p in Pos(t)}
 term_height :: (Signature s, Variables v)

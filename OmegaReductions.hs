@@ -35,8 +35,6 @@ import Terms
 import PositionsAndSubterms
 import RulesAndSystems
 
-import Array
-
 -- Computable reductions are lists of terms and rewrite steps.
 --
 -- The number of terms is equal to 1 + n, where n is the number of steps in
@@ -46,7 +44,7 @@ data (Signature s, Variables v, RewriteSystem s v r) => Reduction s v r
 
 instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r)
     => Show (Reduction s v r) where
-    show (RConst [] _) = ""
+    show (RConst [] _) = error "Cannot show empty reductions"
     show (RConst ss _) = show' ss True
         where show' [] _   = ""
               show' (s:ss) True  = show s ++ show' ss False
@@ -65,10 +63,9 @@ data (Signature s, Variables v, RewriteSystem s v r) => CReduction s v r
 -- modulus associated with the reduction.
 instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r)
     => Show (CReduction s v r) where
+    show (CRConst (RConst [] _) _)   = error "Cannot show empty reductions"
     show (CRConst (RConst ts _) phi) = show' ts 0 0
-        where show' [] _ _
-                  = ""
-              show' ts n d
+        where show' ts n d
                   | less_height (head ts) d = show_steps (take 1 ts) (n == 0)
                   | otherwise               = fst_steps ++ lst_steps
                       where n' = max n (phi d)
@@ -93,9 +90,8 @@ final_term (CRConst (RConst ts _) phi) = final_subterm [] 0 ts
                         ts' = drop (n' - n) ts
                         top = get_symbol (head ts') ps
           construct_subterm (FunctionSymbol f) ps n ts
-              = Function f subterms
+              = function_term f ss
                   where a = arity f
-                        subterms = array (1, a) ss
                         ss = [(i, final_subterm (ps ++ [i]) n ts) | i <- [1..a]]
           construct_subterm (VariableSymbol x) _ _ _
               = Variable x

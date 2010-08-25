@@ -245,6 +245,9 @@ red_3 = RConst ts (zip ps rs) zer
           ps = [[]]
           rs = [rule_2]
 
+red_4 :: Reduction Char Char System_2 Omega
+red_4 = RConst [constant 'a'] [] zer
+
 cred_1 = CRConst red_1 modulus
     where modulus (OmegaTwoPlusOneElement n)
               | n == 1 = (\m -> OmegaTwoPlusOneElement (4 + (m * 2)))
@@ -260,6 +263,11 @@ cred_2 = CRConst red_2 modulus
 cred_3 = CRConst red_3 modulus
     where modulus (OmegaElement n)
               | n == 0 = (\m -> OmegaElement 1)
+              | otherwise = error("Invalid input to modulus")
+
+cred_4 = CRConst red_4 modulus
+    where modulus (OmegaElement n)
+              | n == 0 = (\m -> zer)
               | otherwise = error("Invalid input to modulus")
 
 show_steps (CRConst (RConst _ s _) _) = s

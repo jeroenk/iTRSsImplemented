@@ -40,8 +40,6 @@ import PositionsAndSubterms
 import RulesAndSystems
 import SystemsOfNotation
 
-import Array
-
 -- Computable reductions are lists of terms and rewrite steps.
 --
 -- The number of terms is equal to 1 + alpha, where alpha is the number of
@@ -61,16 +59,18 @@ get_zero (RConst _ _ z) = z
 show_from :: (MyShow s, MyShow v, Signature s, Variables v,
               RewriteSystem s v r, UnivalentSystem o)
     => (Reduction s v r o) -> o -> String
-show_from (RConst ss _ _) a = show' a True
-    where show' a frst
-              | indexof n ss = fst_term ++ lst_terms
-              | otherwise    = ""
+show_from (RConst ss _ _) a
+    | indexof (to_int a) ss = show' a True True
+    | otherwise             = error "Cannot show empty reductions"
+        where show' a True frst = fst_term ++ lst_terms
                   where n = to_int a
                         fst_term = (if frst then "" else " -> ") ++ show (ss!!n)
-                        lst_terms = show' (suc a) False
-          indexof n []     = False
-          indexof 0 _      = True
-          indexof n (_:ss) = indexof (n - 1) ss
+                        lst_terms = show' (suc a) is_index False
+                        is_index = indexof (to_int (suc a)) ss
+              show' _ False _   = ""
+              indexof n []     = False
+              indexof 0 _      = True
+              indexof n (_:ss) = indexof (n - 1) ss
 
 instance (MyShow s, MyShow v, Signature s, Variables v,
           RewriteSystem s v r, UnivalentSystem o)
@@ -94,7 +94,7 @@ data (Signature s, Variables v, RewriteSystem s v r, UnivalentSystem o)
 instance (MyShow s, MyShow v, Signature s, Variables v,
           RewriteSystem s v r, UnivalentSystem o)
     => Show (CReduction s v r o) where
-    show (CRConst (RConst [] _ _) _) = ""
+    show (CRConst (RConst [] _ _) _)   = error "Cannot show empty reductions"
     show (CRConst (RConst ts _ z) phi) = show' z 0
         where show' a d
                   | less_height (ts!!n) d = show_t (ts!!n) (a `leq` z)
@@ -126,9 +126,8 @@ final_term (CRConst (RConst ts _ z) phi)
                   where a = phi z (length ps)
                         top = get_symbol (ts!!(to_int a)) ps
           construct_subterm (FunctionSymbol f) ps
-              = Function f subterms
+              = function_term f ss
                   where a = arity f
-                        subterms = array (1, a) ss
                         ss = [(i, final_subterm (ps ++ [i])) | i <- [1..a]]
           construct_subterm (VariableSymbol x) _
               = Variable x

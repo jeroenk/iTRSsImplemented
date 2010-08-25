@@ -249,6 +249,9 @@ red_7 = RConst ts (zip ps rs)
           rs = rule_1:rs
           ts = rewrite_steps f_omega (zip ps rs)
 
+red_8 :: Reduction Char Char System_1
+red_8 = RConst [constant 'a'] []
+
 cred_1 = CRConst red_1 (\x -> succ x)
 
 cred_2 = CRConst red_2 (\x -> succ x)
@@ -262,6 +265,8 @@ cred_5 = CRConst red_5 (\x -> if x == 0 then 0 else 2)
 cred_6 = CRConst red_6 (\x -> succ x)
 
 cred_7 = CRConst red_7 (\x -> x)
+
+cred_8 = CRConst red_8 (\x -> 0)
 
 show_steps (CRConst (RConst _ s) _) = s
 

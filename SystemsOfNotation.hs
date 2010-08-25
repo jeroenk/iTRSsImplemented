@@ -71,9 +71,9 @@ instance SystemOfNotation Omega where
         | otherwise = SuccOrdinal
     p  (OmegaElement n)
         | n > 0     = OmegaElement (n - 1)
-        | otherwise = error("Predeccessor undefined")
+        | otherwise = error "Predeccessor undefined"
     q  (OmegaElement n)
-        = error("Limit function undefined") -- omega has no limit ordinals
+        = error "Limit function undefined" -- omega has no limit ordinals
     to_int  (OmegaElement n)
         = n
 
