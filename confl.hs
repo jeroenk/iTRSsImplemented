@@ -44,17 +44,11 @@ f_b = Function 'f' (array (1, 1) [(1, constant 'b')])
 h_x_x :: Standard_Term
 h_x_x = Function 'h' (array (1, 2) [(1, Variable 'x'), (2, Variable 'x')])
 
-h_omega :: Standard_Term
-h_omega = Function 'h' (array (1, 2) [(1, h_omega), (2, h_omega)])
-
 h_a_f_b :: Standard_Term
 h_a_f_b = Function 'h' (array (1, 2) [(1, constant 'a'), (2, f_b)])
 
 f_h_a_f_b :: Standard_Term
 f_h_a_f_b = Function 'f' (array (1, 1) [(1, h_a_f_b)])
-
-h_x_omega :: Standard_Term
-h_x_omega = Function 'h' (array (1, 2) [(1, Variable 'x'), (2, h_x_omega)])
 
 h_x_f_y :: Standard_Term
 h_x_f_y = Function 'h' (array (1, 2) [(1, Variable 'x'), (2, f_y)])

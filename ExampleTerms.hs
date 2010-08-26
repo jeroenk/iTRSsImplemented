@@ -21,8 +21,10 @@ module ExampleTerms (
     Sigma,
     Var,
     Term_Sigma_Var,
+    Symbol_Sigma_Var,
     a, b, c, f_x, f_a, g_x,
-    f_omega
+    f_omega, g_omega, h_omega,
+    h_x_omega, k_f_omega, f_k_omega
 ) where
 
 import SignatureAndVariables
@@ -32,6 +34,7 @@ type Sigma = Char
 type Var   = Char
 
 type Term_Sigma_Var = Term Sigma Var
+type Symbol_Sigma_Var = Symbol Sigma Var
 
 instance Signature Sigma where
     arity 'a' = 0
@@ -40,6 +43,7 @@ instance Signature Sigma where
     arity 'f' = 1
     arity 'g' = 1
     arity 'h' = 2
+    arity 'k' = 3
     arity _   = error "Character not in signature"
 
 instance Variables Var
@@ -64,3 +68,18 @@ g_x = function_term 'g' [(1, Variable 'x')]
 
 f_omega :: Term_Sigma_Var
 f_omega = function_term 'f' [(1, f_omega)]
+
+g_omega :: Term_Sigma_Var
+g_omega = function_term 'g' [(1, f_omega)]
+
+h_omega :: Term_Sigma_Var
+h_omega = function_term 'h' [(1, h_omega), (2, h_omega)]
+
+h_x_omega :: Term_Sigma_Var
+h_x_omega = function_term 'h' [(1, Variable 'x'), (2, h_x_omega)]
+
+k_f_omega :: Term_Sigma_Var
+k_f_omega = function_term 'k' [(1, f_k_omega), (2, f_k_omega), (3, f_k_omega)]
+
+f_k_omega :: Term_Sigma_Var
+f_k_omega = function_term 'f' [(1, k_f_omega)]

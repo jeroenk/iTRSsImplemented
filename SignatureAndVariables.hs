@@ -37,6 +37,12 @@ data (Signature s, Variables v) => Symbol s v
     = FunctionSymbol s
     | VariableSymbol v
 
+instance (Signature s, Variables v)
+    => Eq (Symbol s v) where
+    FunctionSymbol f == FunctionSymbol g = f == g
+    VariableSymbol x == VariableSymbol y = x == y
+    _ == _                               = False
+
 instance (MyShow s, MyShow v, Signature s, Variables v)
     => Show (Symbol s v) where
     show (FunctionSymbol f) = myshow f
