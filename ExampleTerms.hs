@@ -70,7 +70,7 @@ f_omega :: Term_Sigma_Var
 f_omega = function_term 'f' [(1, f_omega)]
 
 g_omega :: Term_Sigma_Var
-g_omega = function_term 'g' [(1, f_omega)]
+g_omega = function_term 'g' [(1, g_omega)]
 
 h_omega :: Term_Sigma_Var
 h_omega = function_term 'h' [(1, h_omega), (2, h_omega)]
