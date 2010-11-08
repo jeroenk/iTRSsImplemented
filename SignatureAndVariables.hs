@@ -15,7 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
--- This module defines signatures and variable sets
+-- This module defines signatures and variable sets.
 
 module SignatureAndVariables (
     Signature(arity),
@@ -25,14 +25,14 @@ module SignatureAndVariables (
 
 import MyShow
 
--- A signature is a set with an comparison operator and an arity function
+-- A signature is a set with an comparison operator and an arity function.
 class Eq s => Signature s where
     arity :: s -> Int
 
--- A set of variables has a comparison operator
+-- A set of variables has a comparison operator.
 class Eq v => Variables v
 
--- Symbols are either from the signature or from the set of variables
+-- Symbols are either from the signature or from the set of variables.
 data (Signature s, Variables v) => Symbol s v
     = FunctionSymbol s
     | VariableSymbol v

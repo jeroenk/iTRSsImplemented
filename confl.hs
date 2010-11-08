@@ -41,6 +41,9 @@ f_y = Function 'f' (array (1, 1) [(1, Variable 'y')])
 f_b :: Standard_Term
 f_b = Function 'f' (array (1, 1) [(1, constant 'b')])
 
+f_f_a :: Standard_Term
+f_f_a = Function 'f' (array (1, 1) [(1, Function 'f' (array (1, 1) [(1, constant 'a')]))])
+
 h_x_x :: Standard_Term
 h_x_x = Function 'h' (array (1, 2) [(1, Variable 'x'), (2, Variable 'x')])
 
@@ -107,7 +110,7 @@ rule_11 = Rule (constant 'b') (constant 'c')
 data System_1 = Sys1
 
 instance RewriteSystem Char Char System_1 where
-    rules Sys1 = [rule_1, rule_2]
+    rules Sys1 = [rule_1, rule_2, rule_10]
 
 data System_2 = Sys2
 
@@ -164,6 +167,18 @@ red_7 = RConst ts (zip ps rs)
 red_8 :: Reduction Char Char System_1
 red_8 = RConst [constant 'a'] []
 
+red_9 :: Reduction Char Char System_1
+red_9 = RConst ts (zip ps rs)
+    where ps = [[1, 1]]
+          rs = [rule_10]
+          ts = rewrite_steps f_f_a (zip ps rs)
+
+red_10 :: Reduction Char Char System_1
+red_10 = RConst ts (zip ps rs)
+    where ps = [[1]]
+          rs = [rule_1]
+          ts = rewrite_steps f_f_a (zip ps rs)
+
 cred_1 :: CReduction Char Char System_3
 cred_1 = CRConst red_1 (\x -> succ x)
 
@@ -187,6 +202,12 @@ cred_7 = CRConst red_7 (\x -> x)
 
 cred_8 :: CReduction Char Char System_1
 cred_8 = CRConst red_8 (\_ -> 0)
+
+cred_9 :: CReduction Char Char System_1
+cred_9 = CRConst red_9 (\x -> if x == 0 || x == 1 then 0 else 1)
+
+cred_10 :: CReduction Char Char System_1
+cred_10 = CRConst red_10 (\x -> if x == 0 then 0 else 1)
 
 -- show_steps (CRConst (RConst _ s) _) = s
 

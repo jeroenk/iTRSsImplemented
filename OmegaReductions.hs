@@ -15,7 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
--- This module defines computable reductions up to length omega
+-- This module defines computable reductions up to length omega.
 --
 -- Note that the final term of a reduction is not represented, but can be
 -- computed in case a modulus of convergence is associated with the reduction;
@@ -50,10 +50,10 @@ instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r)
               show' (s:ss) True  = show s ++ show' ss False
               show' (s:ss) False = " -> " ++ show s ++ show' ss False
 
--- Moduli of convergence are functions from natural numbers to natural numbers
+-- Moduli of convergence are functions from natural numbers to natural numbers.
 type Modulus = Int -> Int
 
--- Computably convergent reductions are reductions with an associated modulus
+-- Computably convergent reductions are reductions with an associated modulus.
 data (Signature s, Variables v, RewriteSystem s v r) => CReduction s v r
     = CRConst (Reduction s v r) Modulus
 
@@ -75,7 +75,7 @@ instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r)
               show_steps (s:ss) True = show s ++ show_steps ss False
               show_steps (s:ss) False = " -> " ++ show s ++ show_steps ss False
 
--- Yield the initial term of a computably convergent reduction
+-- Yield the initial term of a computably convergent reduction.
 initial_term :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Term s v
 initial_term (CRConst (RConst (x:_) _) _)
@@ -83,7 +83,7 @@ initial_term (CRConst (RConst (x:_) _) _)
 initial_term _
     = error "Empty reduction, no initial term"
 
--- Yield the final term of a computably convergent reduction
+-- Yield the final term of a computably convergent reduction.
 final_term :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Term s v
 final_term (CRConst (RConst ts _) phi) = final_subterm [] 0 ts

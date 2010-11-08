@@ -15,7 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
--- This module defines computable reductions up to length omega
+-- This module defines computable reductions up to length omega.
 --
 -- Note that the final term of a reduction is not represented, but can be
 -- computed in case a modulus of convergence is associated with the reduction;
@@ -55,7 +55,7 @@ get_zero :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => (Reduction s v r o) -> o
 get_zero (RConst _ _ z) = z
 
--- Helper function for show
+-- Helper function for show.
 show_from :: (MyShow s, MyShow v,
               Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => (Reduction s v r o) -> o -> String
@@ -82,7 +82,7 @@ instance (MyShow s, MyShow v,
 -- system of notation).
 type Modulus o = o -> Int -> o
 
--- Computably convergent reductions are reductions with an associated modulus
+-- Computably convergent reductions are reductions with an associated modulus.
 data (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => CReduction s v r o
     = CRConst (Reduction s v r o) (Modulus o)
@@ -100,7 +100,7 @@ instance (MyShow s, MyShow v,
                   | less_height (ts!!n) d = show_t (ts!!n) (a `leq` z)
                   | otherwise             = fst_steps ++ lst_steps
                       where n = to_int a
-                            fst_steps = show_steps a (phi z d) 
+                            fst_steps = show_steps a (phi z d)
                             lst_steps = show' (phi z d) (d + 1)
               show_steps a b
                   | a' `leq` b = show_t (ts!!n) (a `leq` z) ++ show_steps a' b
@@ -110,12 +110,12 @@ instance (MyShow s, MyShow v,
               show_t s True = show s
               show_t s False = " -> " ++ show s
 
--- Yield the initial term of a computably convergent reduction
+-- Yield the initial term of a computably convergent reduction.
 initial_term :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => CReduction s v r o -> Term s v
 initial_term (CRConst (RConst ts _ z) _) = ts!!(to_int z)
 
--- Yield the final term of a computably convergent reduction
+-- Yield the final term of a computably convergent reduction.
 final_term :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => CReduction s v r o -> Term s v
 final_term (CRConst (RConst ts _ z) phi)

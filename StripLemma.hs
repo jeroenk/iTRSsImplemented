@@ -15,7 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
--- This module implements the Strip Lemma for reductions up to length omega
+-- This module implements the Strip Lemma for reductions up to length omega.
 
 module StripLemma (
     strip_lemma
@@ -27,7 +27,7 @@ import RulesAndSystems
 import OmegaReductions
 
 -- Yield a sequence of steps all employing the same rule r given a set of
--- parallel positions and a rule r
+-- parallel positions and a rule r.
 sequence_steps :: (Signature s, Variables v)
     => [NatString] -> RewriteRule s v -> [Step s v]
 sequence_steps ps r = map (\p -> (p, r)) ps
@@ -48,7 +48,7 @@ bottom_develop (CRConst (RConst _ ps) _) (q, r)
                     new_steps = sequence_steps descendants_p r'
                     descendants_qs = descendants qs [(p', r')]
 
--- Concatenate the developments of the bottom reduction to obtain all steps
+-- Concatenate the developments of the bottom reduction to obtain all steps.
 bottom_steps :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Step s v -> [Step s v]
 bottom_steps r p
@@ -62,7 +62,7 @@ bottom_modulus :: (Signature s, Variables v, RewriteSystem s v r)
 bottom_modulus rs@(CRConst _ phi) s@(_, r) n
     = length (concat (take (phi (n + left_height r)) (bottom_develop rs s)))
 
--- Yield the bottom reduction of the Strip Lemma
+-- Yield the bottom reduction of the Strip Lemma.
 bottom_reduction :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Step s v -> CReduction s v r
 bottom_reduction r s
@@ -100,13 +100,13 @@ right_steps r p
     = concat (right_develop r p)
 
 -- Compute the modulus of the right-most reduction using that the ith element
--- of the list produced by right_develop has all steps at depth i.
+-- of the list produced by right_develop contains all steps at depth i.
 right_modulus :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Step s v -> Modulus
 right_modulus r p n
     = length (concat (take (n + 1) (right_develop r p)))
 
--- Yield the right-most reduction of the Strip Lemma
+-- Yield the right-most reduction of the Strip Lemma.
 right_reduction :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Step s v -> CReduction s v r
 right_reduction r s
@@ -115,7 +115,7 @@ right_reduction r s
           steps = right_steps r s
           modulus = right_modulus r s
 
--- Strip Lemma
+-- Strip Lemma for orthogonal systems with finite right-hand sides.
 strip_lemma :: (Signature s, Variables v, RewriteSystem s v r)
     => r -> CReduction s v r -> Step s v -> (CReduction s v r, CReduction s v r)
 strip_lemma _ r s = (bottom_reduction r s, right_reduction r s)

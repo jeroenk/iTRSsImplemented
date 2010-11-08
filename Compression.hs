@@ -15,7 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
--- This module implements compression of transfinite reductions 
+-- This module implements compression of transfinite reductions.
 
 module Compression (
     compression
@@ -27,6 +27,10 @@ import RulesAndSystems
 import SystemsOfNotation hiding (q)
 import TransfiniteReductions
 
+-- Accumulate the needed steps of a reduction in case we are interested in the
+-- positions up to a certain depth d in the final term of the reduction. The
+-- function yields both the needed steps and the index of each of these needed
+-- steps in the original reduction.
 accumulate :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => CReduction s v r o -> Int -> [(Step s v, o)]
 accumulate s@(CRConst (RConst _ ps z) phi) d
@@ -49,6 +53,7 @@ accumulate s@(CRConst (RConst _ ps z) phi) d
               | b `leq` z   = []
               | otherwise = error "Greater than zero but also equal or smaller"
 
+-- Filter the steps from a reduction based on the steps that were found earlier.
 filter_steps :: (Signature s, Variables v, UnivalSystem o)
     => [(Step s v, o)] -> [(Step s v, o)] -> [Step s v]
 filter_steps prevs total = filter_steps' prevs total []
@@ -68,6 +73,9 @@ filter_steps prevs total = filter_steps' prevs total []
               where ps_add = descendants [ps] ss
                     ss_new = map (\q -> (q, r)) ps_add
 
+-- The function compr_devel computes the compressed reduction. The steps of the
+-- reduction are returned as a list of lists of steps, where it is ensured for
+-- the ith item in the list that all its steps occur at depth i.
 compr_devel :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => CReduction s v r o -> [[Step s v]]
 compr_devel s = (map fst initial) : (compr_devel' 1 initial)
@@ -76,10 +84,13 @@ compr_devel s = (map fst initial) : (compr_devel' 1 initial)
                   where total = accumulate s d
                         new_steps = filter_steps prevs total
 
+-- Concatenate the lists produced by compr_devel to obatin all steps.
 compr_steps :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => CReduction s v r o -> [Step s v]
 compr_steps s = concat (compr_devel s)
 
+-- Compute the modulus using that the ith element of the list produced by
+-- compr_devel contains all steps at depth i.
 compr_modulus :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => CReduction s v r o -> (Modulus Omega)
 compr_modulus s (OmegaElement n)
@@ -87,6 +98,7 @@ compr_modulus s (OmegaElement n)
     | otherwise = error "Modulus only defined for 0"
         where compute m = length (concat (take (m + 1) (compr_devel s)))
 
+-- Compression of left-linear rewrite systems with finite right-hand sides.
 compression :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => r -> (CReduction s v r o) -> (CReduction s v r Omega)
 compression _ s = CRConst (RConst terms steps zer) modulus

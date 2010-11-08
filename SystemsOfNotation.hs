@@ -15,7 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
--- This module defines systems of notation (for computable ordinals)
+-- This module defines systems of notation (for computable ordinals).
 
 module SystemsOfNotation (
     OrdinalType(ZeroOrdinal, SuccOrdinal, LimitOrdinal),
@@ -25,7 +25,7 @@ module SystemsOfNotation (
     Omega(OmegaElement)
 ) where
 
--- An ordinal can have three different types
+-- An ordinal can have three different types.
 data OrdinalType
     = ZeroOrdinal
     | SuccOrdinal
@@ -37,7 +37,7 @@ instance Eq OrdinalType where
     LimitOrdinal == LimitOrdinal = True
     _ == _                       = False
 
--- A system of notation defines the functions k, p, and q
+-- A system of notation defines the functions k, p, and q.
 --
 -- Because we want some flexibility, we leave the actual type of a system of
 -- notation unspecified (we do not default to natural numbers). This means we
@@ -49,20 +49,20 @@ class SystemOfNotation o where
     to_int :: o -> Int
 
 -- Get the largest ordinal that is a limit ordinal or zero and smaller than a
--- certain other ordinal 
+-- certain other ordinal.
 get_limit_pred :: (SystemOfNotation o) => o -> o
 get_limit_pred n = get_limit_pred' (k n) n
     where get_limit_pred' ZeroOrdinal m  = m
           get_limit_pred' SuccOrdinal m  = get_limit_pred (p m)
           get_limit_pred' LimitOrdinal m = m
 
--- In a univalent system of notation it is possible to compare two ordinals
+-- In a univalent system of notation it is possible to compare two ordinals.
 class SystemOfNotation o => UnivalSystem o where
     leq :: o -> o -> Bool
     zer :: o      -- Existence follows by univalence
     suc :: o -> o -- Existence follows by univalence
 
--- A system of notation for the ordinal omega
+-- A system of notation for the ordinal omega.
 data Omega = OmegaElement Int
 
 instance SystemOfNotation Omega where

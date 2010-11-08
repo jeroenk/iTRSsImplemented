@@ -16,9 +16,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
 -- This module defines positions of terms and the subterm that occur at those
--- postitions
+-- postitions.
 --
--- As usual, positions are represented by lists of natural numbers
+-- As usual, positions are represented by lists of natural numbers.
 
 module PositionsAndSubterms (
     NatString,
@@ -34,14 +34,14 @@ import Terms
 
 import Array
 
--- Strings of natural numbers
+-- Strings of natural numbers.
 type NatString = [Int]
 
--- Establish if one string is a prefix of another string
+-- Establish if one string is a prefix of another string.
 is_prefix :: NatString -> NatString -> Bool
 is_prefix ns ms = ns == (take (length ns) ms)
 
--- Establish if a position occurs in a term
+-- Establish if a position occurs in a term.
 position_of_term :: (Signature s, Variables v)
     => Term s v -> NatString -> Bool
 position_of_term _ []
@@ -52,7 +52,7 @@ position_of_term (Function f ts) (n:ns)
 position_of_term (Variable _) (_:_)
     = False
 
--- Helper function for obtaining the positions of a term
+-- Helper function for obtaining the positions of a term.
 --
 -- The function processes an array of subterms based on a function f and
 -- prefixes each of the positions returned by f with the appropriate
@@ -64,13 +64,13 @@ subterm_pos f ts = concat (prefix (map f (elems ts)) 1)
           prefix (x:xs) n = (map (prefix_pos n) x) : (prefix xs (n + 1))
               where prefix_pos m ms = m:ms
 
--- All positions
+-- All positions.
 pos :: (Signature s, Variables v)
     => Term s v -> [NatString]
 pos (Function _ ts) = [] : subterm_pos pos ts
 pos (Variable _)    = [[]]
 
--- Positions up to and including a certain depth
+-- Positions up to and including a certain depth.
 pos_to_depth :: (Signature s, Variables v)
     => Term s v -> Int -> [NatString]
 pos_to_depth _ 0               = [[]]
@@ -78,19 +78,19 @@ pos_to_depth (Function _ ts) d = [] : subterm_pos pos_to_depth' ts
     where pos_to_depth' t = pos_to_depth t (d - 1)
 pos_to_depth (Variable _) _    = [[]]
 
--- Non-variable positions
+-- Non-variable positions.
 non_var_pos :: (Signature s, Variables v)
     => Term s v -> [NatString]
 non_var_pos (Function _ ts) = [] : subterm_pos non_var_pos ts
 non_var_pos (Variable _)    = []
 
--- Position of a specific variable
+-- Position of a specific variable.
 var_pos :: (Signature s, Variables v)
     => Term s v -> v -> [NatString]
 var_pos (Function _ ts) x = subterm_pos (\t -> var_pos t x) ts
 var_pos (Variable y) x    = if x == y then [[]] else []
 
--- Yield the symbol at a position
+-- Yield the symbol at a position.
 get_symbol :: (Signature s, Variables v)
     => Term s v -> NatString -> Symbol s v
 get_symbol (Function f _) []
@@ -103,7 +103,7 @@ get_symbol (Variable x) []
 get_symbol (Variable _) _
     = error "Getting symbol at a non-existing position"
 
--- Yield the subterm at a position
+-- Yield the subterm at a position.
 subterm :: (Signature s, Variables v)
     => Term s v -> NatString -> Term s v
 subterm s []
@@ -114,7 +114,7 @@ subterm (Function f ts) (n:ns)
 subterm (Variable _) _
     = error "Getting non-existing subterm"
 
--- Replace a subterm at a certain position
+-- Replace a subterm at a certain position.
 replace_subterm :: (Signature s, Variables v)
     => Term s v -> NatString -> Term s v -> Term s v
 replace_subterm _ [] t

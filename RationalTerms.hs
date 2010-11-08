@@ -15,7 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
--- This module defines rational terms
+-- This module defines rational terms.
 --
 -- Remark that a finite system of regular equations is a substitution where
 -- the terms are not allowed to be variables.
@@ -31,10 +31,10 @@ import Substitutions
 
 import Array
 
--- A regular system is a substitution
+-- A regular system is a substitution.
 type RegularSystem s v = Substitution s v
 
--- Rational terms are constructed in the standard way using an initial variable
+-- Rational terms are constructed in the standard way using an initial variable.
 rational_term :: (Signature s, Variables v)
     => RegularSystem s v -> v -> Term s v
 rational_term sigma x = rational (Variable x)

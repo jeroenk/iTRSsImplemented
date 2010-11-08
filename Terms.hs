@@ -15,7 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
--- This module defines (finite and infinite) terms
+-- This module defines (finite and infinite) terms.
 
 module Terms (
     Term(Function, Variable),
@@ -30,7 +30,7 @@ import SignatureAndVariables
 
 import Array
 
--- Terms consist of function symbols and variables
+-- Terms consist of function symbols and variables.
 data (Signature s, Variables v) => Term s v
     = Function s (Array Int (Term s v))
     | Variable v
@@ -45,7 +45,7 @@ instance (MyShow s, MyShow v, Signature s, Variables v)
                   show' (x:xs) False = "," ++ show x ++ show' xs False
     show (Variable v)   = myshow v
 
--- Wrapper for the definition of terms which are constants
+-- Wrapper for the definition of terms which are constants.
 constant :: (Signature s, Variables v)
     => s -> Term s v
 constant c
@@ -53,7 +53,7 @@ constant c
     | otherwise    = error "Input is not a constant"
 
 -- Wrapper for the definition of a terms with a function symbol at the root and
--- a number of subterms
+-- a number of subterms.
 function_term :: (Signature s, Variables v)
     => s -> [(Int, Term s v)] -> Term s v
 function_term f ss
@@ -64,7 +64,7 @@ function_term f ss
               exact_length _ []     = False
               exact_length n (_:xs) = exact_length (n - 1) xs
 
--- The height of a term: height(t) = max {|p| : p in Pos(t)}
+-- The height of a term: height(t) = max {|p| : p in Pos(t)}.
 term_height :: (Signature s, Variables v)
     => Term s v -> Int
 term_height (Function _ ts)
@@ -73,7 +73,7 @@ term_height (Function _ ts)
 term_height (Variable _)
     = 0
 
--- Establish if a term t is of height less than n
+-- Establish if a term t is of height less than n.
 less_height :: (Signature s, Variables v)
     => Term s v -> Int -> Bool
 less_height (Function _ ts) n
