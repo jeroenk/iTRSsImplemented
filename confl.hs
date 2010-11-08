@@ -23,6 +23,7 @@ import RulesAndSystems
 import OmegaReductions
 import Confluence
 import ExampleTerms
+import ExampleRules
 
 import Array
 
@@ -43,9 +44,6 @@ f_b = Function 'f' (array (1, 1) [(1, constant 'b')])
 
 f_f_a :: Standard_Term
 f_f_a = Function 'f' (array (1, 1) [(1, Function 'f' (array (1, 1) [(1, constant 'a')]))])
-
-h_x_x :: Standard_Term
-h_x_x = Function 'h' (array (1, 2) [(1, Variable 'x'), (2, Variable 'x')])
 
 h_a_f_b :: Standard_Term
 h_a_f_b = Function 'h' (array (1, 2) [(1, constant 'a'), (2, f_b)])
@@ -74,64 +72,32 @@ sigma_2 = [('x', f_x)]
 f_omega' :: Standard_Term
 f_omega' = rational_term sigma_2 'x'
 
-rule_1 :: RewriteRule Char Char
-rule_1 = Rule f_x g_x
-
-rule_2 :: RewriteRule Char Char
-rule_2 = Rule (constant 'a') f_omega
-
-rule_3 :: RewriteRule Char Char
-rule_3 = Rule h_x_f_y (constant 'a')
-
 rule_4 :: RewriteRule Char Char
 rule_4 = Rule h_x_f_y f_x
-
-rule_5 :: RewriteRule Char Char
-rule_5 = Rule (constant 'a') f_a
 
 rule_6 :: RewriteRule Char Char
 rule_6 = Rule f_x h_x_h_a_x
 
-rule_7 :: RewriteRule Char Char
-rule_7 = Rule f_x h_x_x
-
-rule_8 :: RewriteRule Char Char
-rule_8 = Rule f_x (constant 'a')
-
-rule_9 :: RewriteRule Char Char
-rule_9 = Rule f_x h_x_f_x
-
-rule_10 :: Standard_Rule
-rule_10 = Rule (constant 'a') (constant 'b')
-
-rule_11 :: Standard_Rule
-rule_11 = Rule (constant 'b') (constant 'c')
-
 data System_1 = Sys1
 
 instance RewriteSystem Char Char System_1 where
-    rules Sys1 = [rule_1, rule_2, rule_10]
-
-data System_2 = Sys2
-
-instance RewriteSystem Char Char System_2 where
-    rules Sys2 = [rule_3, rule_4]
+    rules Sys1 = [rule_f_x_to_g_x, rule_a_to_f_omega, rule_a_to_b]
 
 data System_3 = Sys3
 
 instance RewriteSystem Char Char System_3 where
-    rules Sys3 = [rule_5, rule_6, rule_7, rule_8, rule_9, rule_10, rule_11]
+    rules Sys3 = [rule_a_to_f_a, rule_6, rule_f_x_to_h_x_x, rule_f_x_to_a, rule_f_x_to_h_x_x, rule_a_to_b, rule_b_to_c]
 
 red_1 :: Reduction Char Char System_3
 red_1 = RConst ts (zip ps rs)
     where ps = (iterate (\ns -> 1:ns) [1])
-          rs = repeat rule_5
+          rs = repeat rule_a_to_f_a
           ts = rewrite_steps (f_a) (zip ps rs)
 
 red_2 :: Reduction Char Char System_1
 red_2 = RConst ts (zip ps rs)
     where ps = (iterate (\ns -> 1:ns) [])
-          rs = repeat rule_1
+          rs = repeat rule_f_x_to_g_x
           ts = rewrite_steps (f_omega) (zip ps rs)
 
 red_3 :: Reduction Char Char System_1
@@ -143,25 +109,25 @@ red_3 = RConst ts (zip ps rs)
 red_4 :: Reduction Char Char System_3
 red_4 = RConst ts (zip ps rs)
     where ps = [[], [2], [2,2]]
-          rs = [rule_9, rule_9, rule_9]
+          rs = [rule_f_x_to_h_x_x, rule_f_x_to_h_x_x, rule_f_x_to_h_x_x]
           ts = rewrite_steps (f_a) (zip ps rs)
 
 red_5 :: Reduction Char Char System_3
 red_5 = RConst ts (zip ps rs)
     where ps = [[1], [1]]
-          rs = [rule_10, rule_11]
+          rs = [rule_a_to_b, rule_b_to_c]
           ts = rewrite_steps (f_a) (zip ps rs)
 
 red_6 :: Reduction Char Char System_1
 red_6 = RConst ts (zip ps rs)
     where ps = []:(map (\p -> 1:1:p) ps)
-          rs = rule_1:rs
+          rs = rule_f_x_to_g_x:rs
           ts = rewrite_steps f_omega (zip ps rs)
 
 red_7 :: Reduction Char Char System_1
 red_7 = RConst ts (zip ps rs)
     where ps = [1]:(map (\p -> 1:1:p) ps)
-          rs = rule_1:rs
+          rs = rule_f_x_to_g_x:rs
           ts = rewrite_steps f_omega (zip ps rs)
 
 red_8 :: Reduction Char Char System_1
@@ -170,13 +136,13 @@ red_8 = RConst [constant 'a'] []
 red_9 :: Reduction Char Char System_1
 red_9 = RConst ts (zip ps rs)
     where ps = [[1, 1]]
-          rs = [rule_10]
+          rs = [rule_a_to_b]
           ts = rewrite_steps f_f_a (zip ps rs)
 
 red_10 :: Reduction Char Char System_1
 red_10 = RConst ts (zip ps rs)
     where ps = [[1]]
-          rs = [rule_1]
+          rs = [rule_f_x_to_g_x]
           ts = rewrite_steps f_f_a (zip ps rs)
 
 cred_1 :: CReduction Char Char System_3

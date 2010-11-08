@@ -24,6 +24,7 @@ import SystemsOfNotation
 import TransfiniteReductions
 import Compression
 import ExampleTerms
+import ExampleRules
 
 import Array
 
@@ -75,27 +76,18 @@ type Standard_Term         = Term Char Char
 type Standard_Substitution = Substitution Char Char
 type Standard_Rule         = RewriteRule Char Char
 
-f_g_omega :: Standard_Term
-f_g_omega = Function 'f' (array (1, 1) [(1, g_f_omega)])
-
-g_f_omega :: Standard_Term
-g_f_omega = Function 'g' (array (1, 1) [(1, f_g_omega)])
-
-rule_1 :: RewriteRule Char Char
-rule_1 = Rule f_x g_x
-
 rule_2 :: RewriteRule Char Char
 rule_2 = Rule a f_a
 
 data System_1 = Sys1
 
 instance RewriteSystem Char Char System_1 where
-    rules Sys1 = [rule_1]
+    rules Sys1 = [rule_f_x_to_g_x]
 
 data System_2 = Sys2
 
 instance RewriteSystem Char Char System_2 where
-    rules Sys2 = [rule_1, rule_2]
+    rules Sys2 = [rule_f_x_to_g_x, rule_a_to_f_a]
 
 red_1 :: Reduction Char Char System_1 OmegaTwoPlusOne
 red_1 = RConst ts (zip ps rs) zer
@@ -108,7 +100,7 @@ red_1 = RConst ts (zip ps rs) zer
                             where ones 0 = []
                                   ones m = 1 : 1: (ones (m - 1))
                     step _ = error "Undefined steps"
-          rs = rule_1:rs
+          rs = rule_f_x_to_g_x:rs
           ts = term 0
               where term :: Integer -> [Standard_Term]
                     term 0 = error "Undefined term" : term 1
@@ -134,7 +126,7 @@ red_2 = RConst ts (zip ps rs) zer
                             where ones 0 = []
                                   ones m = 1 : (ones (m - 1))
                     step _ = error "Undefined steps"
-          rs = rule_2 : rule_1 : rs
+          rs = rule_a_to_f_a : rule_f_x_to_g_x : rs
           ts = term 0
               where term :: Integer -> [Standard_Term]
                     term 0 = error "Undefined term" : term 1
@@ -153,7 +145,7 @@ red_3 :: Reduction Char Char System_2 Omega
 red_3 = RConst ts (zip ps rs) zer
     where ts = [a, f_a]
           ps = [[]]
-          rs = [rule_2]
+          rs = [rule_a_to_f_a]
 
 red_4 :: Reduction Char Char System_2 Omega
 red_4 = RConst [constant 'a'] [] zer

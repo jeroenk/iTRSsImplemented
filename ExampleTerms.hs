@@ -22,8 +22,9 @@ module ExampleTerms (
     Var,
     Term_Sigma_Var,
     Symbol_Sigma_Var,
-    a, b, c, f_x, f_a, g_x,
+    a, b, c, f_a, f_x, g_x, h_x_x,
     f_omega, g_omega, h_omega,
+    f_g_omega, g_f_omega,
     h_x_omega, k_f_omega, f_k_omega
 ) where
 
@@ -57,14 +58,17 @@ b = constant 'b'
 c :: Term_Sigma_Var
 c = constant 'c'
 
-f_x :: Term_Sigma_Var
-f_x = function_term 'f' [(1, Variable 'x')]
-
 f_a :: Term_Sigma_Var
 f_a = function_term 'f' [(1, a)]
 
+f_x :: Term_Sigma_Var
+f_x = function_term 'f' [(1, Variable 'x')]
+
 g_x :: Term_Sigma_Var
 g_x = function_term 'g' [(1, Variable 'x')]
+
+h_x_x :: Term_Sigma_Var
+h_x_x = function_term 'h' [(1, Variable 'x'), (2, Variable 'x')]
 
 f_omega :: Term_Sigma_Var
 f_omega = function_term 'f' [(1, f_omega)]
@@ -74,6 +78,12 @@ g_omega = function_term 'g' [(1, g_omega)]
 
 h_omega :: Term_Sigma_Var
 h_omega = function_term 'h' [(1, h_omega), (2, h_omega)]
+
+f_g_omega :: Term_Sigma_Var
+f_g_omega = function_term 'f' [(1, g_f_omega)]
+
+g_f_omega :: Term_Sigma_Var
+g_f_omega = function_term 'g' [(1, f_g_omega)]
 
 h_x_omega :: Term_Sigma_Var
 h_x_omega = function_term 'h' [(1, Variable 'x'), (2, h_x_omega)]
