@@ -23,7 +23,7 @@ module ExampleTermsAndSubstitutions (
     Term_Sigma_Var,
     Symbol_Sigma_Var,
     Substitution_Sigma_Var,
-    a, b, c, f_a, f_f_a, f_x, g_x, h_x_x,
+    a, b, c, f_a, f_f_a, f_x, g_x, h_x_x, h_x_f_x,
     f_omega, g_omega, h_omega,
     f_g_omega, g_f_omega,
     h_x_omega, k_f_omega, f_k_omega,
@@ -76,6 +76,9 @@ g_x = function_term 'g' [(1, Variable 'x')]
 
 h_x_x :: Term_Sigma_Var
 h_x_x = function_term 'h' [(1, Variable 'x'), (2, Variable 'x')]
+
+h_x_f_x :: Term_Sigma_Var
+h_x_f_x = function_term 'h' [(1, Variable 'x'), (2, f_x)]
 
 f_omega :: Term_Sigma_Var
 f_omega = function_term 'f' [(1, f_omega)]

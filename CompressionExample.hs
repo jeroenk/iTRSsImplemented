@@ -15,6 +15,9 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
+-- This file defines some reductions that can be tried with the compression
+-- algorithm.
+
 import MyShow
 import Terms
 import PositionsAndSubterms
@@ -24,8 +27,7 @@ import Compression
 import ExampleTermsAndSubstitutions
 import ExampleRulesAndSystems
 
--- Examples
-
+-- The following is needed to display the reductions.
 instance MyShow Char where
     myshow x = [x]
 
@@ -68,6 +70,9 @@ instance UnivalSystem OmegaTwoPlusOne where
        | n == 2    = OmegaTwoPlusOneElement 4
        | otherwise = OmegaTwoPlusOneElement (n + 2)
 
+-- f^omega -> (fg)(f^\omega) -> (fg)^2(f^\omega))) -> ...
+--                                             -> (fg)^n(f^\omega) -> ...
+--        (fg)^omega -> g^2((fg)^omega) -> ... -> g^(2n)((fg)^omega)
 red_1 :: Reduction Sigma Var System_a_f_x OmegaTwoPlusOne
 red_1 = RConst ts (zip ps rs) zer
     where ps = step 0
@@ -94,6 +99,15 @@ red_1 = RConst ts (zip ps rs) zer
                                   c_g t = function_term 'g' [(1, t)]
                     term _ = error "Undefined terms"
 
+cred_1 :: CReduction Sigma Var System_a_f_x OmegaTwoPlusOne
+cred_1 = CRConst red_1 modulus
+    where modulus (OmegaTwoPlusOneElement n)
+              | n == 1 = (\m -> OmegaTwoPlusOneElement (4 + (m * 2)))
+              | n == 2 = (\m -> OmegaTwoPlusOneElement (3 + (m * 2)))
+              | otherwise = error("Invalid input to modulus")
+
+-- a -> f(a) -> f^2(a) -> ... -> f^n(a) -> ...
+--        f^omega -> g(f^omega) -> g^2(f^omega) -> ... -> g^n(f^omega) -> ...
 red_2 :: Reduction Sigma Var System_a_f_x OmegaTwoPlusOne
 red_2 = RConst ts (zip ps rs) zer
     where ps = step 0
@@ -120,22 +134,6 @@ red_2 = RConst ts (zip ps rs) zer
                                   c_g t = function_term 'g' [(1, t)]
                     term _ = error "Undefined terms"
 
-red_3 :: Reduction Sigma Var System_a_f_x Omega
-red_3 = RConst ts (zip ps rs) zer
-    where ts = [a, f_a]
-          ps = [[]]
-          rs = [rule_a_to_f_a]
-
-red_4 :: Reduction Sigma Var System_a_f_x Omega
-red_4 = RConst [a] [] zer
-
-cred_1 :: CReduction Sigma Var System_a_f_x OmegaTwoPlusOne
-cred_1 = CRConst red_1 modulus
-    where modulus (OmegaTwoPlusOneElement n)
-              | n == 1 = (\m -> OmegaTwoPlusOneElement (4 + (m * 2)))
-              | n == 2 = (\m -> OmegaTwoPlusOneElement (3 + (m * 2)))
-              | otherwise = error("Invalid input to modulus")
-
 cred_2 :: CReduction Sigma Var System_a_f_x OmegaTwoPlusOne
 cred_2 = CRConst red_2 modulus
     where modulus (OmegaTwoPlusOneElement n)
@@ -143,11 +141,22 @@ cred_2 = CRConst red_2 modulus
               | n == 2 = (\m -> OmegaTwoPlusOneElement (3 + (m * 2)))
               | otherwise = error("Invalid input to modulus")
 
+-- a -> f(a)
+red_3 :: Reduction Sigma Var System_a_f_x Omega
+red_3 = RConst ts (zip ps rs) zer
+    where ts = [a, f_a]
+          ps = [[]]
+          rs = [rule_a_to_f_a]
+
 cred_3 :: CReduction Sigma Var System_a_f_x Omega
 cred_3 = CRConst red_3 modulus
     where modulus (OmegaElement n)
               | n == 0 = (\_ -> OmegaElement 1)
               | otherwise = error("Invalid input to modulus")
+
+-- a
+red_4 :: Reduction Sigma Var System_a_f_x Omega
+red_4 = RConst [a] [] zer
 
 cred_4 :: CReduction Sigma Var System_a_f_x Omega
 cred_4 = CRConst red_4 modulus

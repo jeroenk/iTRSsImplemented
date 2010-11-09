@@ -15,10 +15,11 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
--- This module defines some simple rewrite rules over the example terms.
+-- This module defines some simple rewrite rules over the example terms and
+-- defines some rewrite systems over the defined rules.
 --
 -- Note that the defined rules are not all mutually orthogonal. Hence, we need
--- to be careful when efining rewrite systems.
+-- to be careful when defining rewrite systems.
 
 module ExampleRulesAndSystems (
     Rule_Sigma_Var,
@@ -28,9 +29,9 @@ module ExampleRulesAndSystems (
     rule_a_to_f_omega,
     rule_f_x_to_a,
     rule_f_x_to_g_x,
-    rule_f_x_to_h_x_x,
-    System_a_f_x(Rules_a_f_x),
-    System_a_b_f_x(Rules_a_b_f_x)
+    rule_f_x_to_h_x_f_x,
+    System_a_f_x(System_a_f_x),
+    System_a_b_f_x(System_a_b_f_x)
 ) where
 
 import RulesAndSystems
@@ -56,15 +57,15 @@ rule_f_x_to_a = Rule f_x a
 rule_f_x_to_g_x :: Rule_Sigma_Var
 rule_f_x_to_g_x = Rule f_x g_x
 
-rule_f_x_to_h_x_x :: Rule_Sigma_Var
-rule_f_x_to_h_x_x = Rule f_x h_x_x
+rule_f_x_to_h_x_f_x :: Rule_Sigma_Var
+rule_f_x_to_h_x_f_x = Rule f_x h_x_f_x
 
-data System_a_f_x = Rules_a_f_x
+data System_a_f_x = System_a_f_x
 
 instance RewriteSystem Sigma Var System_a_f_x where
-    rules Rules_a_f_x = [rule_a_to_f_a, rule_f_x_to_g_x]
+    rules System_a_f_x = [rule_a_to_f_a, rule_f_x_to_g_x]
 
-data System_a_b_f_x = Rules_a_b_f_x
+data System_a_b_f_x = System_a_b_f_x
 
 instance RewriteSystem Sigma Var System_a_b_f_x where
-    rules Rules_a_b_f_x = [rule_a_to_b, rule_b_to_c, rule_f_x_to_h_x_x]
+    rules System_a_b_f_x = [rule_a_to_b, rule_b_to_c, rule_f_x_to_h_x_f_x]
