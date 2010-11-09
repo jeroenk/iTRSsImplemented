@@ -17,25 +17,29 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -- This module defines a signature Sigma and some simple terms over Sigma.
 
-module ExampleTerms (
+module ExampleTermsAndSubstitutions (
     Sigma,
     Var,
     Term_Sigma_Var,
     Symbol_Sigma_Var,
-    a, b, c, f_a, f_x, g_x, h_x_x,
+    Substitution_Sigma_Var,
+    a, b, c, f_a, f_f_a, f_x, g_x, h_x_x,
     f_omega, g_omega, h_omega,
     f_g_omega, g_f_omega,
-    h_x_omega, k_f_omega, f_k_omega
+    h_x_omega, k_f_omega, f_k_omega,
+    sigma_simple, sigma_complex
 ) where
 
 import SignatureAndVariables
+import Substitutions
 import Terms
 
 type Sigma = Char
 type Var   = Char
 
-type Term_Sigma_Var = Term Sigma Var
-type Symbol_Sigma_Var = Symbol Sigma Var
+type Symbol_Sigma_Var       = Symbol Sigma Var
+type Term_Sigma_Var         = Term Sigma Var
+type Substitution_Sigma_Var = Substitution Sigma Var
 
 instance Signature Sigma where
     arity 'a' = 0
@@ -45,7 +49,7 @@ instance Signature Sigma where
     arity 'g' = 1
     arity 'h' = 2
     arity 'k' = 3
-    arity _   = error "Character not in signature"
+    arity  _  = error "Character not in signature"
 
 instance Variables Var
 
@@ -60,6 +64,9 @@ c = constant 'c'
 
 f_a :: Term_Sigma_Var
 f_a = function_term 'f' [(1, a)]
+
+f_f_a :: Term_Sigma_Var
+f_f_a = function_term 'f' [(1, f_a)]
 
 f_x :: Term_Sigma_Var
 f_x = function_term 'f' [(1, Variable 'x')]
@@ -93,3 +100,9 @@ k_f_omega = function_term 'k' [(1, f_k_omega), (2, f_k_omega), (3, f_k_omega)]
 
 f_k_omega :: Term_Sigma_Var
 f_k_omega = function_term 'f' [(1, k_f_omega)]
+
+sigma_simple :: Substitution_Sigma_Var
+sigma_simple = [('x', a)]
+
+sigma_complex :: Substitution_Sigma_Var
+sigma_complex = [('x', a), ('y', f_a), ('z', h_omega)]

@@ -18,15 +18,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import MyShow
 import Terms
 import PositionsAndSubterms
-import Substitutions
-import RulesAndSystems
 import SystemsOfNotation
 import TransfiniteReductions
 import Compression
-import ExampleTerms
-import ExampleRules
-
-import Array
+import ExampleTermsAndSubstitutions
+import ExampleRulesAndSystems
 
 -- Examples
 
@@ -72,24 +68,7 @@ instance UnivalSystem OmegaTwoPlusOne where
        | n == 2    = OmegaTwoPlusOneElement 4
        | otherwise = OmegaTwoPlusOneElement (n + 2)
 
-type Standard_Term         = Term Char Char
-type Standard_Substitution = Substitution Char Char
-type Standard_Rule         = RewriteRule Char Char
-
-rule_2 :: RewriteRule Char Char
-rule_2 = Rule a f_a
-
-data System_1 = Sys1
-
-instance RewriteSystem Char Char System_1 where
-    rules Sys1 = [rule_f_x_to_g_x]
-
-data System_2 = Sys2
-
-instance RewriteSystem Char Char System_2 where
-    rules Sys2 = [rule_f_x_to_g_x, rule_a_to_f_a]
-
-red_1 :: Reduction Char Char System_1 OmegaTwoPlusOne
+red_1 :: Reduction Sigma Var System_a_f_x OmegaTwoPlusOne
 red_1 = RConst ts (zip ps rs) zer
     where ps = step 0
               where step :: Integer -> [NatString]
@@ -102,7 +81,7 @@ red_1 = RConst ts (zip ps rs) zer
                     step _ = error "Undefined steps"
           rs = rule_f_x_to_g_x:rs
           ts = term 0
-              where term :: Integer -> [Standard_Term]
+              where term :: Integer -> [Term_Sigma_Var]
                     term 0 = error "Undefined term" : term 1
                     term n
                         | even n = f_g_n ((n `div` 2) - 1) : term (n + 1)
@@ -111,11 +90,11 @@ red_1 = RConst ts (zip ps rs) zer
                                   f_g_n m = (c_f (c_g (f_g_n (m - 1))))
                                   g_g_n 0 = f_g_omega
                                   g_g_n m = (c_g (c_g (g_g_n (m - 1))))
-                                  c_f t = Function 'f' (array (1, 1) [(1, t)])
-                                  c_g t = Function 'g' (array (1, 1) [(1, t)])
+                                  c_f t = function_term 'f' [(1, t)]
+                                  c_g t = function_term 'g' [(1, t)]
                     term _ = error "Undefined terms"
 
-red_2 :: Reduction Char Char System_2 OmegaTwoPlusOne
+red_2 :: Reduction Sigma Var System_a_f_x OmegaTwoPlusOne
 red_2 = RConst ts (zip ps rs) zer
     where ps = step 0
               where step :: Integer -> [NatString]
@@ -128,7 +107,7 @@ red_2 = RConst ts (zip ps rs) zer
                     step _ = error "Undefined steps"
           rs = rule_a_to_f_a : rule_f_x_to_g_x : rs
           ts = term 0
-              where term :: Integer -> [Standard_Term]
+              where term :: Integer -> [Term_Sigma_Var]
                     term 0 = error "Undefined term" : term 1
                     term n
                         | even n = f_n (n `div` 2 - 1) : term (n + 1)
@@ -137,43 +116,41 @@ red_2 = RConst ts (zip ps rs) zer
                                   f_n m = c_f (f_n (m - 1))
                                   g_n 0 = f_omega
                                   g_n m = c_g (g_n (m - 1))
-                                  c_f t = Function 'f' (array (1, 1) [(1, t)])
-                                  c_g t = Function 'g' (array (1, 1) [(1, t)])
+                                  c_f t = function_term 'f' [(1, t)]
+                                  c_g t = function_term 'g' [(1, t)]
                     term _ = error "Undefined terms"
 
-red_3 :: Reduction Char Char System_2 Omega
+red_3 :: Reduction Sigma Var System_a_f_x Omega
 red_3 = RConst ts (zip ps rs) zer
     where ts = [a, f_a]
           ps = [[]]
           rs = [rule_a_to_f_a]
 
-red_4 :: Reduction Char Char System_2 Omega
-red_4 = RConst [constant 'a'] [] zer
+red_4 :: Reduction Sigma Var System_a_f_x Omega
+red_4 = RConst [a] [] zer
 
-cred_1 :: CReduction Char Char System_1 OmegaTwoPlusOne
+cred_1 :: CReduction Sigma Var System_a_f_x OmegaTwoPlusOne
 cred_1 = CRConst red_1 modulus
     where modulus (OmegaTwoPlusOneElement n)
               | n == 1 = (\m -> OmegaTwoPlusOneElement (4 + (m * 2)))
               | n == 2 = (\m -> OmegaTwoPlusOneElement (3 + (m * 2)))
               | otherwise = error("Invalid input to modulus")
 
-cred_2 :: CReduction Char Char System_2 OmegaTwoPlusOne
+cred_2 :: CReduction Sigma Var System_a_f_x OmegaTwoPlusOne
 cred_2 = CRConst red_2 modulus
     where modulus (OmegaTwoPlusOneElement n)
               | n == 1 = (\m -> OmegaTwoPlusOneElement (4 + (m * 2)))
               | n == 2 = (\m -> OmegaTwoPlusOneElement (3 + (m * 2)))
               | otherwise = error("Invalid input to modulus")
 
-cred_3 :: CReduction Char Char System_2 Omega
+cred_3 :: CReduction Sigma Var System_a_f_x Omega
 cred_3 = CRConst red_3 modulus
     where modulus (OmegaElement n)
               | n == 0 = (\_ -> OmegaElement 1)
               | otherwise = error("Invalid input to modulus")
 
-cred_4 :: CReduction Char Char System_2 Omega
+cred_4 :: CReduction Sigma Var System_a_f_x Omega
 cred_4 = CRConst red_4 modulus
     where modulus (OmegaElement n)
               | n == 0 = (\_ -> zer)
               | otherwise = error("Invalid input to modulus")
-
--- show_steps (CRConst (RConst _ s _) _) = s

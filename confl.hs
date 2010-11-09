@@ -16,166 +16,94 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
 import MyShow
-import Terms
-import Substitutions
-import RationalTerms
 import RulesAndSystems
 import OmegaReductions
 import Confluence
-import ExampleTerms
-import ExampleRules
-
-import Array
+import ExampleTermsAndSubstitutions
+import ExampleRulesAndSystems
 
 -- Examples
 
 instance MyShow Char where
     myshow x = [x]
 
-type Standard_Term         = Term Char Char
-type Standard_Substitution = Substitution Char Char
-type Standard_Rule         = RewriteRule Char Char
-
-f_y :: Standard_Term
-f_y = Function 'f' (array (1, 1) [(1, Variable 'y')])
-
-f_b :: Standard_Term
-f_b = Function 'f' (array (1, 1) [(1, constant 'b')])
-
-f_f_a :: Standard_Term
-f_f_a = Function 'f' (array (1, 1) [(1, Function 'f' (array (1, 1) [(1, constant 'a')]))])
-
-h_a_f_b :: Standard_Term
-h_a_f_b = Function 'h' (array (1, 2) [(1, constant 'a'), (2, f_b)])
-
-f_h_a_f_b :: Standard_Term
-f_h_a_f_b = Function 'f' (array (1, 1) [(1, h_a_f_b)])
-
-h_x_f_y :: Standard_Term
-h_x_f_y = Function 'h' (array (1, 2) [(1, Variable 'x'), (2, f_y)])
-
-h_x_f_x :: Standard_Term
-h_x_f_x = Function 'h' (array (1, 2) [(1, Variable 'x'), (2, f_x)])
-
-h_a_x :: Standard_Term
-h_a_x = Function 'h' (array (1, 2) [(1, constant 'a'), (2, Variable 'x')])
-
-h_x_h_a_x :: Standard_Term
-h_x_h_a_x = Function 'h' (array (1, 2) [(1, Variable 'x'), (2, h_a_x)])
-
-sigma_1 :: Standard_Substitution
-sigma_1 = [('x', f_a), ('y', constant 'a'), ('z', constant 'b')]
-
-sigma_2 :: Standard_Substitution
-sigma_2 = [('x', f_x)]
-
-f_omega' :: Standard_Term
-f_omega' = rational_term sigma_2 'x'
-
-rule_4 :: RewriteRule Char Char
-rule_4 = Rule h_x_f_y f_x
-
-rule_6 :: RewriteRule Char Char
-rule_6 = Rule f_x h_x_h_a_x
-
-data System_1 = Sys1
-
-instance RewriteSystem Char Char System_1 where
-    rules Sys1 = [rule_f_x_to_g_x, rule_a_to_f_omega, rule_a_to_b]
-
-data System_3 = Sys3
-
-instance RewriteSystem Char Char System_3 where
-    rules Sys3 = [rule_a_to_f_a, rule_6, rule_f_x_to_h_x_x, rule_f_x_to_a, rule_f_x_to_h_x_x, rule_a_to_b, rule_b_to_c]
-
-red_1 :: Reduction Char Char System_3
+red_1 :: Reduction Sigma Var System_a_f_x
 red_1 = RConst ts (zip ps rs)
     where ps = (iterate (\ns -> 1:ns) [1])
           rs = repeat rule_a_to_f_a
           ts = rewrite_steps (f_a) (zip ps rs)
 
-red_2 :: Reduction Char Char System_1
+red_2 :: Reduction Sigma Var System_a_f_x
 red_2 = RConst ts (zip ps rs)
     where ps = (iterate (\ns -> 1:ns) [])
           rs = repeat rule_f_x_to_g_x
           ts = rewrite_steps (f_omega) (zip ps rs)
 
-red_3 :: Reduction Char Char System_1
-red_3 = RConst ts (zip ps rs)
-    where ps = [[1], [1]]
-          rs = [rule_4, rule_6]
-          ts = rewrite_steps (f_h_a_f_b) (zip ps rs)
-
-red_4 :: Reduction Char Char System_3
+red_4 :: Reduction Sigma Var System_a_b_f_x
 red_4 = RConst ts (zip ps rs)
     where ps = [[], [2], [2,2]]
           rs = [rule_f_x_to_h_x_x, rule_f_x_to_h_x_x, rule_f_x_to_h_x_x]
           ts = rewrite_steps (f_a) (zip ps rs)
 
-red_5 :: Reduction Char Char System_3
+red_5 :: Reduction Sigma Var System_a_b_f_x
 red_5 = RConst ts (zip ps rs)
     where ps = [[1], [1]]
           rs = [rule_a_to_b, rule_b_to_c]
           ts = rewrite_steps (f_a) (zip ps rs)
 
-red_6 :: Reduction Char Char System_1
+red_6 :: Reduction Sigma Var System_a_f_x
 red_6 = RConst ts (zip ps rs)
     where ps = []:(map (\p -> 1:1:p) ps)
           rs = rule_f_x_to_g_x:rs
           ts = rewrite_steps f_omega (zip ps rs)
 
-red_7 :: Reduction Char Char System_1
+red_7 :: Reduction Sigma Var System_a_f_x
 red_7 = RConst ts (zip ps rs)
     where ps = [1]:(map (\p -> 1:1:p) ps)
           rs = rule_f_x_to_g_x:rs
           ts = rewrite_steps f_omega (zip ps rs)
 
-red_8 :: Reduction Char Char System_1
-red_8 = RConst [constant 'a'] []
+red_8 :: Reduction Sigma Var System_a_f_x
+red_8 = RConst [a] []
 
-red_9 :: Reduction Char Char System_1
+red_9 :: Reduction Sigma Var System_a_b_f_x
 red_9 = RConst ts (zip ps rs)
     where ps = [[1, 1]]
           rs = [rule_a_to_b]
           ts = rewrite_steps f_f_a (zip ps rs)
 
-red_10 :: Reduction Char Char System_1
+red_10 :: Reduction Sigma Var System_a_b_f_x
 red_10 = RConst ts (zip ps rs)
     where ps = [[1]]
           rs = [rule_f_x_to_g_x]
           ts = rewrite_steps f_f_a (zip ps rs)
 
-cred_1 :: CReduction Char Char System_3
+cred_1 :: CReduction Sigma Var System_a_f_x
 cred_1 = CRConst red_1 (\x -> succ x)
 
-cred_2 :: CReduction Char Char System_1
+cred_2 :: CReduction Sigma Var System_a_f_x
 cred_2 = CRConst red_2 (\x -> succ x)
 
-cred_3 :: CReduction Char Char System_1
-cred_3 = CRConst red_3 (\_ -> 2)
-
-cred_4 :: CReduction Char Char System_3
+cred_4 :: CReduction Sigma Var System_a_b_f_x
 cred_4 = CRConst red_4 (\x -> min 3 (succ x))
 
-cred_5 :: CReduction Char Char System_3
+cred_5 :: CReduction Sigma Var System_a_b_f_x
 cred_5 = CRConst red_5 (\x -> if x == 0 then 0 else 2)
 
-cred_6 :: CReduction Char Char System_1
+cred_6 :: CReduction Sigma Var System_a_f_x
 cred_6 = CRConst red_6 (\x -> succ x)
 
-cred_7 :: CReduction Char Char System_1
+cred_7 :: CReduction Sigma Var System_a_f_x
 cred_7 = CRConst red_7 (\x -> x)
 
-cred_8 :: CReduction Char Char System_1
+cred_8 :: CReduction Sigma Var System_a_f_x
 cred_8 = CRConst red_8 (\_ -> 0)
 
-cred_9 :: CReduction Char Char System_1
+cred_9 :: CReduction Sigma Var System_a_b_f_x
 cred_9 = CRConst red_9 (\x -> if x == 0 || x == 1 then 0 else 1)
 
-cred_10 :: CReduction Char Char System_1
+cred_10 :: CReduction Sigma Var System_a_b_f_x
 cred_10 = CRConst red_10 (\x -> if x == 0 then 0 else 1)
 
--- show_steps (CRConst (RConst _ s) _) = s
-
--- show_phi (CRConst _ phi) = show_phi' 0
---     where show_phi' d = (show (phi d)) ++ (show_phi' (succ d))
+-- final_term (fst (confluence Sys1 (cred_6, cred_7)))
+-- final_term (snd (confluence Sys1 (cred_6, cred_7)))
