@@ -182,12 +182,12 @@ c_red_3 = CRConst red_3 modulus
               | n == 0 = (\m -> OmegaElement (if m == 0 then 2 else 3))
               | otherwise = error("Invalid input to modulus")
 
--- a
+-- f_omega
 --
 -- Compression of the following reduction demonstrates an edge case.
 
 red_4 :: Reduction Sigma Var System_a_f_x Omega
-red_4 = RConst [a] [] zer
+red_4 = RConst [f_omega] [] zer
 
 c_red_4 :: CReduction Sigma Var System_a_f_x Omega
 c_red_4 = CRConst red_4 modulus

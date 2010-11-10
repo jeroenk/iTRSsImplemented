@@ -35,7 +35,7 @@ import Substitutions
 import Array
 import List
 
--- Rules consist of a left-hand and a right-hand side
+-- Rules consist of a left-hand and a right-hand side.
 data (Signature s, Variables v) => RewriteRule s v
     = Rule (Term s v) (Term s v)
 
@@ -43,7 +43,7 @@ instance (MyShow s, MyShow v, Signature s, Variables v)
     => Show (RewriteRule s v) where
     show (Rule l r) = show l ++ " -> " ++ show r
 
--- Calculate the height of the left-hand side (which is supposed to be finite)
+-- Calculate the height of the left-hand side (which is supposed to be finite).
 left_height :: (Signature s, Variables v)
     => RewriteRule s v -> Int
 left_height (Rule l _) = term_height l
@@ -51,7 +51,7 @@ left_height (Rule l _) = term_height l
 -- Rewrite steps are (position, rewrite rule)-pairs
 type Step s v = (NatString, RewriteRule s v)
 
--- Apply a rewrite rule to a term
+-- Apply a rewrite rule to a term.
 rewrite_step :: (Signature s, Variables v)
     => Term s v -> Step s v -> Term s v
 rewrite_step t (ns, Rule l r)
@@ -59,14 +59,14 @@ rewrite_step t (ns, Rule l r)
     | otherwise             = error "Rewriting at non-existing position"
         where sigma_r = substitute (match l (subterm t ns)) r
 
--- Apply multiple rewrite steps in sequence, yielding a list of terms 
+-- Apply multiple rewrite steps in sequence, yielding a list of terms.
 rewrite_steps :: (Signature s, Variables v)
     => Term s v -> [Step s v] -> [Term s v]
 rewrite_steps t ps = t : (rewrite_steps' t ps)
     where rewrite_steps' _ []     = []
           rewrite_steps' s (q:qs) = rewrite_steps (rewrite_step s q) qs
 
--- Helper function for descendants and origins
+-- Helper function for descendants and origins.
 get_var_and_pos :: (Signature s, Variables v)
     => Term s v -> NatString -> (v, NatString)
 get_var_and_pos (Function f ts) (n:ns)
@@ -77,7 +77,7 @@ get_var_and_pos (Function _ _) _
 get_var_and_pos (Variable x) ns
     = (x, ns)
 
--- Descendants across a rewrite step
+-- Descendants across a rewrite step.
 descendants_of_position :: (Signature s, Variables v)
     => NatString -> Step s v -> [NatString]
 descendants_of_position ns (ms, Rule l r)
@@ -92,14 +92,13 @@ descendants_across :: (Signature s, Variables v)
 descendants_across ps s
     = concat (map (\p -> descendants_of_position p s) ps)
 
--- Descendants across multiple steps
+-- Descendants across multiple steps.
 descendants :: (Signature s, Variables v)
     => [NatString] -> [Step s v] -> [NatString]
 descendants ps []     = ps
 descendants ps (q:qs) = descendants (descendants_across ps q) qs
 
--- Origins across a rewrite step
-
+-- Origins across a rewrite step.
 origins_of_position :: (Signature s, Variables v)
     => NatString -> Step s v -> [NatString]
 origins_of_position ns (ms, Rule l r)
@@ -114,6 +113,6 @@ origins_across :: (Signature s, Variables v)
 origins_across ps s
     = nub (concat (map (\p -> origins_of_position p s) ps))
 
--- A rewrite system is a singleton set with an associated rule function
+-- A rewrite system is a singleton set with an associated rule function.
 class (Signature s, Variables v) => RewriteSystem s v r where
     rules :: r -> [RewriteRule s v]

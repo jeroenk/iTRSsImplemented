@@ -95,20 +95,25 @@ instance (MyShow s, MyShow v,
           Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => Show (CReduction s v r o) where
     show (CRConst (RConst [] _ _) _)   = error "Cannot show empty reductions"
-    show (CRConst (RConst ts _ z) phi) = show' z 0
-        where show' a d
-                  | less_height (ts!!n) d = show_t (ts!!n) (a `leq` z)
-                  | otherwise             = fst_steps ++ lst_steps
-                      where n = to_int a
-                            fst_steps = show_steps a (phi z d)
-                            lst_steps = show' (phi z d) (d + 1)
-              show_steps a b
-                  | a' `leq` b = show_t (ts!!n) (a `leq` z) ++ show_steps a' b
-                  | otherwise = ""
-                      where n = to_int a
-                            a' = suc a
-              show_t s True = show s
-              show_t s False = " -> " ++ show s
+    show (CRConst (RConst ts _ z) phi) = show t ++ show' t z 0
+        where t = ts!!(to_int z)
+              show' s a d
+                  | less_height s d = ""
+                  | otherwise       = fst_steps ++ lst_steps
+                      where fst_steps = show_steps fst_terms
+                            lst_steps = show' s_new a_new (d + 1)
+                            fst_terms = collect_terms (suc a) a_new
+                            s_new
+                                | null fst_terms = s
+                                | otherwise      = last fst_terms
+                            a_new
+                                | (suc a) `leq` (phi z d) = phi z d
+                                | otherwise               = a
+              collect_terms a b
+                  | a `leq` b = ts!!(to_int a) : collect_terms (suc a) b
+                  | otherwise = []
+              show_steps []     = ""
+              show_steps (s:ss) = " -> " ++ show s ++ show_steps ss
 
 -- Yield the initial term of a computably convergent reduction.
 initial_term :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)

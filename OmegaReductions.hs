@@ -63,17 +63,21 @@ data (Signature s, Variables v, RewriteSystem s v r) => CReduction s v r
 -- modulus associated with the reduction.
 instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r)
     => Show (CReduction s v r) where
-    show (CRConst (RConst [] _) _)   = error "Cannot show empty reductions"
-    show (CRConst (RConst ts _) phi) = show' ts 0 0
-        where show' ss n d
-                  | less_height (head ss) d = show_steps (take 1 ss) (n == 0)
-                  | otherwise               = fst_steps ++ lst_steps
+    show (CRConst (RConst [] _) _)       = error "Cannot show empty reductions"
+    show (CRConst (RConst (t:ts) _) phi) = show t ++ show' t ts 0 0
+        where show' s ss n d
+                  | less_height s d = ""
+                  | otherwise       = fst_steps ++ lst_steps
                       where n' = max n (phi d)
-                            fst_steps = show_steps (take (n' - n) ss) (n == 0)
-                            lst_steps = show' (drop (n' - n) ss) n' (d + 1)
-              show_steps [] _     = ""
-              show_steps (s:ss) True = show s ++ show_steps ss False
-              show_steps (s:ss) False = " -> " ++ show s ++ show_steps ss False
+                            fst_steps = show_steps fst_terms
+                            lst_steps = show' s_new lst_terms n' (d + 1)
+                            fst_terms = take (n' - n) ss
+                            lst_terms = drop (n' - n) ss
+                            s_new
+                                | null fst_terms = s
+                                | otherwise      = last fst_terms
+              show_steps []     = ""
+              show_steps (s:ss) = " -> " ++ show s ++ show_steps ss
 
 -- Yield the initial term of a computably convergent reduction.
 initial_term :: (Signature s, Variables v, RewriteSystem s v r)
