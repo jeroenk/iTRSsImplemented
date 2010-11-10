@@ -61,7 +61,7 @@ show_from :: (MyShow s, MyShow v,
     => (Reduction s v r o) -> o -> String
 show_from (RConst ts _ _) a
     | indexof (to_int a) ts = show' a True True
-    | otherwise             = error "Cannot show empty reductions"
+    | otherwise             = error "Reduction without terms"
         where show' b True frst = fst_term ++ lst_terms
                   where n = to_int b
                         fst_term = (if frst then "" else " -> ") ++ show (ts!!n)
@@ -90,11 +90,12 @@ data (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
 -- A show function for computably convergent reductions.
 --
 -- The function detects whether more terms need to be shown based on the
--- modulus associated with the reduction.
+-- modulus associated with the reduction. Note that this is not full-blown
+-- termination detection, which actually cannot exist.
 instance (MyShow s, MyShow v,
           Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => Show (CReduction s v r o) where
-    show (CRConst (RConst [] _ _) _)   = error "Cannot show empty reductions"
+    show (CRConst (RConst [] _ _) _)   = error "Reduction without terms"
     show (CRConst (RConst ts _ z) phi) = show t ++ show' t z 0
         where t = ts!!(to_int z)
               show' s a d

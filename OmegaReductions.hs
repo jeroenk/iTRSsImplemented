@@ -25,6 +25,8 @@ module OmegaReductions (
     Reduction(RConst),
     Modulus,
     CReduction(CRConst),
+    get_terms,
+    get_modulus,
     initial_term,
     final_term
 ) where
@@ -44,7 +46,7 @@ data (Signature s, Variables v, RewriteSystem s v r) => Reduction s v r
 
 instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r)
     => Show (Reduction s v r) where
-    show (RConst [] _) = error "Cannot show empty reductions"
+    show (RConst [] _) = error "Reduction without terms"
     show (RConst ts _) = show' ts True
         where show' [] _   = ""
               show' (s:ss) True  = show s ++ show' ss False
@@ -60,24 +62,39 @@ data (Signature s, Variables v, RewriteSystem s v r) => CReduction s v r
 -- A show function for computably convergent reductions.
 --
 -- The function detects whether more terms need to be shown based on the
--- modulus associated with the reduction.
+-- modulus associated with the reduction. Note that this is not full-blown
+-- termination detection, which actually cannot exist.
 instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r)
     => Show (CReduction s v r) where
-    show (CRConst (RConst [] _) _)       = error "Cannot show empty reductions"
-    show (CRConst (RConst (t:ts) _) phi) = show t ++ show' t ts 0 0
-        where show' s ss n d
-                  | less_height s d = ""
-                  | otherwise       = fst_steps ++ lst_steps
-                      where n' = max n (phi d)
-                            fst_steps = show_steps fst_terms
-                            lst_steps = show' s_new lst_terms n' (d + 1)
-                            fst_terms = take (n' - n) ss
-                            lst_terms = drop (n' - n) ss
-                            s_new
-                                | null fst_terms = s
-                                | otherwise      = last fst_terms
-              show_steps []     = ""
-              show_steps (s:ss) = " -> " ++ show s ++ show_steps ss
+    show r = show_steps (get_terms r) True
+        where show_steps [] _         = ""
+              show_steps (s:ss) True  = show s ++ show_steps ss False
+              show_steps (s:ss) False = " -> " ++ show s ++ show_steps ss False
+
+-- Get the terms that make up a computably convergent reductions.
+--
+-- The function detects whether more terms need to be shown based on the
+-- modulus associated with the reduction. Note that this is not full-blown
+-- termination detection, which actually cannot exist.
+get_terms :: (Signature s, Variables v, RewriteSystem s v r)
+    => CReduction s v r -> [Term s v]
+get_terms (CRConst (RConst [] _) _)       = error "Reduction without terms"
+get_terms (CRConst (RConst (t:ts) _) phi) = t : (get_terms' t ts 0 0)
+    where get_terms' s ss n d
+              | less_height s d = []
+              | otherwise       = fst_terms ++ lst_terms
+                  where n' = max n (phi d)
+                        fst_terms = take (n' - n) ss
+                        lst_terms = get_terms' s_new rem_terms n' (d + 1)
+                        rem_terms = drop (n' - n) ss
+                        s_new
+                            | null fst_terms = s
+                            | otherwise      = last fst_terms
+
+-- Get the modulus of the reduction
+get_modulus :: (Signature s, Variables v, RewriteSystem s v r)
+    => CReduction s v r -> Modulus
+get_modulus (CRConst _ phi) = phi
 
 -- Yield the initial term of a computably convergent reduction.
 initial_term :: (Signature s, Variables v, RewriteSystem s v r)
