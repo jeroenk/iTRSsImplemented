@@ -29,6 +29,14 @@ import ExampleRulesAndSystems
 instance MyShow Char where
     myshow x = [x]
 
+-- The next three reductions start in f^omega. Interesting combinations to try
+-- are:
+--
+-- fst (confluence System_a_f_x (c_red_1a, c_red_1b))
+-- snd (confluence System_a_f_x (c_red_1a, c_red_1b))
+-- final_term (fst (confluence System_a_f_x (c_red_1b, c_red_1c)))
+-- final_term (snd (confluence System_a_f_x (c_red_1b, c_red_1c)))
+
 -- f^omega -> g(f^omega) -> g^2(f^omega) -> .. -> g^n(f^omega) -> ...
 red_1a :: Reduction Sigma Var System_a_f_x
 red_1a = RConst ts (zip ps rs)
@@ -60,6 +68,13 @@ red_1c = RConst ts (zip ps rs)
 c_red_1c :: CReduction Sigma Var System_a_f_x
 c_red_1c = CRConst red_1c (\x -> x)
 
+-- The next two finite reductions start in f(a). These reductions demonstrate
+-- that the confluence algorithm also applies in the finite case. The two
+-- obvious combinations are:
+--
+-- fst (confluence System_a_b_f_x (c_red_2a, c_red_2b))
+-- snd (confluence System_a_b_f_x (c_red_2a, c_red_2b))
+
 -- f(a) -> h(a, f(a)) -> h(a, h(a, f(a))) -> h(a, h(a, h(a, f(a))))
 red_2a :: Reduction Sigma Var System_a_b_f_x
 red_2a = RConst ts (zip ps rs)
@@ -80,6 +95,13 @@ red_2b = RConst ts (zip ps rs)
 c_red_2b :: CReduction Sigma Var System_a_b_f_x
 c_red_2b = CRConst red_2b (\x -> if x == 0 then 0 else 2)
 
+-- The next two reductions test for an edge case where the top-most function
+-- symbol is not touched in either reduction.  The two
+-- obvious combinations are:
+--
+-- fst (confluence System_a_b_f_x (c_red_3a, c_red_3b))
+-- snd (confluence System_a_b_f_x (c_red_3a, c_red_3b))
+
 -- f(f(a)) -> f(f(b))
 red_3a :: Reduction Sigma Var System_a_b_f_x
 red_3a = RConst ts (zip ps rs)
@@ -88,7 +110,7 @@ red_3a = RConst ts (zip ps rs)
           ts = rewrite_steps f_f_a (zip ps rs)
 
 c_red_3a :: CReduction Sigma Var System_a_b_f_x
-c_red_3a = CRConst red_3b (\x -> if x == 0 || x == 1 then 0 else 1)
+c_red_3a = CRConst red_3a (\x -> if x == 0 || x == 1 then 0 else 1)
 
 -- f(f(a)) -> f(g(a))
 red_3b :: Reduction Sigma Var System_a_b_f_x
@@ -99,6 +121,3 @@ red_3b = RConst ts (zip ps rs)
 
 c_red_3b :: CReduction Sigma Var System_a_b_f_x
 c_red_3b = CRConst red_3b (\x -> if x == 0 then 0 else 1)
-
--- final_term (fst (confluence Sys1 (c_red_6, c_red_7)))
--- final_term (snd (confluence Sys1 (c_red_6, c_red_7)))
