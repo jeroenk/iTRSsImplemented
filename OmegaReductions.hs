@@ -60,10 +60,6 @@ data (Signature s, Variables v, RewriteSystem s v r) => CReduction s v r
     = CRConst (Reduction s v r) Modulus
 
 -- A show function for computably convergent reductions.
---
--- The function detects whether more terms need to be shown based on the
--- modulus associated with the reduction. Note that this is not full-blown
--- termination detection, which actually cannot exist.
 instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r)
     => Show (CReduction s v r) where
     show r = show_steps (get_terms r) True
