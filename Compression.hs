@@ -16,6 +16,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
 -- This module implements compression of transfinite reductions.
+--
+-- Note that the module uses the internal structure of the system of notation
+-- defined for Omega: the system is assumed to be effectively the identity
+-- mapping.
 
 module Compression (
     compression
@@ -84,7 +88,7 @@ compr_devel s = (map fst initial) : (compr_devel' 1 initial)
                   where total = accumulate s d
                         new_steps = filter_steps prevs total
 
--- Concatenate the lists produced by compr_devel to obatin all steps.
+-- Concatenate the lists produced by compr_devel to obtain all steps.
 compr_steps :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => CReduction s v r o -> [Step s v]
 compr_steps s = concat (compr_devel s)

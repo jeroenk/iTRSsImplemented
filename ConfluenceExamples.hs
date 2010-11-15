@@ -45,7 +45,7 @@ red_1a = RConst ts (zip ps rs)
           ts = rewrite_steps (f_omega) (zip ps rs)
 
 c_red_1a :: CReduction Sigma Var System_a_f_x
-c_red_1a = CRConst red_1a (\x -> succ x)
+c_red_1a = CRConst red_1a (\x -> x + 1)
 
 -- f^omega -> g(f^\omega) -> g(f(g(f^\omega))) -> ... -> (gf)^n(f^\omega) -> ...
 red_1b :: Reduction Sigma Var System_a_f_x
@@ -55,7 +55,7 @@ red_1b = RConst ts (zip ps rs)
           ts = rewrite_steps f_omega (zip ps rs)
 
 c_red_1b :: CReduction Sigma Var System_a_f_x
-c_red_1b = CRConst red_1b (\x -> succ x)
+c_red_1b = CRConst red_1b (\x -> x + 1)
 
 -- f^omega -> (fg)(f^\omega) -> (fg)^2(f^\omega))) -> ...
 --                                             -> (fg)^n(f^\omega) -> ...
@@ -83,7 +83,7 @@ red_2a = RConst ts (zip ps rs)
           ts = rewrite_steps (f_a) (zip ps rs)
 
 c_red_2a :: CReduction Sigma Var System_a_b_f_x
-c_red_2a = CRConst red_2a (\x -> min 3 (succ x))
+c_red_2a = CRConst red_2a (\x -> min 3 (x + 1))
 
 -- f(a) -> f(b) -> f(c)
 red_2b :: Reduction Sigma Var System_a_b_f_x

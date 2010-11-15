@@ -23,8 +23,7 @@ module RulesAndSystems (
     Step,
     rewrite_step, rewrite_steps,
     descendants, origins_across,
-    RewriteSystem(rules),
-    DynamicSystem
+    RewriteSystem(rules)
 ) where
 
 import MyShow
@@ -117,11 +116,3 @@ origins_across ps s
 -- A rewrite system is a singleton set with an associated rule function.
 class (Signature s, Variables v) => RewriteSystem s v r where
     rules :: r -> [RewriteRule s v]
-
--- A "dynamic" rewrite system: the rules are simply not know. This still makes
--- sense in the context of the confluence and compression algorithms, as those
--- use the rules embedded in the reductions they are applied to.
-data DynamicSystem = DynamicSystem
-
-instance RewriteSystem DynamicSigma DynamicVar DynamicSystem where
-    rules DynamicSystem = error "Rules cannot be queried in dynamic systems"

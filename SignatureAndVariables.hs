@@ -19,9 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module SignatureAndVariables (
     Signature(arity),
-    DynamicSigma(DynamicFun),
     Variables,
-    DynamicVar(DynamicVar),
     Symbol(FunctionSymbol, VariableSymbol)
 ) where
 
@@ -31,32 +29,8 @@ import MyShow
 class Eq s => Signature s where
     arity :: s -> Int
 
--- A "dynamic" signature: the arity is encoded in the function symbol, where
--- the actual function symbol is represented by a string.
-data DynamicSigma = DynamicFun String Int
-
-instance MyShow DynamicSigma where
-    myshow (DynamicFun f _) = f
-
-instance Eq DynamicSigma where
-    (DynamicFun f a) == (DynamicFun g b) = (f == g) && (a == b)
-
-instance Signature DynamicSigma where
-    arity (DynamicFun _ a) = a
-
 -- A set of variables has a comparison operator.
 class Eq v => Variables v
-
--- A "dynamic" variable set: variables are represented by strings.
-data DynamicVar = DynamicVar String
-
-instance MyShow DynamicVar where
-    myshow (DynamicVar x) = x
-
-instance Eq DynamicVar where
-    (DynamicVar x) == (DynamicVar y) = x == y
-
-instance Variables DynamicVar
 
 -- Symbols are either from the signature or from the set of variables.
 data (Signature s, Variables v) => Symbol s v
