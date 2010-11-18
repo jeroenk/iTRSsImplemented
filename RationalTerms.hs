@@ -39,7 +39,7 @@ rational_term :: (Signature s, Variables v)
     => RegularSystem s v -> v -> Term s v
 rational_term sigma x = rational (Variable x)
     where rational (Function f ts)
-              = Function f (ts // [(i, rational (ts!i)) | i <- indices ts])
+              = function_term f [(i, rational (ts!i)) | i <- indices ts]
           rational s -- s is a variable
               | in_substitution sigma x = rational (substitute sigma s)
               | otherwise               = s
