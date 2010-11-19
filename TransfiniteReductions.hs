@@ -125,14 +125,15 @@ initial_term (CRConst (RConst ts _ z) _) = ts!!(to_int z)
 final_term :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => CReduction s v r o -> Term s v
 final_term (CRConst (RConst ts _ z) phi)
-    = final_subterm []
-    where final_subterm ps
-              = construct_subterm top ps
-                  where a = phi z (length ps)
-                        top = get_symbol (ts!!(to_int a)) ps
-          construct_subterm (FunctionSymbol f) ps
-              = function_term f ss
+    = final_subterm [] (stable_terms 0)
+    where final_subterm ps ss
+              = construct_subterm top ps (tail ss)
+                  where top = get_symbol (head ss) ps
+          construct_subterm (FunctionSymbol f) ps ss
+              = function_term f s
                   where a = arity f
-                        ss = [(i, final_subterm (ps ++ [i])) | i <- [1..a]]
-          construct_subterm (VariableSymbol x) _
+                        s = [(i, final_subterm (ps ++ [i]) ss) | i <- [1..a]]
+          construct_subterm (VariableSymbol x) _ _
               = Variable x
+          stable_terms d = ts!!n : stable_terms (d + 1)
+              where n = to_int(phi z d)

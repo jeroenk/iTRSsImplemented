@@ -103,15 +103,16 @@ initial_term _
 -- Yield the final term of a computably convergent reduction.
 final_term :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Term s v
-final_term (CRConst (RConst ts _) phi) = final_subterm [] 0 ts
-    where final_subterm ps n ss
-              = construct_subterm top ps n' ss'
-                  where n' = max n (phi (length ps))
-                        ss' = drop (n' - n) ss
-                        top = get_symbol (head ss') ps
-          construct_subterm (FunctionSymbol f) ps n ss
+final_term (CRConst (RConst ts _) phi) = final_subterm [] (stable_terms 0 0 ts)
+    where final_subterm ps ss
+              = construct_subterm top ps (tail ss)
+                  where top = get_symbol (head ss) ps
+          construct_subterm (FunctionSymbol f) ps ss
               = function_term f s
                   where a = arity f
-                        s = [(i, final_subterm (ps ++ [i]) n ss) | i <- [1..a]]
-          construct_subterm (VariableSymbol x) _ _ _
+                        s = [(i, final_subterm (ps ++ [i]) ss) | i <- [1..a]]
+          construct_subterm (VariableSymbol x) _ _
               = Variable x
+          stable_terms d n ss = head ss' : stable_terms (d + 1) n' ss'
+              where n'  = max n (phi d)
+                    ss' = drop (n' - n) ss
