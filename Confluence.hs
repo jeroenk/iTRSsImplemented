@@ -27,50 +27,12 @@ import RulesAndSystems
 import OmegaReductions
 import StripLemma
 
--- Compute which steps from a finite reduction (represented by its steps) are
--- needed for a certain prefix-closed set of positions of the final term of
--- the reduction. The function yields both the needed steps and the needed
--- positions from the initial term of the reduction.
-needed_steps :: (Signature s, Variables v)
-    => [Step s v] -> [NatString] -> ([Step s v], [NatString])
-needed_steps [] qs             = ([], qs)
-needed_steps (p@(p', _):ps) qs = (ps_new, qs_new)
-    where (ps', qs') = needed_steps ps qs
-          qs_new = origins_across qs' p
-          ps_new
-              | p' `elem` qs_new = p : ps'
-              | otherwise        = ps'
-
--- Accumulate the needed steps of a reduction in case we are interested in the
--- positions up to a certain depth d in the final term of the reduction. The
--- function yields both the needed steps and the needed positions from the
--- initial term of the reduction.
-accumulate :: (Signature s, Variables v, RewriteSystem s v r)
-    => CReduction s v r -> Int -> ([Step s v], [NatString])
-accumulate (CRConst (RConst ts ps) phi) d
-    = needed_steps used_steps last_pos
-    where used_steps = take (phi d) ps
-          last_term  = last (rewrite_steps (head ts) used_steps)
-          last_pos   = pos_to_depth last_term d
-
--- Compute the needed depth of the initial term of a reduction given a depth d
--- of the final term of the reduction.
-needed_depth :: (Signature s, Variables v, RewriteSystem s v r)
-    => CReduction s v r -> Int -> Int
-needed_depth s d = maximum (map length (snd (accumulate s d)))
-
--- Yield the steps of a reduction needed given a depth d of the final term of
--- the reduction.
-get_steps_to_depth :: (Signature s, Variables v, RewriteSystem s v r)
-    => CReduction s v r -> Int -> [Step s v]
-get_steps_to_depth s d = fst (accumulate s d)
-
 -- Filter the steps from a reduction based on the steps that were found earlier.
 -- To ensure proper concatenation the the steps are projected over the previous
 -- steps using the Strip Lemma.
 filter_steps :: (Signature s, Variables v, RewriteSystem s v r)
     => r -> CReduction s v r -> [Step s v] -> Int -> [Step s v]
-filter_steps _ s [] d     = get_steps_to_depth s d
+filter_steps _ s [] d     = needed_steps s d
 filter_steps r s (p:ps) d = filter_steps r s' ps d
     where s' = fst (strip_lemma r s p)
 

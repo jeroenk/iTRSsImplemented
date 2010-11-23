@@ -30,7 +30,8 @@ module TransfiniteReductions (
     Modulus,
     CReduction(CRConst),
     initial_term,
-    final_term
+    final_term,
+    needed_steps
 ) where
 
 import MyShow
@@ -137,3 +138,29 @@ final_term (CRConst (RConst ts _ z) phi)
               = Variable x
           stable_terms d = ts!!n : stable_terms (d + 1)
               where n = to_int(phi z d)
+
+-- Yield the needed steps of a reduction in case we are interested in the
+-- positions up to a certain depth d in the final term of the reduction. The
+-- function yields both the needed steps and the index of each of these needed
+-- steps in the original reduction.
+needed_steps :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
+    => CReduction s v r o -> Int -> [(Step s v, o)]
+needed_steps s@(CRConst (RConst _ ps z) phi) d
+    = needed_steps' (pos_to_depth (final_term s) d) a (k a)
+    where a = phi z d
+          needed_steps' qs b SuccOrdinal
+              | b `leq` z = []
+              | otherwise = ss_new
+                  where q@(q', _) = ps!!(to_int (p b))
+                        qs_new = origins_across qs q
+                        ss_new
+                            | q' `elem` qs_new = ss' ++ [(q, p b)]
+                            | otherwise        = ss'
+                        ss' = needed_steps' qs_new (p b) (k (p b))
+          needed_steps' qs b LimitOrdinal
+              | b `leq` z = []
+              | otherwise = needed_steps' qs b' (k b')
+                  where b' = phi b (maximum (map length qs))
+          needed_steps' _ b ZeroOrdinal
+              | b `leq` z   = []
+              | otherwise = error "Greater than zero but also equal or smaller"
