@@ -109,7 +109,7 @@ confl_side r s t = CRConst (RConst terms steps) modulus
           modulus = confl_modulus r s t
 
 -- Confluence of orthogonal, non-collapsing rewrite systems with finite
--- right-hand sides.
+-- right-hand sides. The function yields (t/s, s/t).
 confluence :: (Signature s, Variables v, RewriteSystem s v r)
     => r -> (CReduction s v r, CReduction s v r)
               -> (CReduction s v r, CReduction s v r)
