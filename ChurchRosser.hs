@@ -35,15 +35,6 @@ import OmegaReductions
 import StripLemma
 import Confluence
 
--- Drop the first n steps of a reduction. It is assumed that the reduction
--- has at least n steps.
-drop_steps :: (Signature s, Variables v, RewriteSystem s v r)
-    => CReduction s v r -> Int -> CReduction s v r
-drop_steps (CRConst (RConst ts ps) phi) n = CRConst (RConst ts' ps') phi'
-    where ts' = drop n ts
-          ps' = drop n ps
-          phi' = \m -> (max (phi m) n) - n
-
 -- Project a reduction over multiple steps by applying the Strip Lemma.
 project_over :: (Signature s, Variables v, RewriteSystem s v r)
     => r -> CReduction s v r -> [Step s v] -> CReduction s v r
@@ -58,12 +49,12 @@ project_over r s (p:ps) = project_over r s' ps
 interleave_devel :: (Signature s, Variables v, RewriteSystem s v r)
     => r -> CReduction s v r -> CReduction s v r -> [[Step s v]]
 interleave_devel r s t = interleave_devel' s t 0
-    where interleave_devel' s' t' d = steps : interleave_devel' s'' t'' (d + 1)
+    where interleave_devel' u v d = steps : interleave_devel' u' v' (d + 1)
               where steps = ps ++ qs
-                    ps = needed_steps s (needed_depth t d)
-                    qs = needed_steps t d
-                    s'' = project_over r s steps
-                    t'' = drop_steps t (length qs)
+                    ps = needed_steps u (needed_depth v d)
+                    qs = needed_steps v d
+                    u' = project_over r u steps
+                    v' = project_over r v qs
 
 -- Concatenate the lists produced by interleave_devel to obtain all steps.
 interleave_steps :: (Signature s, Variables v, RewriteSystem s v r)
