@@ -88,8 +88,8 @@ church_rosser _ []
     = error "Conversion may not be empty"
 church_rosser _ ((s, t):[])
     = (s, t)
-church_rosser r ((s, t):(s', t'):cs)
-    = church_rosser r ((s'', t''):cs)
-    where s'' = interleave r s (fst confl)
-          t'' = interleave r t (snd confl)
-          confl = confluence r (t, s')
+church_rosser r ((s_1, t_1):(s_2, t_2):cs)
+    = church_rosser r ((s_new, t_new):cs)
+    where s_new = interleave r s_1 (fst confl)
+          t_new = interleave r t_2 (snd confl)
+          confl = confluence r (t_1, s_2)
