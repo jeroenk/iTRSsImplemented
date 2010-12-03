@@ -64,16 +64,16 @@ data (Signature s, Variables v, RewriteSystem s v r) => CReduction s v r
 -- A show function for computably convergent reductions.
 instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r)
     => Show (CReduction s v r) where
-    show r = show_steps (get_terms r) True
-        where show_steps [] _         = ""
-              show_steps (s:ss) True  = show s ++ show_steps ss False
-              show_steps (s:ss) False = " -> " ++ show s ++ show_steps ss False
+    show r = show_terms (get_terms r) True
+        where show_terms [] _         = ""
+              show_terms (t:ts) True  = show t ++ show_terms ts False
+              show_terms (t:ts) False = " -> " ++ show t ++ show_terms ts False
 
 -- Get the terms that make up a computably convergent reductions.
 --
 -- The function detects whether more terms need to be shown based on the
--- modulus associated with the reduction. Note that this is not full-blown
--- termination detection, which actually cannot exist.
+-- modulus associated with the reduction. Note that this is not complete
+-- termination detection, which cannot exist.
 get_terms :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> [Term s v]
 get_terms (CRConst (RConst [] _) _)       = error "Reduction without terms"
@@ -97,24 +97,19 @@ get_modulus (CRConst _ phi) = phi
 -- Yield the initial term of a computably convergent reduction.
 initial_term :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Term s v
-initial_term (CRConst (RConst (x:_) _) _)
-    = x
-initial_term _
-    = error "Empty reduction, no initial term"
+initial_term (CRConst (RConst [] _) _)    = error "Reduction without terms"
+initial_term (CRConst (RConst (x:_) _) _) = x
 
 -- Yield the final term of a computably convergent reduction.
 final_term :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Term s v
 final_term (CRConst (RConst ts _) phi) = final_subterm [] (stable_terms 0 0 ts)
-    where final_subterm ps ss
-              = construct_subterm top ps (tail ss)
-                  where top = get_symbol (head ss) ps
-          construct_subterm (FunctionSymbol f) ps ss
-              = function_term f s
+    where final_subterm p ss = construct_subterm top p (tail ss)
+                  where top = get_symbol (head ss) p
+          construct_subterm (FunctionSymbol f) p ss = function_term f s
                   where a = arity f
-                        s = [(i, final_subterm (ps ++ [i]) ss) | i <- [1..a]]
-          construct_subterm (VariableSymbol x) _ _
-              = Variable x
+                        s = [(i, final_subterm (p ++ [i]) ss) | i <- [1..a]]
+          construct_subterm (VariableSymbol x) _ _  = Variable x
           stable_terms d n ss = head ss' : stable_terms (d + 1) n' ss'
               where n'  = max n (phi d)
                     ss' = drop (n' - n) ss
@@ -124,7 +119,7 @@ final_term (CRConst (RConst ts _) phi) = final_subterm [] (stable_terms 0 0 ts)
 -- the reduction. The function yields both the needed steps and the needed
 -- positions from the initial term of the reduction.
 needed_steps' :: (Signature s, Variables v)
-    => [Step s v] -> [NatString] -> ([Step s v], [NatString])
+    => [Step s v] -> Positions -> ([Step s v], Positions)
 needed_steps' [] qs             = ([], qs)
 needed_steps' (p@(p', _):ps) qs = (ps_new, qs_new)
     where (ps', qs') = needed_steps' ps qs
@@ -138,7 +133,7 @@ needed_steps' (p@(p', _):ps) qs = (ps_new, qs_new)
 -- function yields both the needed steps and the needed positions from the
 -- initial term of the reduction.
 accumulate :: (Signature s, Variables v, RewriteSystem s v r)
-    => CReduction s v r -> Int -> ([Step s v], [NatString])
+    => CReduction s v r -> Int -> ([Step s v], Positions)
 accumulate (CRConst (RConst ts ps) phi) d
     = needed_steps' used_steps last_pos
     where used_steps = take (phi d) ps

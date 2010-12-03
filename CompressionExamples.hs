@@ -52,11 +52,11 @@ instance SystemOfNotation OmegaTwoPlusOne where
         | otherwise = SuccOrdinal   -- even: n; odd: omega + n
     p  (OmegaTwoPlusOneElement n)
         | n > 2     = OmegaTwoPlusOneElement (n - 2)
-        | otherwise = error("Predeccessor undefined")
+        | otherwise = error "Predeccessor undefined"
     q  (OmegaTwoPlusOneElement n)
         | n == 0    = (\m -> OmegaTwoPlusOneElement ((2 * m) + 3))
         | n == 1    = (\m -> OmegaTwoPlusOneElement ((2 * m) + 2))
-        | otherwise = error("Limit function undefined")
+        | otherwise = error "Limit function undefined"
     to_int  (OmegaTwoPlusOneElement n)
         = n
 
@@ -73,7 +73,7 @@ instance UnivalSystem OmegaTwoPlusOne where
     zer
        = OmegaTwoPlusOneElement 2
     suc (OmegaTwoPlusOneElement n)
-       | n == 0    = error("omega.2 does not have a successor")
+       | n == 0    = error "omega.2 does not have a successor"
        | n == 1    = OmegaTwoPlusOneElement 3
        | n == 2    = OmegaTwoPlusOneElement 4
        | otherwise = OmegaTwoPlusOneElement (n + 2)
@@ -92,7 +92,7 @@ instance UnivalSystem OmegaTwoPlusOne where
 red_1 :: Reduction Sigma Var System_a_f_x OmegaTwoPlusOne
 red_1 = RConst ts (zip ps rs) zer
     where ps = step 0
-              where step :: Integer -> [NatString]
+              where step :: Integer -> [Position]
                     step 0 = error "Undefined step" : step 1
                     step n
                         | even n = (ones ((n - 2) `div` 2)) : step (n + 1)
@@ -120,7 +120,7 @@ c_red_1 = CRConst red_1 modulus
     where modulus (OmegaTwoPlusOneElement n)
               | n == 1 = (\m -> OmegaTwoPlusOneElement (4 + (m * 2)))
               | n == 2 = (\m -> OmegaTwoPlusOneElement (3 + (m * 2)))
-              | otherwise = error("Invalid input to modulus")
+              | otherwise = error "Invalid input to modulus"
 
 
 -- f^omega -> (fg)(f^\omega) -> (fg)^2(f^\omega))) -> ...
@@ -134,7 +134,7 @@ c_red_1 = CRConst red_1 modulus
 red_2 :: Reduction Sigma Var System_a_f_x OmegaTwoPlusOne
 red_2 = RConst ts (zip ps rs) zer
     where ps = step 0
-              where step :: Integer -> [NatString]
+              where step :: Integer -> [Position]
                     step 0 = error "Undefined step" : step 1
                     step n
                         | even n = (1 : (ones ((n `div` 2) - 1))) : step (n + 1)
@@ -162,7 +162,7 @@ c_red_2 = CRConst red_2 modulus
     where modulus (OmegaTwoPlusOneElement n)
               | n == 1 = (\m -> OmegaTwoPlusOneElement (4 + (m * 2)))
               | n == 2 = (\m -> OmegaTwoPlusOneElement (3 + (m * 2)))
-              | otherwise = error("Invalid input to modulus")
+              | otherwise = error "Invalid input to modulus"
 
 -- a -> f(f(a)) -> g(f(a)) -> g(g(a))
 --
@@ -180,7 +180,7 @@ c_red_3 :: CReduction Sigma Var System_a_f_x Omega
 c_red_3 = CRConst red_3 modulus
     where modulus (OmegaElement n)
               | n == 0 = (\m -> OmegaElement (if m == 0 then 2 else 3))
-              | otherwise = error("Invalid input to modulus")
+              | otherwise = error "Invalid input to modulus"
 
 -- f_omega
 --
@@ -193,4 +193,4 @@ c_red_4 :: CReduction Sigma Var System_a_f_x Omega
 c_red_4 = CRConst red_4 modulus
     where modulus (OmegaElement n)
               | n == 0 = (\_ -> zer)
-              | otherwise = error("Invalid input to modulus")
+              | otherwise = error "Invalid input to modulus"

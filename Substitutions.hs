@@ -59,16 +59,17 @@ substitute sigma (Function f ts)
 substitute sigma (Variable x)
     = substitute_variable sigma x
 
--- Match a linear term s with instance t and yield the matching substitution.
+-- Match a term s with instance t and yield the matching substitution.
+--
+-- Note that this function only works poperly in case a match exists,
+-- which suffices for our purposes.
 match :: (Signature s, Variables v)
     => Term s v -> Term s v -> Substitution s v
-match s t = nubBy equal_variables (compute_match s t)
-    where compute_match (Function f ts) (Function g ss)
-              | f == g    = concat (zipWith compute_match (elems ts) (elems ss))
+match s t = nubBy (\(x, _) (y, _) -> x == y) (compute_match s t)
+    where compute_match (Function f ss) (Function g ts)
+              | f == g    = concat (zipWith compute_match (elems ss) (elems ts))
               | otherwise = error "Cannot match terms"
           compute_match (Variable x) t'
               = [(x, t')]
           compute_match _ _
               = error "Cannot match terms"
-          equal_variables (x, _) (y, _)
-              = x == y

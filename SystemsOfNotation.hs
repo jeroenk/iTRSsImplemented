@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- This module defines systems of notation (for computable ordinals).
 
 module SystemsOfNotation (
-    OrdinalType(ZeroOrdinal, SuccOrdinal, LimitOrdinal),
+    OrdinalKind(ZeroOrdinal, SuccOrdinal, LimitOrdinal),
     SystemOfNotation(k, p, q, to_int),
     get_limit_pred,
     UnivalSystem(leq, zer, suc),
@@ -26,24 +26,24 @@ module SystemsOfNotation (
 ) where
 
 -- An ordinal can have three different types.
-data OrdinalType
+data OrdinalKind
     = ZeroOrdinal
     | SuccOrdinal
     | LimitOrdinal
 
-instance Eq OrdinalType where
-    ZeroOrdinal == ZeroOrdinal   = True
-    SuccOrdinal == SuccOrdinal   = True
+instance Eq OrdinalKind where
+    ZeroOrdinal  == ZeroOrdinal  = True
+    SuccOrdinal  == SuccOrdinal  = True
     LimitOrdinal == LimitOrdinal = True
     _ == _                       = False
 
--- A system of notation defines the functions k, p, and q.
+-- A system of notation defines functions k, p, and q.
 --
 -- Because we want some flexibility, we leave the actual type of a system of
 -- notation unspecified (we do not default to natural numbers). This means we
 -- do need a way to unpack an element of the type to a natural number (to_int).
 class SystemOfNotation o where
-    k :: o -> OrdinalType
+    k :: o -> OrdinalKind
     p :: o -> o
     q :: o -> (Int -> o)
     to_int :: o -> Int
@@ -52,8 +52,8 @@ class SystemOfNotation o where
 -- certain other ordinal.
 get_limit_pred :: (SystemOfNotation o) => o -> o
 get_limit_pred n = get_limit_pred' (k n) n
-    where get_limit_pred' ZeroOrdinal m  = m
-          get_limit_pred' SuccOrdinal m  = get_limit_pred (p m)
+    where get_limit_pred' ZeroOrdinal  m = m
+          get_limit_pred' SuccOrdinal  m = get_limit_pred (p m)
           get_limit_pred' LimitOrdinal m = m
 
 -- In a univalent system of notation it is possible to compare two ordinals.

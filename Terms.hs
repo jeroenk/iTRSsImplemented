@@ -39,7 +39,7 @@ instance (MyShow s, MyShow v, Signature s, Variables v)
     => Show (Term s v) where
     show (Function f ts)
         | arity f == 0  = myshow f
-        | otherwise     = myshow f ++ "(" ++ (show' (elems ts) True) ++ ")"
+        | otherwise     = myshow f ++ "(" ++ show' (elems ts) True ++ ")"
             where show' [] _         = ""
                   show' (x:xs) True  = show x ++ show' xs False
                   show' (x:xs) False = "," ++ show x ++ show' xs False
@@ -56,13 +56,13 @@ constant c
 -- a number of subterms.
 function_term :: (Signature s, Variables v)
     => s -> [(Int, Term s v)] -> Term s v
-function_term f ss
-    | exact_length a ss = Function f (array (1, a) ss)
-    | otherwise         = error "Provided subterms do not match arity"
+function_term f ts
+    | has_length a ts = Function f (array (1, a) ts)
+    | otherwise       = error "Number of provided subterms not matching arity"
         where a = arity f
-              exact_length 0 []     = True
-              exact_length _ []     = False
-              exact_length n (_:xs) = exact_length (n - 1) xs
+              has_length 0 []     = True
+              has_length _ []     = False
+              has_length n (_:xs) = has_length (n - 1) xs
 
 -- The height of a term: height(t) = max {|p| : p in Pos(t)}.
 term_height :: (Signature s, Variables v)

@@ -26,7 +26,6 @@ module Compression (
 ) where
 
 import SignatureAndVariables
-import PositionsAndSubterms
 import RulesAndSystems
 import SystemsOfNotation hiding (q)
 import TransfiniteReductions
@@ -56,30 +55,30 @@ filter_steps prevs total = filter_steps' prevs total []
 -- the ith item in the list that all its steps occur at depth i.
 compr_devel :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => CReduction s v r o -> [[Step s v]]
-compr_devel s = (map fst initial) : (compr_devel' 1 initial)
-    where initial = needed_steps s 0
-          compr_devel' d prevs = new_steps : (compr_devel' (d + 1) total)
-                  where total = needed_steps s d
+compr_devel r = map fst initial : compr_devel' 1 initial
+    where initial = needed_steps r 0
+          compr_devel' d prevs = new_steps : compr_devel' (d + 1) total
+                  where total = needed_steps r d
                         new_steps = filter_steps prevs total
 
 -- Concatenate the lists produced by compr_devel to obtain all steps.
 compr_steps :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => CReduction s v r o -> [Step s v]
-compr_steps s = concat (compr_devel s)
+compr_steps r = concat (compr_devel r)
 
 -- Compute the modulus using that the ith element of the list produced by
 -- compr_devel contains all steps at depth i.
 compr_modulus :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => CReduction s v r o -> (Modulus Omega)
-compr_modulus s (OmegaElement n)
+compr_modulus r (OmegaElement n)
     | n == 0    = \m -> OmegaElement (compute m)
-    | otherwise = error "Modulus only defined for 0"
-        where compute m = length (concat (take (m + 1) (compr_devel s)))
+    | otherwise = error "Modulus only defined for zero"
+        where compute m = length (concat (take (m + 1) (compr_devel r)))
 
 -- Compression of left-linear rewrite systems with finite right-hand sides.
 compression :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => r -> (CReduction s v r o) -> (CReduction s v r Omega)
-compression _ s = CRConst (RConst terms steps zer) modulus
-    where terms = (rewrite_steps (initial_term s) steps)
-          steps = compr_steps s
-          modulus = compr_modulus s
+compression _ r = CRConst (RConst terms steps zer) modulus
+    where terms = (rewrite_steps (initial_term r) steps)
+          steps = compr_steps r
+          modulus = compr_modulus r

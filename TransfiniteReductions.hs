@@ -39,7 +39,7 @@ import SignatureAndVariables
 import Terms
 import PositionsAndSubterms
 import RulesAndSystems
-import SystemsOfNotation
+import SystemsOfNotation hiding (q)
 
 -- Computable reductions are lists of terms and rewrite steps.
 --
@@ -91,8 +91,8 @@ data (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
 -- A show function for computably convergent reductions.
 --
 -- The function detects whether more terms need to be shown based on the
--- modulus associated with the reduction. Note that this is not full-blown
--- termination detection, which actually cannot exist.
+-- modulus associated with the reduction. Note that this is not complete
+-- termination detection, which cannot exist.
 instance (MyShow s, MyShow v,
           Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => Show (CReduction s v r o) where
@@ -127,17 +127,14 @@ final_term :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => CReduction s v r o -> Term s v
 final_term (CRConst (RConst ts _ z) phi)
     = final_subterm [] (stable_terms 0)
-    where final_subterm ps ss
-              = construct_subterm top ps (tail ss)
+    where final_subterm ps ss = construct_subterm top ps (tail ss)
                   where top = get_symbol (head ss) ps
-          construct_subterm (FunctionSymbol f) ps ss
-              = function_term f s
+          construct_subterm (FunctionSymbol f) ps ss = function_term f s
                   where a = arity f
                         s = [(i, final_subterm (ps ++ [i]) ss) | i <- [1..a]]
-          construct_subterm (VariableSymbol x) _ _
-              = Variable x
+          construct_subterm (VariableSymbol x) _ _   = Variable x
           stable_terms d = ts!!n : stable_terms (d + 1)
-              where n = to_int(phi z d)
+              where n = to_int (phi z d)
 
 -- Yield the needed steps of a reduction in case we are interested in the
 -- positions up to a certain depth d in the final term of the reduction. The
@@ -145,8 +142,8 @@ final_term (CRConst (RConst ts _ z) phi)
 -- steps in the original reduction.
 needed_steps :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => CReduction s v r o -> Int -> [(Step s v, o)]
-needed_steps s@(CRConst (RConst _ ps z) phi) d
-    = needed_steps' (pos_to_depth (final_term s) d) a (k a)
+needed_steps r@(CRConst (RConst _ ps z) phi) d
+    = needed_steps' (pos_to_depth (final_term r) d) a (k a)
     where a = phi z d
           needed_steps' qs b SuccOrdinal
               | b `leq` z = []
@@ -162,5 +159,5 @@ needed_steps s@(CRConst (RConst _ ps z) phi) d
               | otherwise = needed_steps' qs b' (k b')
                   where b' = phi b (maximum (map length qs))
           needed_steps' _ b ZeroOrdinal
-              | b `leq` z   = []
-              | otherwise = error "Greater than zero but also equal or smaller"
+              | b `leq` z = []
+              | otherwise = error "Inconsistent system of notation"

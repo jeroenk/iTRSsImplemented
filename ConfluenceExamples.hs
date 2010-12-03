@@ -40,7 +40,7 @@ instance MyShow Char where
 -- f^omega -> g(f^omega) -> g^2(f^omega) -> .. -> g^n(f^omega) -> ...
 red_1a :: Reduction Sigma Var System_a_f_x
 red_1a = RConst ts (zip ps rs)
-    where ps = (iterate (\ns -> 1:ns) [])
+    where ps = iterate (\p -> 1:p) []
           rs = repeat rule_f_x_to_g_x
           ts = rewrite_steps (f_omega) (zip ps rs)
 
@@ -50,8 +50,8 @@ c_red_1a = CRConst red_1a (\x -> x + 1)
 -- f^omega -> g(f^\omega) -> g(f(g(f^\omega))) -> ... -> (gf)^n(f^\omega) -> ...
 red_1b :: Reduction Sigma Var System_a_f_x
 red_1b = RConst ts (zip ps rs)
-    where ps = []:(map (\p -> 1:1:p) ps)
-          rs = rule_f_x_to_g_x:rs
+    where ps = iterate (\p -> 1:1:p) []
+          rs = rule_f_x_to_g_x : rs
           ts = rewrite_steps f_omega (zip ps rs)
 
 c_red_1b :: CReduction Sigma Var System_a_f_x
@@ -61,8 +61,8 @@ c_red_1b = CRConst red_1b (\x -> x + 1)
 --                                             -> (fg)^n(f^\omega) -> ...
 red_1c :: Reduction Sigma Var System_a_f_x
 red_1c = RConst ts (zip ps rs)
-    where ps = [1]:(map (\p -> 1:1:p) ps)
-          rs = rule_f_x_to_g_x:rs
+    where ps = iterate (\p -> 1:1:p) [1]
+          rs = rule_f_x_to_g_x : rs
           ts = rewrite_steps f_omega (zip ps rs)
 
 c_red_1c :: CReduction Sigma Var System_a_f_x

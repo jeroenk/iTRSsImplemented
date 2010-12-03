@@ -29,7 +29,7 @@ import OmegaReductions
 -- Yield a sequence of steps all employing the same rule r given a set of
 -- parallel positions and a rule r.
 sequence_steps :: (Signature s, Variables v)
-    => [NatString] -> RewriteRule s v -> [Step s v]
+    => Positions -> RewriteRule s v -> [Step s v]
 sequence_steps ps r = map (\p -> (p, r)) ps
 
 -- The function bottom_develop computes developments of the bottom reduction
@@ -59,8 +59,8 @@ bottom_steps r p
 -- all the way to the top of the right-hand side term.
 bottom_modulus :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Step s v -> Modulus
-bottom_modulus rs@(CRConst _ phi) s@(_, r) n
-    = length (concat (take (phi (n + left_height r)) (bottom_develop rs s)))
+bottom_modulus r@(CRConst _ phi) s@(_, rule) n
+    = length (concat (take (phi (n + left_height rule)) (bottom_develop r s)))
 
 -- Yield the bottom reduction of the Strip Lemma.
 bottom_reduction :: (Signature s, Variables v, RewriteSystem s v r)

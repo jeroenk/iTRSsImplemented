@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- As usual, positions are represented by lists of natural numbers.
 
 module PositionsAndSubterms (
-    NatString,
+    Position, Positions,
     is_prefix,
     position_of_term,
     pos, pos_to_depth, non_var_pos, var_pos,
@@ -34,94 +34,97 @@ import Terms
 
 import Array
 
--- Strings of natural numbers.
-type NatString = [Int]
+-- Positions are sequences of natural numbers.
+type Position  = [Int]
 
--- Establish if one string is a prefix of another string.
-is_prefix :: NatString -> NatString -> Bool
-is_prefix ns ms = ns == (take (length ns) ms)
+-- Sets of positions
+type Positions = [Position]
+
+-- Establish if one position is a prefix of another position.
+is_prefix :: Position -> Position -> Bool
+is_prefix p q = p == take (length p) q
 
 -- Establish if a position occurs in a term.
 position_of_term :: (Signature s, Variables v)
-    => Term s v -> NatString -> Bool
+    => Term s v -> Position -> Bool
 position_of_term _ []
     = True
-position_of_term (Function f ts) (n:ns)
-    | 1 <= n && n <= arity f = position_of_term (ts!n) ns
+position_of_term (Function f ts) (n:p)
+    | 1 <= n && n <= arity f = position_of_term (ts!n) p
     | otherwise              = False
 position_of_term (Variable _) (_:_)
     = False
 
 -- Helper function for obtaining the positions of a term.
 --
--- The function processes an array of subterms based on a function f and
+-- The function processes a list of subterms based on a function f and
 -- prefixes each of the positions returned by f with the appropriate
--- natural number (based on the location of the subterms in the array).
+-- natural number (based on the location of the subterms in the list).
 subterm_pos :: (Signature s, Variables v)
-    => (Term s v -> [NatString]) -> Array Int (Term s v) -> [NatString]
-subterm_pos f ts = concat (prefix (map f (elems ts)) 1)
+    => (Term s v -> Positions) -> [Term s v] -> Positions
+subterm_pos f ts = concat (prefix (map f ts) 1)
     where prefix [] _     = []
-          prefix (x:xs) n = (map (prefix_pos n) x) : (prefix xs (n + 1))
-              where prefix_pos m ms = m:ms
+          prefix (p:ps) n = map (prefix_pos n) p : prefix ps (n + 1)
+              where prefix_pos m q = m : q
 
 -- All positions.
 pos :: (Signature s, Variables v)
-    => Term s v -> [NatString]
-pos (Function _ ts) = [] : subterm_pos pos ts
+    => Term s v -> Positions
+pos (Function _ ts) = [] : subterm_pos pos (elems ts)
 pos (Variable _)    = [[]]
 
 -- Positions up to and including a certain depth.
 pos_to_depth :: (Signature s, Variables v)
-    => Term s v -> Int -> [NatString]
+    => Term s v -> Int -> Positions
 pos_to_depth _ 0               = [[]]
-pos_to_depth (Function _ ts) d = [] : subterm_pos pos_to_depth' ts
+pos_to_depth (Function _ ts) d = [] : subterm_pos pos_to_depth' (elems ts)
     where pos_to_depth' t = pos_to_depth t (d - 1)
 pos_to_depth (Variable _) _    = [[]]
 
 -- Non-variable positions.
 non_var_pos :: (Signature s, Variables v)
-    => Term s v -> [NatString]
-non_var_pos (Function _ ts) = [] : subterm_pos non_var_pos ts
+    => Term s v -> Positions
+non_var_pos (Function _ ts) = [] : subterm_pos non_var_pos (elems ts)
 non_var_pos (Variable _)    = []
 
--- Position of a specific variable.
+-- Positions at which a specific variable occurs.
 var_pos :: (Signature s, Variables v)
-    => Term s v -> v -> [NatString]
-var_pos (Function _ ts) x = subterm_pos (\t -> var_pos t x) ts
+    => Term s v -> v -> Positions
+var_pos (Function _ ts) x = subterm_pos (\t -> var_pos t x) (elems ts)
 var_pos (Variable y) x    = if x == y then [[]] else []
 
 -- Yield the symbol at a position.
 get_symbol :: (Signature s, Variables v)
-    => Term s v -> NatString -> Symbol s v
+    => Term s v -> Position -> Symbol s v
 get_symbol (Function f _) []
     = FunctionSymbol f
-get_symbol (Function f ts) (n:ns)
-    | 1 <= n && n <= arity f = get_symbol (ts!n) ns
-    | otherwise              = error "Getting symbol at a non-existing position"
+get_symbol (Function f ts) (n:p)
+    | 1 <= n && n <= arity f = get_symbol (ts!n) p
+    | otherwise              = error "Asking for symbol at a invalid position"
 get_symbol (Variable x) []
     = VariableSymbol x
 get_symbol (Variable _) _
-    = error "Getting symbol at a non-existing position"
+    = error "Asking for symbol at a invalid position"
 
 -- Yield the subterm at a position.
 subterm :: (Signature s, Variables v)
-    => Term s v -> NatString -> Term s v
+    => Term s v -> Position -> Term s v
 subterm s []
     = s
-subterm (Function f ts) (n:ns)
-    | 1 <= n && n <= arity f = subterm (ts!n) ns
-    | otherwise              = error "Getting non-existing subterm"
+subterm (Function f ts) (n:p)
+    | 1 <= n && n <= arity f = subterm (ts!n) p
+    | otherwise              = error "Asking for subterm at invalid position"
 subterm (Variable _) _
-    = error "Getting non-existing subterm"
+    = error "Asking for subterm at invalid position"
 
 -- Replace a subterm at a certain position.
 replace_subterm :: (Signature s, Variables v)
-    => Term s v -> NatString -> Term s v -> Term s v
+    => Term s v -> Position -> Term s v -> Term s v
 replace_subterm _ [] t
     = t
-replace_subterm (Function f ts) (n:ns) t
+replace_subterm (Function f ts) (n:p) t
     | 1 <= n && n <= arity f = Function f subterms
-    | otherwise              = error "Replacing non-existing subterm"
-        where subterms = ts // [(n, replace_subterm (ts!n) ns t)]
+    | otherwise              = error "Replacing subterm at invalid position"
+        where subterms = ts // [(n, replace_subterm (ts!n) p t)]
 replace_subterm (Variable _) _ _
-    = error "Replacing non-existing subterm"
+    = error "Replacing subterm at invalid position"

@@ -43,73 +43,76 @@ instance (MyShow s, MyShow v, Signature s, Variables v)
     => Show (RewriteRule s v) where
     show (Rule l r) = show l ++ " -> " ++ show r
 
--- Calculate the height of the left-hand side (which is supposed to be finite).
+-- Calculate the height of the left-hand side (which should be finite).
 left_height :: (Signature s, Variables v)
     => RewriteRule s v -> Int
 left_height (Rule l _) = term_height l
 
 -- Rewrite steps are (position, rewrite rule)-pairs
-type Step s v = (NatString, RewriteRule s v)
+type Step s v = (Position, RewriteRule s v)
 
 -- Apply a rewrite rule to a term.
 rewrite_step :: (Signature s, Variables v)
     => Term s v -> Step s v -> Term s v
-rewrite_step t (ns, Rule l r)
-    | position_of_term t ns = replace_subterm t ns sigma_r
-    | otherwise             = error "Rewriting at non-existing position"
-        where sigma_r = substitute (match l (subterm t ns)) r
+rewrite_step t (p, Rule l r)
+    | position_of_term t p = replace_subterm t p sigma_r
+    | otherwise            = error "Applying rewrite step at invalid position"
+        where sigma_r = substitute (match l (subterm t p)) r
 
 -- Apply multiple rewrite steps in sequence, yielding a list of terms.
 rewrite_steps :: (Signature s, Variables v)
     => Term s v -> [Step s v] -> [Term s v]
-rewrite_steps t ps = t : (rewrite_steps' t ps)
+rewrite_steps t ps = t : rewrite_steps' t ps
     where rewrite_steps' _ []     = []
           rewrite_steps' s (q:qs) = rewrite_steps (rewrite_step s q) qs
 
--- Helper function for descendants and origins.
+-- Helper function for descendants and origins. The function recurses a term
+-- following a given position until a variable is found. Once a variable is
+-- found the function yields the variable and the remainder of the position
+-- beging recursed.
 get_var_and_pos :: (Signature s, Variables v)
-    => Term s v -> NatString -> (v, NatString)
-get_var_and_pos (Function f ts) (n:ns)
-    | 1 <= n && n <= arity f = get_var_and_pos (ts!n) ns
-    | otherwise              = error "Illegal position"
-get_var_and_pos (Function _ _) _
-    = error "Illegal position"
-get_var_and_pos (Variable x) ns
-    = (x, ns)
+    => Term s v -> Position -> (v, Position)
+get_var_and_pos (Function f ts) (n:p)
+    | 1 <= n && n <= arity f = get_var_and_pos (ts!n) p
+    | otherwise              = error "Asking for a variable at invalid position"
+get_var_and_pos (Function _ _) []
+    = error "Asking for a variable where a function symbol occurs"
+get_var_and_pos (Variable x) p
+    = (x, p)
 
 -- Descendants across a rewrite step.
 descendants_of_position :: (Signature s, Variables v)
-    => NatString -> Step s v -> [NatString]
-descendants_of_position ns (ms, Rule l r)
-    | not (is_prefix ms ns)      = [ns]
-    | ns' `elem` (non_var_pos l) = []
-    | otherwise                  = [ms ++ ms' ++ ns'' | ms' <- var_pos r x]
-        where ns' = drop (length ms) ns
-              (x, ns'') = get_var_and_pos l ns'
+    => Position -> Step s v -> Positions
+descendants_of_position p (q, Rule l r)
+    | not (is_prefix q p)       = [p]
+    | p' `elem` (non_var_pos l) = []
+    | otherwise                 = [q ++ q' ++ p'' | q' <- var_pos r x]
+        where p' = drop (length q) p
+              (x, p'') = get_var_and_pos l p'
 
 descendants_across :: (Signature s, Variables v)
-    => [NatString] -> Step s v -> [NatString]
+    => Positions -> Step s v -> Positions
 descendants_across ps s
     = concat (map (\p -> descendants_of_position p s) ps)
 
 -- Descendants across multiple steps.
 descendants :: (Signature s, Variables v)
-    => [NatString] -> [Step s v] -> [NatString]
+    => Positions -> [Step s v] -> Positions
 descendants ps []     = ps
 descendants ps (q:qs) = descendants (descendants_across ps q) qs
 
 -- Origins across a rewrite step.
 origins_of_position :: (Signature s, Variables v)
-    => NatString -> Step s v -> [NatString]
-origins_of_position ns (ms, Rule l r)
-    | not (is_prefix ms ns)      = [ns]
-    | ns' `elem` (non_var_pos r) = [ms ++ ms' | ms' <- non_var_pos l]
-    | otherwise                  = [ms ++ ms' ++ ns'' | ms' <- var_pos l x]
-        where ns' = drop (length ms) ns
-              (x, ns'') = get_var_and_pos r ns'
+    => Position -> Step s v -> Positions
+origins_of_position p (q, Rule l r)
+    | not (is_prefix q p)       = [p]
+    | p' `elem` (non_var_pos r) = [q ++ q' | q' <- non_var_pos l]
+    | otherwise                 = [q ++ q' ++ p'' | q' <- var_pos l x]
+        where p' = drop (length q) p
+              (x, p'') = get_var_and_pos r p'
 
 origins_across :: (Signature s, Variables v)
-    => [NatString] -> Step s v -> [NatString]
+    => Positions -> Step s v -> Positions
 origins_across ps s
     = nub (concat (map (\p -> origins_of_position p s) ps))
 
