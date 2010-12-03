@@ -29,7 +29,6 @@ module ChurchRosser (
 ) where
 
 import SignatureAndVariables
-import PositionsAndSubterms
 import RulesAndSystems
 import OmegaReductions
 import StripLemma
@@ -38,7 +37,7 @@ import Confluence
 -- Project a reduction over multiple steps by applying the Strip Lemma.
 project_over :: (Signature s, Variables v, RewriteSystem s v r)
     => r -> CReduction s v r -> [Step s v] -> CReduction s v r
-project_over r s []     = s
+project_over _ s []     = s
 project_over r s (p:ps) = project_over r s' ps
     where s' = fst (strip_lemma r s p)
 
@@ -85,7 +84,7 @@ church_rosser ::  (Signature s, Variables v, RewriteSystem s v r)
     => r -> [(CReduction s v r, CReduction s v r)]
                -> (CReduction s v r, CReduction s v r)
 church_rosser _ []
-    = error "Conversion may not be empty"
+    = error "Conversion without reductions"
 church_rosser _ ((s, t):[])
     = (s, t)
 church_rosser r ((s_1, t_1):(s_2, t_2):cs)
