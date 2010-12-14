@@ -105,9 +105,11 @@ descendants ps (q:qs) = descendants (descendants_across ps q) qs
 origins_of_position :: (Signature s, Variables v)
     => Position -> Step s v -> Positions
 origins_of_position p (q, Rule l r)
-    | not (is_prefix q p)       = [p]
-    | p' `elem` (non_var_pos r) = [q ++ q' | q' <- non_var_pos l]
-    | otherwise                 = [q ++ q' ++ p'' | q' <- var_pos l x]
+    | not (is_prefix q p)     = [p]
+    | p' `elem` non_var_pos r = [q ++ q' | q' <- non_var_pos l]
+    | [] `elem` var_pos r x   = [q ++ q' | q' <- non_var_pos l]
+                                      ++ [q ++ q' ++ p'' | q' <- var_pos l x]
+    | otherwise               = [q ++ q' ++ p'' | q' <- var_pos l x]
         where p' = drop (length q) p
               (x, p'') = get_var_and_pos r p'
 
