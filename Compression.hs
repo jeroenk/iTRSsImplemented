@@ -30,32 +30,12 @@ import RulesAndSystems
 import SystemsOfNotation hiding (q)
 import TransfiniteReductions
 
--- Filter the steps from a reduction based on the steps that were found earlier.
-filter_steps :: (Signature s, Variables v, UnivalSystem o)
-    => [(Step s v, o)] -> [(Step s v, o)] -> [Step s v]
-filter_steps prevs total = filter_steps' prevs total []
-    where filter_steps' [] left ss
-              =  ss ++ (map fst left)
-          filter_steps' prev@((s, n):prevs') ((t, m):left') ss
-              | (n `leq` m) && (m `leq` n)
-                  = filter_steps' prevs' left' (project_over [s] ss)
-              | otherwise
-                  = filter_steps' prev left' (ss ++ [t])
-          filter_steps' _ _ _
-              = error "All previous steps should be included in total"
-          project_over _ []
-              = []
-          project_over ss ((ps, r):qs)
-              = ss_new ++ (project_over ss_new qs)
-              where ps_add = descendants [ps] ss
-                    ss_new = map (\q -> (q, r)) ps_add
-
 -- The function compr_devel computes the compressed reduction. The steps of the
 -- reduction are returned as a list of lists of steps, where it is ensured for
 -- the ith item in the list that all its steps occur at depth i.
 compr_devel :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => CReduction s v r o -> [[Step s v]]
-compr_devel r = map fst initial : compr_devel' 1 initial
+compr_devel r = initial : compr_devel' 1 initial
     where initial = needed_steps r 0
           compr_devel' d prevs = new_steps : compr_devel' (d + 1) total
                   where total = needed_steps r d

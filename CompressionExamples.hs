@@ -81,7 +81,7 @@ instance UnivalSystem OmegaTwoPlusOne where
 -- a -> f(a) -> f^2(a) -> ... -> f^n(a) -> ...
 --        f^omega -> g(f^omega) -> g^2(f^omega) -> ... -> g^n(f^omega) -> ...
 --
--- The compressed reduction obtained through the compression algorith can be
+-- The compressed reduction obtained through the compression algorithm can be
 -- obtained through
 --
 --     compression System_a_f_x c_red_1
@@ -164,7 +164,7 @@ c_red_2 = CRConst red_2 modulus
               | n == 2 = (\m -> OmegaTwoPlusOneElement (3 + (m * 2)))
               | otherwise = error "Invalid input to modulus"
 
--- a -> f(f(a)) -> g(f(a)) -> g(g(a))
+-- f(a) -> f(f(a)) -> g(f(a)) -> g(g(a))
 --
 -- Compression of the following reduction demonstrates the compression
 -- algorithm re-orders the redutions steps in such a way that the steps

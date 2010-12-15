@@ -137,11 +137,9 @@ final_term (CRConst (RConst ts _ z) phi)
               where n = to_int (phi z d)
 
 -- Yield the needed steps of a reduction in case we are interested in the
--- positions up to a certain depth d in the final term of the reduction. The
--- function yields both the needed steps and the index of each of these needed
--- steps in the original reduction.
+-- positions up to a certain depth d in the final term of the reduction.
 needed_steps :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
-    => CReduction s v r o -> Int -> [(Step s v, o)]
+    => CReduction s v r o -> Int -> [Step s v]
 needed_steps r@(CRConst (RConst _ ps z) phi) d
     = needed_steps' (pos_to_depth (final_term r) d) a (k a)
     where a = phi z d
@@ -151,7 +149,7 @@ needed_steps r@(CRConst (RConst _ ps z) phi) d
                   where q@(q', _) = ps!!(to_int (p b))
                         qs_new = origins_across qs q
                         ss_new
-                            | q' `elem` qs_new = ss' ++ [(q, p b)]
+                            | q' `elem` qs_new = ss' ++ [q]
                             | otherwise        = ss'
                         ss' = needed_steps' qs_new (p b) (k (p b))
           needed_steps' qs b LimitOrdinal

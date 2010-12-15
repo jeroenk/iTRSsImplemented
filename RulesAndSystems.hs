@@ -23,6 +23,7 @@ module RulesAndSystems (
     Step,
     rewrite_step, rewrite_steps,
     descendants, origins_across,
+    filter_steps,
     RewriteSystem(rules)
 ) where
 
@@ -117,6 +118,30 @@ origins_across :: (Signature s, Variables v)
     => Positions -> Step s v -> Positions
 origins_across ps s
     = nub (concat (map (\p -> origins_of_position p s) ps))
+
+-- Filter the steps from a reduction based on the steps found previously. It is
+-- assumed that the steps found previously form a subsequence of the total
+-- number of steps and that both sequences define a finite reduction beginning
+-- from same term, where there exists a depth d with all previous steps and non
+-- of the new steps needed.
+filter_steps :: (Signature s, Variables v)
+    => [Step s v] -> [Step s v] -> [Step s v]
+filter_steps previous total = filter_steps' previous total []
+    where filter_steps' [] left ss
+              =  ss ++ left
+          filter_steps' prev@(p@(p', _):prev') (q@(q', _):left') ss
+              | p' == q'
+                  = filter_steps' prev' left' (project_over p ss)
+              | otherwise
+                  = filter_steps' prev left' (ss ++ [q])
+          filter_steps' _ _ _
+              = error "All previous steps should be included in total"
+          project_over _ []
+              = []
+          project_over p ((q, s):qs)
+              = ss_new ++ (project_over p qs)
+              where qs_add = descendants_across [q] p
+                    ss_new = map (\q' -> (q', s)) qs_add
 
 -- A rewrite system is a singleton set with an associated rule function.
 class (Signature s, Variables v) => RewriteSystem s v r where

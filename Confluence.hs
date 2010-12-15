@@ -26,15 +26,6 @@ import RulesAndSystems
 import OmegaReductions
 import StripLemma
 
--- Filter the steps from a reduction based on the steps that were found earlier.
--- To ensure proper concatenation the the steps are projected over the previous
--- steps using the Strip Lemma.
-filter_steps :: (Signature s, Variables v, RewriteSystem s v r)
-    => r -> CReduction s v r -> [Step s v] -> Int -> [Step s v]
-filter_steps _ s [] d     = needed_steps s d
-filter_steps r s (p:ps) d = filter_steps r s' ps d
-    where s' = fst (strip_lemma r s p)
-
 -- The function confl_devel computes one side of the confluence diagram. The
 -- steps of the reduction are returned as a list of lists of steps, where it
 -- is ensured for the ith item in the list that all its steps occur at depth i.
@@ -43,11 +34,11 @@ confl_devel :: (Signature s, Variables v, RewriteSystem s v r)
 confl_devel r (CRConst (RConst _ ps) phi) s
     = confl_devel' s ps 0 0 []
     where confl_devel' t qs d n prev -- project t over qs
-              | steps_needed = steps_new:(confl_devel' t qs (d + 1) n prev_new)
-              | otherwise    = confl_devel' t_new (tail qs) d (n + 1) prev
-                    where steps_needed = phi (needed_depth t d) <= n
-                          steps_new = filter_steps r t prev d
-                          prev_new = prev ++ steps_new
+              | add_steps = steps_new:(confl_devel' t qs (d + 1) n total)
+              | otherwise = confl_devel' t_new (tail qs) d (n + 1) prev
+                    where add_steps = phi (needed_depth t d) <= n
+                          steps_new = filter_steps prev total
+                          total = needed_steps t d
                           t_new = fst (strip_lemma r t (head qs))
 
 -- Concatenate the lists produced by confl_devel to obtain all steps.
