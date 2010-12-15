@@ -1,0 +1,31 @@
+Introduction
+------------
+
+The this package provides an effective version of infinitary term rewriting,
+as described in the paper "Computing with Infinite Terms and Reductions" by
+Jeroen Ketema and Jakob Grue Simonsen.
+
+The Haskell code in this package has been tested with both version 6.12.3
+of the Glasgow Haskell Compiler (GHC) and the September 2006 release of
+Hugs 98. Both systems require certain extensions to be enabled on execution
+of the code:
+
+* GHC requires "-XTypeSynonymInstances"  and "-XMultiParamTypeClasses" options
+
+* Hugs requires the "-X" option
+
+Structure
+---------
+
+The code has been split in several files whose contents should be mostly
+obvious from the file names, or otherwise from the initial comments in
+each of the files.
+
+Besides employing a recursive data type instead of natural numbers, as
+explained in the paper, the code deviates at one additional point from the
+presentation in the paper: A special type is defined, in OmegaReductions.hs,
+to represent reductions of length at most omega. This type is employed in the
+context of the Strip Lemma and confluence and implicitly assumes the univalent
+system of notation for omega as defined in SystemsOfNotation.hs. The
+introduction of the special type is mere programming convenience, simply there
+to provide slightly cleaner code.
