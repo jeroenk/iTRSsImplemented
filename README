@@ -14,6 +14,23 @@ of the code:
 
 * Hugs requires the "-X" option
 
+To obtain GHC, it is best to install the Haskell Platform:
+
+  http://hackage.haskell.org/platform/
+
+The source code of Hugs 98 can be obtained from:
+
+  http://www.haskell.org/hugs/
+
+Usage
+-----
+
+To experiment with the code, it is best to load either CompressionExamples.hs
+(for the compression theorem) or ConfluenceExamples.hs (for the confluence
+theorem) with the interpreter supplied with either GHC (ghci) or Hugs 98
+(hugs). Then, input the examples as described in the comments of the
+respective source files.
+
 Structure
 ---------
 
