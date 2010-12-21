@@ -22,15 +22,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- the final term might be uncomputable otherwise.
 
 module OmegaReductions (
-    Reduction(RConst),
-    Modulus,
+    Reduction(RConst), Modulus,
     CReduction(CRConst),
-    get_terms,
-    get_modulus,
-    initial_term,
-    final_term,
-    needed_depth,
-    needed_steps
+    get_terms, get_modulus,
+    initial_term, final_term,
+    needed_depth, needed_steps
 ) where
 
 import MyShow
@@ -77,7 +73,7 @@ instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r)
 get_terms :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> [Term s v]
 get_terms (CRConst (RConst [] _) _)       = error "Reduction without terms"
-get_terms (CRConst (RConst (t:ts) _) phi) = t : (get_terms' t ts 0 0)
+get_terms (CRConst (RConst (t:ts) _) phi) = t : get_terms' t ts 0 0
     where get_terms' s ss n d
               | less_height s d = []
               | otherwise       = fst_terms ++ lst_terms

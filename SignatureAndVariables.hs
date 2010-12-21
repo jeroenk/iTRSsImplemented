@@ -18,8 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- This module defines signatures and variable sets.
 
 module SignatureAndVariables (
-    Signature(arity),
-    Variables,
+    Signature(arity), Variables,
     Symbol(FunctionSymbol, VariableSymbol)
 ) where
 

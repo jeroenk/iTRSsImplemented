@@ -31,13 +31,12 @@ import StripLemma
 -- is ensured for the ith item in the list that all its steps occur at depth i.
 confl_devel :: (Signature s, Variables v, RewriteSystem s v r)
     => r -> CReduction s v r -> CReduction s v r -> [[Step s v]]
-confl_devel r (CRConst (RConst _ ps) phi) s
-    = confl_devel' s ps 0 0 []
+confl_devel r (CRConst (RConst _ ps) phi) s = confl_devel' s ps 0 0 []
     where confl_devel' t qs d n prev -- project t over qs
-              | add_steps = steps_new:(confl_devel' t qs (d + 1) n total)
+              | add_steps = new_steps : confl_devel' t qs (d + 1) n total
               | otherwise = confl_devel' t_new (tail qs) d (n + 1) prev
                     where add_steps = phi (needed_depth t d) <= n
-                          steps_new = filter_steps prev total
+                          new_steps = filter_steps prev total
                           total = needed_steps t d
                           t_new = fst (strip_lemma r t (head qs))
 
@@ -56,8 +55,8 @@ confl_modulus r s t n = length (concat (take (n + 1) (confl_devel r s t)))
 confl_side :: (Signature s, Variables v, RewriteSystem s v r)
     => r -> CReduction s v r -> CReduction s v r -> CReduction s v r
 confl_side r s t = CRConst (RConst terms steps) modulus
-    where terms = rewrite_steps (final_term s) steps
-          steps = confl_steps r s t
+    where terms   = rewrite_steps (final_term s) steps
+          steps   = confl_steps r s t
           modulus = confl_modulus r s t
 
 -- Confluence of orthogonal, non-collapsing rewrite systems with finite

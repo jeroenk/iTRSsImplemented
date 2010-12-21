@@ -22,11 +22,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module PositionsAndSubterms (
     Position, Positions,
-    is_prefix,
-    position_of_term,
+    is_prefix, position_of_term,
     pos, pos_to_depth, non_var_pos, var_pos,
-    get_symbol,
-    subterm, replace_subterm
+    get_symbol, subterm, replace_subterm
 ) where
 
 import SignatureAndVariables

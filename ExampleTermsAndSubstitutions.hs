@@ -18,10 +18,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- This module defines a signature Sigma and some simple terms over Sigma.
 
 module ExampleTermsAndSubstitutions (
-    Sigma,
-    Var,
-    Term_Sigma_Var,
-    Symbol_Sigma_Var,
+    Sigma, Var,
+    Term_Sigma_Var, Symbol_Sigma_Var,
     Substitution_Sigma_Var,
     a, b, c, f_a, g_a, f_f_a, g_f_a, g_g_a,
     f_x, g_x, h_x_x, h_x_f_x,

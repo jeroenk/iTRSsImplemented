@@ -70,8 +70,7 @@ instance UnivalSystem OmegaTwoPlusOne where
         | n > 2  && m > 2  && (odd n)  && (even m) = True
         | n > 2  && m > 2  && (even n) && (even m) = m <= n
         | otherwise                                = False
-    zer
-       = OmegaTwoPlusOneElement 2
+    zer = OmegaTwoPlusOneElement 2
     suc (OmegaTwoPlusOneElement n)
        | n == 0    = error "omega.2 does not have a successor"
        | n == 1    = OmegaTwoPlusOneElement 3

@@ -26,11 +26,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- This module is incompatible with the OmegaReductions module.
 
 module TransfiniteReductions (
-    Reduction(RConst),
-    Modulus,
+    Reduction(RConst), Modulus,
     CReduction(CRConst),
-    initial_term,
-    final_term,
+    initial_term, final_term,
     needed_steps
 ) where
 
@@ -140,8 +138,8 @@ final_term (CRConst (RConst ts _ z) phi)
 -- positions up to a certain depth d in the final term of the reduction.
 needed_steps :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => CReduction s v r o -> Int -> [Step s v]
-needed_steps r@(CRConst (RConst _ ps z) phi) d
-    = needed_steps' (pos_to_depth (final_term r) d) a (k a)
+needed_steps s@(CRConst (RConst _ ps z) phi) d
+    = needed_steps' (pos_to_depth (final_term s) d) a (k a)
     where a = phi z d
           needed_steps' qs b SuccOrdinal
               | b `leq` z = []
