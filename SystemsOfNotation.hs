@@ -56,7 +56,9 @@ get_limit_pred n = get_limit_pred' (k n) n
           get_limit_pred' SuccOrdinal  m = get_limit_pred (p m)
           get_limit_pred' LimitOrdinal m = m
 
--- In a univalent system of notation it is possible to compare two ordinals.
+-- In a univalent, recursively related system of notation it is possible to
+-- compare two ordinals, to find the representation of zero, and to compute
+-- the successor of an ordinal.
 class SystemOfNotation o => UnivalSystem o where
     leq :: o -> o -> Bool
     zer :: o      -- Existence follows by univalence

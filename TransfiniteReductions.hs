@@ -50,10 +50,6 @@ data (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
      => Reduction s v r o
     = RConst [Term s v] [Step s v] o
 
-get_zero :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
-    => (Reduction s v r o) -> o
-get_zero (RConst _ _ z) = z
-
 -- Helper function for show.
 show_from :: (MyShow s, MyShow v,
               Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
@@ -74,7 +70,8 @@ show_from (RConst ts _ _) a
 instance (MyShow s, MyShow v,
           Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => Show (Reduction s v r o) where
-    show r = show_from r (get_zero r)
+    show s = show_from s (get_zero s)
+        where get_zero (RConst _ _ z) = z
 
 -- Moduli of convergence are functions from limit ordinals to functions from
 -- natural numbers to ordinals (where the ordinals come from a designated
@@ -143,13 +140,13 @@ needed_steps s@(CRConst (RConst _ ps z) phi) d
     where a = phi z d
           needed_steps' qs b SuccOrdinal
               | b `leq` z = []
-              | otherwise = ss_new
+              | otherwise = ps_new
                   where q@(q', _) = ps!!(to_int (p b))
-                        qs_new = origins_across qs q
-                        ss_new
-                            | q' `elem` qs_new = ss' ++ [q]
-                            | otherwise        = ss'
-                        ss' = needed_steps' qs_new (p b) (k (p b))
+                        qs_new = origins_across q qs
+                        ps_new
+                            | q' `elem` qs_new = ps' ++ [q]
+                            | otherwise        = ps'
+                        ps' = needed_steps' qs_new (p b) (k (p b))
           needed_steps' qs b LimitOrdinal
               | b `leq` z = []
               | otherwise = needed_steps' qs b' (k b')

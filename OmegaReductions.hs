@@ -60,7 +60,7 @@ data (Signature s, Variables v, RewriteSystem s v r) => CReduction s v r
 -- A show function for computably convergent reductions.
 instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r)
     => Show (CReduction s v r) where
-    show r = show_terms (get_terms r) True
+    show s = show_terms (get_terms s) True
         where show_terms [] _         = ""
               show_terms (t:ts) True  = show t ++ show_terms ts False
               show_terms (t:ts) False = " -> " ++ show t ++ show_terms ts False
@@ -119,7 +119,7 @@ needed_steps' :: (Signature s, Variables v)
 needed_steps' [] qs             = ([], qs)
 needed_steps' (p@(p', _):ps) qs = (ps_new, qs_new)
     where (ps', qs') = needed_steps' ps qs
-          qs_new = origins_across qs' p
+          qs_new = origins_across p qs'
           ps_new
               | p' `elem` qs_new = p : ps'
               | otherwise        = ps'

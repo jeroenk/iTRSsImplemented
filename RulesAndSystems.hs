@@ -83,41 +83,41 @@ get_var_and_pos (Variable x) p
 
 -- Descendants across a rewrite step.
 descendants_of_position :: (Signature s, Variables v)
-    => Position -> Step s v -> Positions
-descendants_of_position p (q, Rule l r)
-    | not (is_prefix q p)       = [p]
-    | p' `elem` (non_var_pos l) = []
-    | otherwise                 = [q ++ q' ++ p'' | q' <- var_pos r x]
-        where p' = drop (length q) p
-              (x, p'') = get_var_and_pos l p'
+    => Step s v -> Position -> Positions
+descendants_of_position (p, Rule l r) q
+    | not (is_prefix p q)       = [q]
+    | q' `elem` (non_var_pos l) = []
+    | otherwise                 = [p ++ p' ++ q'' | p' <- var_pos r x]
+        where q' = drop (length p) q
+              (x, q'') = get_var_and_pos l q'
 
 descendants_across :: (Signature s, Variables v)
-    => Positions -> Step s v -> Positions
-descendants_across ps s
-    = concat (map (\p -> descendants_of_position p s) ps)
+    => Step s v -> Positions -> Positions
+descendants_across s ps
+    = concat (map (descendants_of_position s) ps)
 
 -- Descendants across multiple steps.
 descendants :: (Signature s, Variables v)
-    => Positions -> [Step s v] -> Positions
-descendants ps []     = ps
-descendants ps (q:qs) = descendants (descendants_across ps q) qs
+    => [Step s v] -> Positions -> Positions
+descendants [] qs     = qs
+descendants (p:ps) qs = descendants ps (descendants_across p qs)
 
 -- Origins across a rewrite step.
 origins_of_position :: (Signature s, Variables v)
-    => Position -> Step s v -> Positions
-origins_of_position p (q, Rule l r)
-    | not (is_prefix q p)     = [p]
-    | p' `elem` non_var_pos r = [q ++ q' | q' <- non_var_pos l]
-    | [] `elem` var_pos r x   = [q ++ q' | q' <- non_var_pos l]
-                                      ++ [q ++ q' ++ p'' | q' <- var_pos l x]
-    | otherwise               = [q ++ q' ++ p'' | q' <- var_pos l x]
-        where p' = drop (length q) p
-              (x, p'') = get_var_and_pos r p'
+    => Step s v -> Position -> Positions
+origins_of_position (p, Rule l r) q
+    | not (is_prefix p q)     = [q]
+    | q' `elem` non_var_pos r = [p ++ p' | p' <- non_var_pos l]
+    | [] `elem` var_pos r x   = [p ++ p' | p' <- non_var_pos l]
+                                      ++ [p ++ p' ++ q'' | p' <- var_pos l x]
+    | otherwise               = [p ++ p' ++ q'' | p' <- var_pos l x]
+        where q' = drop (length p) q
+              (x, q'') = get_var_and_pos r q'
 
 origins_across :: (Signature s, Variables v)
-    => Positions -> Step s v -> Positions
-origins_across ps s
-    = nub (concat (map (\p -> origins_of_position p s) ps))
+    => Step s v -> Positions -> Positions
+origins_across s ps
+    = nub (concat (map (origins_of_position s) ps))
 
 -- Filter the steps from a reduction based on the steps found previously. It is
 -- assumed that the steps found previously form a subsequence of the total
@@ -140,7 +140,7 @@ filter_steps previous total = filter_steps' previous total []
               = []
           project_over p ((q, s):qs)
               = ss_new ++ (project_over p qs)
-              where qs_add = descendants_across [q] p
+              where qs_add = descendants_across p [q]
                     ss_new = map (\q' -> (q', s)) qs_add
 
 -- A rewrite system is a singleton set with an associated rule function.
