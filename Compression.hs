@@ -57,7 +57,7 @@ compr_modulus s (OmegaElement n)
 -- Compression of left-linear rewrite systems with finite right-hand sides.
 compression :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => r -> (CReduction s v r o) -> (CReduction s v r Omega)
-compression _ s = CRConst (RConst terms steps zer) modulus
+compression _ s = CRCons (RCons terms steps zer) modulus
     where terms   = rewrite_steps (initial_term s) steps
           steps   = compr_steps s
           modulus = compr_modulus s

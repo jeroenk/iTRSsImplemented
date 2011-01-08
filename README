@@ -10,7 +10,7 @@ of the Glasgow Haskell Compiler (GHC) and the September 2006 release of
 Hugs 98. Both systems require certain extensions to be enabled on execution
 of the code:
 
-* GHC requires "-XTypeSynonymInstances"  and "-XMultiParamTypeClasses" options
+* GHC requires the "-XMultiParamTypeClasses" option
 
 * Hugs requires the "-X" option
 

@@ -29,8 +29,6 @@ import SignatureAndVariables
 import Terms
 import Substitutions
 
-import Array
-
 -- A regular system is a substitution.
 type RegularSystem s v = Substitution s v
 
@@ -39,7 +37,7 @@ rational_term :: (Signature s, Variables v)
     => RegularSystem s v -> v -> Term s v
 rational_term sigma x = rational (Variable x)
     where rational (Function f ts)
-              = function_term f [(i, rational (ts!i)) | i <- indices ts]
+              = Function f (fmap rational ts)
           rational s -- s is a variable
               | in_substitution sigma x = rational (substitute sigma s)
               | otherwise               = s

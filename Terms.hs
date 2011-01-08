@@ -23,7 +23,6 @@ module Terms (
     term_height, less_height
 ) where
 
-import MyShow
 import SignatureAndVariables
 
 import Array
@@ -33,15 +32,15 @@ data (Signature s, Variables v) => Term s v
     = Function s (Array Int (Term s v))
     | Variable v
 
-instance (MyShow s, MyShow v, Signature s, Variables v)
+instance (Show s, Show v, Signature s, Variables v)
     => Show (Term s v) where
     show (Function f ts)
-        | arity f == 0  = myshow f
-        | otherwise     = myshow f ++ "(" ++ show' (elems ts) True ++ ")"
+        | arity f == 0  = show f
+        | otherwise     = show f ++ "(" ++ show' (elems ts) True ++ ")"
             where show' [] _         = ""
                   show' (x:xs) True  = show x ++ show' xs False
                   show' (x:xs) False = "," ++ show x ++ show' xs False
-    show (Variable v)   = myshow v
+    show (Variable v)   = show v
 
 -- Wrapper for the definition of terms which are constants.
 constant :: (Signature s, Variables v)

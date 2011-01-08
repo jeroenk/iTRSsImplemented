@@ -18,7 +18,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- This file defines some reductions that can be tried with the compression
 -- algorithm.
 
-import MyShow
 import Terms
 import PositionsAndSubterms
 import SystemsOfNotation
@@ -27,9 +26,13 @@ import Compression
 import ExampleTermsAndSubstitutions
 import ExampleRulesAndSystems
 
--- The following is needed to display the reductions.
-instance MyShow Char where
-    myshow x = [x]
+-- Define two function symbols we need below
+
+f :: Sigma
+f = SigmaCons 'f'
+
+g :: Sigma
+g = SigmaCons 'g'
 
 -- Define an encoding of the ordinal omega.2 + 1 into natural numbers
 --
@@ -89,7 +92,7 @@ instance UnivalSystem OmegaTwoPlusOne where
 -- and f(x) -> g(x) steps.
 
 red_1 :: Reduction Sigma Var System_a_f_x OmegaTwoPlusOne
-red_1 = RConst ts (zip ps rs) zer
+red_1 = RCons ts (zip ps rs) zer
     where ps = step 0
               where step :: Integer -> [Position]
                     step 0 = error "Undefined step" : step 1
@@ -110,12 +113,12 @@ red_1 = RConst ts (zip ps rs) zer
                                   f_n m = c_f (f_n (m - 1))
                                   g_n 0 = f_omega
                                   g_n m = c_g (g_n (m - 1))
-                                  c_f t = function_term 'f' [(1, t)]
-                                  c_g t = function_term 'g' [(1, t)]
+                                  c_f t = function_term f [(1, t)]
+                                  c_g t = function_term g [(1, t)]
                     term _ = error "Undefined terms"
 
 c_red_1 :: CReduction Sigma Var System_a_f_x OmegaTwoPlusOne
-c_red_1 = CRConst red_1 modulus
+c_red_1 = CRCons red_1 modulus
     where modulus (OmegaTwoPlusOneElement n)
               | n == 1 = (\m -> OmegaTwoPlusOneElement (4 + (m * 2)))
               | n == 2 = (\m -> OmegaTwoPlusOneElement (3 + (m * 2)))
@@ -131,7 +134,7 @@ c_red_1 = CRConst red_1 modulus
 --     final_term (compression System_a_f_x c_red_2)
 
 red_2 :: Reduction Sigma Var System_a_f_x OmegaTwoPlusOne
-red_2 = RConst ts (zip ps rs) zer
+red_2 = RCons ts (zip ps rs) zer
     where ps = step 0
               where step :: Integer -> [Position]
                     step 0 = error "Undefined step" : step 1
@@ -152,12 +155,12 @@ red_2 = RConst ts (zip ps rs) zer
                                   f_g_n m = (c_f (c_g (f_g_n (m - 1))))
                                   g_g_n 0 = f_g_omega
                                   g_g_n m = (c_g (c_g (g_g_n (m - 1))))
-                                  c_f t = function_term 'f' [(1, t)]
-                                  c_g t = function_term 'g' [(1, t)]
+                                  c_f t = function_term f [(1, t)]
+                                  c_g t = function_term g [(1, t)]
                     term _ = error "Undefined terms"
 
 c_red_2 :: CReduction Sigma Var System_a_f_x OmegaTwoPlusOne
-c_red_2 = CRConst red_2 modulus
+c_red_2 = CRCons red_2 modulus
     where modulus (OmegaTwoPlusOneElement n)
               | n == 1 = (\m -> OmegaTwoPlusOneElement (4 + (m * 2)))
               | n == 2 = (\m -> OmegaTwoPlusOneElement (3 + (m * 2)))
@@ -170,13 +173,13 @@ c_red_2 = CRConst red_2 modulus
 -- at least depth are performed first.
 
 red_3 :: Reduction Sigma Var System_a_f_x Omega
-red_3 = RConst ts (zip ps rs) zer
+red_3 = RCons ts (zip ps rs) zer
     where ts = [f_a, f_f_a, g_f_a, g_g_a]
           ps = [[1], [], [1]]
           rs = [rule_a_to_f_a, rule_f_x_to_g_x, rule_f_x_to_g_x]
 
 c_red_3 :: CReduction Sigma Var System_a_f_x Omega
-c_red_3 = CRConst red_3 modulus
+c_red_3 = CRCons red_3 modulus
     where modulus (OmegaElement n)
               | n == 0 = (\m -> OmegaElement (if m == 0 then 2 else 3))
               | otherwise = error "Invalid input to modulus"
@@ -186,10 +189,10 @@ c_red_3 = CRConst red_3 modulus
 -- Compression of the following reduction demonstrates an edge case.
 
 red_4 :: Reduction Sigma Var System_a_f_x Omega
-red_4 = RConst [f_omega] [] zer
+red_4 = RCons [f_omega] [] zer
 
 c_red_4 :: CReduction Sigma Var System_a_f_x Omega
-c_red_4 = CRConst red_4 modulus
+c_red_4 = CRCons red_4 modulus
     where modulus (OmegaElement n)
               | n == 0 = (\_ -> zer)
               | otherwise = error "Invalid input to modulus"

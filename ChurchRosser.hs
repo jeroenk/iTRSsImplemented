@@ -61,7 +61,7 @@ interleave_modulus s t n = length (concat (take (n + 1) steps))
 -- i.e. given s ->>.->> t a reduction s ->> t is returned.
 interleave :: (Signature s, Variables v, RewriteSystem s v r)
     => r -> CReduction s v r -> CReduction s v r -> CReduction s v r
-interleave _ s t = CRConst (RConst terms steps) modulus
+interleave _ s t = CRCons (RCons terms steps) modulus
     where terms   = rewrite_steps (initial_term s) steps
           steps   = interleave_steps s t
           modulus = interleave_modulus s t

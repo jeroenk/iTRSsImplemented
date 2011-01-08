@@ -55,7 +55,7 @@ substitute_variable ((y, t):sigma') x
 substitute :: (Signature s, Variables v)
     => Substitution s v -> Term s v -> Term s v
 substitute sigma (Function f ts)
-    = function_term f [(i, substitute sigma (ts!i)) | i <- indices ts]
+    = Function f (fmap (substitute sigma) ts)
 substitute sigma (Variable x)
     = substitute_variable sigma x
 

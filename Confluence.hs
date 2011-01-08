@@ -31,7 +31,7 @@ import StripLemma
 -- is ensured for the ith item in the list that all its steps occur at depth i.
 confl_devel :: (Signature s, Variables v, RewriteSystem s v r)
     => r -> CReduction s v r -> CReduction s v r -> [[Step s v]]
-confl_devel r (CRConst (RConst _ ps) phi) s = confl_devel' s ps 0 0 []
+confl_devel r (CRCons (RCons _ ps) phi) s = confl_devel' s ps 0 0 []
     where confl_devel' t qs d n prev -- project t over qs
               | add_steps = new_steps : confl_devel' t qs (d + 1) n total
               | otherwise = confl_devel' t_new (tail qs) d (n + 1) prev
@@ -54,7 +54,7 @@ confl_modulus r s t n = length (concat (take (n + 1) (confl_devel r s t)))
 -- Yield either the right-most or bottom reduction of the confluence diagram.
 confl_side :: (Signature s, Variables v, RewriteSystem s v r)
     => r -> CReduction s v r -> CReduction s v r -> CReduction s v r
-confl_side r s t = CRConst (RConst terms steps) modulus
+confl_side r s t = CRCons (RCons terms steps) modulus
     where terms   = rewrite_steps (final_term s) steps
           steps   = confl_steps r s t
           modulus = confl_modulus r s t

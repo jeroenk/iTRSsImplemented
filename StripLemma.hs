@@ -37,7 +37,7 @@ sequence_steps ps r = map (\p -> (p, r)) ps
 -- development is represented by a list of steps.
 bottom_devel :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Step s v -> [[Step s v]]
-bottom_devel (CRConst (RConst _ ps) _) (q, r) = project ps [q]
+bottom_devel (CRCons (RCons _ ps) _) (q, r) = project ps [q]
     where project [] _
               = []
           project ((p', r'):ps') qs
@@ -57,13 +57,13 @@ bottom_steps s p = concat (bottom_devel s p)
 -- all the way to the top of the right-hand side term.
 bottom_modulus :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Step s v -> Modulus
-bottom_modulus s@(CRConst _ phi) p@(_, rule) n
+bottom_modulus s@(CRCons _ phi) p@(_, rule) n
     = length (concat (take (phi (n + left_height rule)) (bottom_devel s p)))
 
 -- Yield the bottom reduction of the Strip Lemma.
 bottom_reduction :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Step s v -> CReduction s v r
-bottom_reduction t s = CRConst (RConst terms steps) modulus
+bottom_reduction t s = CRCons (RCons terms steps) modulus
     where terms   = rewrite_steps (rewrite_step (initial_term t) s) steps
           steps   = bottom_steps t s
           modulus = bottom_modulus t s
@@ -74,7 +74,7 @@ bottom_reduction t s = CRConst (RConst terms steps) modulus
 -- that all its steps occur at depth i.
 right_devel :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Step s v -> [[Step s v]]
-right_devel (CRConst (RConst _ ps) phi) (q, r) = project ps [q] 0 0
+right_devel (CRCons (RCons _ ps) phi) (q, r) = project ps [q] 0 0
     where project _ [] _ _
               = []
           project ps' qs n d
@@ -103,7 +103,7 @@ right_modulus s p n = length (concat (take (n + 1) (right_devel s p)))
 -- Yield the right-most reduction of the Strip Lemma.
 right_reduction :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Step s v -> CReduction s v r
-right_reduction s p = CRConst (RConst terms steps) modulus
+right_reduction s p = CRCons (RCons terms steps) modulus
     where terms   = rewrite_steps (final_term s) steps
           steps   = right_steps s p
           modulus = right_modulus s p

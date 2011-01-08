@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-
 Copyright (C) 2010 Jeroen Ketema and Jakob Grue Simonsen
 

@@ -22,14 +22,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- the final term might be uncomputable otherwise.
 
 module OmegaReductions (
-    Reduction(RConst), Modulus,
-    CReduction(CRConst),
+    Reduction(RCons), Modulus,
+    CReduction(CRCons),
     get_terms, get_modulus,
     initial_term, final_term,
     needed_depth, needed_steps
 ) where
 
-import MyShow
 import SignatureAndVariables
 import Terms
 import PositionsAndSubterms
@@ -40,12 +39,12 @@ import RulesAndSystems
 -- The number of terms is equal to 1 + n, where n is the number of steps in
 -- the reduction.
 data (Signature s, Variables v, RewriteSystem s v r) => Reduction s v r
-    = RConst [Term s v] [Step s v]
+    = RCons [Term s v] [Step s v]
 
-instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r)
+instance (Show s, Show v, Signature s, Variables v, RewriteSystem s v r)
     => Show (Reduction s v r) where
-    show (RConst [] _) = error "Reduction without terms"
-    show (RConst ts _) = show' ts True
+    show (RCons [] _) = error "Reduction without terms"
+    show (RCons ts _) = show' ts True
         where show' [] _   = ""
               show' (s:ss) True  = show s ++ show' ss False
               show' (s:ss) False = " -> " ++ show s ++ show' ss False
@@ -55,10 +54,10 @@ type Modulus = Int -> Int
 
 -- Computably convergent reductions are reductions with an associated modulus.
 data (Signature s, Variables v, RewriteSystem s v r) => CReduction s v r
-    = CRConst (Reduction s v r) Modulus
+    = CRCons (Reduction s v r) Modulus
 
 -- A show function for computably convergent reductions.
-instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r)
+instance (Show s, Show v, Signature s, Variables v, RewriteSystem s v r)
     => Show (CReduction s v r) where
     show s = show_terms (get_terms s) True
         where show_terms [] _         = ""
@@ -72,8 +71,8 @@ instance (MyShow s, MyShow v, Signature s, Variables v, RewriteSystem s v r)
 -- termination detection, which cannot exist.
 get_terms :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> [Term s v]
-get_terms (CRConst (RConst [] _) _)       = error "Reduction without terms"
-get_terms (CRConst (RConst (t:ts) _) phi) = t : get_terms' t ts 0 0
+get_terms (CRCons (RCons [] _) _)       = error "Reduction without terms"
+get_terms (CRCons (RCons (t:ts) _) phi) = t : get_terms' t ts 0 0
     where get_terms' s ss n d
               | less_height s d = []
               | otherwise       = fst_terms ++ lst_terms
@@ -88,18 +87,18 @@ get_terms (CRConst (RConst (t:ts) _) phi) = t : get_terms' t ts 0 0
 -- Get the modulus of the reduction
 get_modulus :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Modulus
-get_modulus (CRConst _ phi) = phi
+get_modulus (CRCons _ phi) = phi
 
 -- Yield the initial term of a computably convergent reduction.
 initial_term :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Term s v
-initial_term (CRConst (RConst [] _) _)    = error "Reduction without terms"
-initial_term (CRConst (RConst (x:_) _) _) = x
+initial_term (CRCons (RCons [] _) _)    = error "Reduction without terms"
+initial_term (CRCons (RCons (x:_) _) _) = x
 
 -- Yield the final term of a computably convergent reduction.
 final_term :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Term s v
-final_term (CRConst (RConst ts _) phi) = final_subterm [] (stable_terms 0 0 ts)
+final_term (CRCons (RCons ts _) phi) = final_subterm [] (stable_terms 0 0 ts)
     where final_subterm p ss = construct_subterm top p (tail ss)
                   where top = get_symbol (head ss) p
           construct_subterm (FunctionSymbol f) p ss = function_term f s
@@ -130,7 +129,7 @@ needed_steps' (p@(p', _):ps) qs = (ps_new, qs_new)
 -- initial term of the reduction.
 accumulate :: (Signature s, Variables v, RewriteSystem s v r)
     => CReduction s v r -> Int -> ([Step s v], Positions)
-accumulate (CRConst (RConst ts ps) phi) d
+accumulate (CRCons (RCons ts ps) phi) d
     = needed_steps' used_steps last_pos
     where used_steps = take (phi d) ps
           last_term  = last (rewrite_steps (head ts) used_steps)

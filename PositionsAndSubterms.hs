@@ -31,6 +31,7 @@ import SignatureAndVariables
 import Terms
 
 import Array
+import List
 
 -- Positions are sequences of natural numbers.
 type Position  = [Int]
@@ -40,7 +41,7 @@ type Positions = [Position]
 
 -- Establish if one position is a prefix of another position.
 is_prefix :: Position -> Position -> Bool
-is_prefix p q = p == take (length p) q
+is_prefix = isPrefixOf
 
 -- Establish if a position occurs in a term.
 position_of_term :: (Signature s, Variables v)
@@ -60,10 +61,8 @@ position_of_term (Variable _) (_:_)
 -- natural number (based on the location of the subterms in the list).
 subterm_pos :: (Signature s, Variables v)
     => (Term s v -> Positions) -> [Term s v] -> Positions
-subterm_pos f ts = concat (prefix (map f ts) 1)
-    where prefix [] _     = []
-          prefix (p:ps) n = map (prefix_pos n) p : prefix ps (n + 1)
-              where prefix_pos m q = m : q
+subterm_pos f ts = concat (prefix (map f ts))
+    where prefix ps = zipWith (map.(:)) [1..length ps] ps
 
 -- All positions.
 pos :: (Signature s, Variables v)

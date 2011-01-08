@@ -26,13 +26,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- This module is incompatible with the OmegaReductions module.
 
 module TransfiniteReductions (
-    Reduction(RConst), Modulus,
-    CReduction(CRConst),
+    Reduction(RCons), Modulus,
+    CReduction(CRCons),
     initial_term, final_term,
     needed_steps
 ) where
 
-import MyShow
 import SignatureAndVariables
 import Terms
 import PositionsAndSubterms
@@ -48,13 +47,13 @@ import SystemsOfNotation hiding (q)
 -- be the same for both).
 data (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
      => Reduction s v r o
-    = RConst [Term s v] [Step s v] o
+    = RCons [Term s v] [Step s v] o
 
 -- Helper function for show.
-show_from :: (MyShow s, MyShow v,
+show_from :: (Show s, Show v,
               Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => (Reduction s v r o) -> o -> String
-show_from (RConst ts _ _) a
+show_from (RCons ts _ _) a
     | indexof (to_int a) ts = show' a True True
     | otherwise             = error "Reduction without terms"
         where show' b True frst = fst_term ++ lst_terms
@@ -67,11 +66,11 @@ show_from (RConst ts _ _) a
               indexof 0 _      = True
               indexof n (_:ss) = indexof (n - 1) ss
 
-instance (MyShow s, MyShow v,
+instance (Show s, Show v,
           Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => Show (Reduction s v r o) where
     show s = show_from s (get_zero s)
-        where get_zero (RConst _ _ z) = z
+        where get_zero (RCons _ _ z) = z
 
 -- Moduli of convergence are functions from limit ordinals to functions from
 -- natural numbers to ordinals (where the ordinals come from a designated
@@ -81,18 +80,18 @@ type Modulus o = o -> Int -> o
 -- Computably convergent reductions are reductions with an associated modulus.
 data (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => CReduction s v r o
-    = CRConst (Reduction s v r o) (Modulus o)
+    = CRCons (Reduction s v r o) (Modulus o)
 
 -- A show function for computably convergent reductions.
 --
 -- The function detects whether more terms need to be shown based on the
 -- modulus associated with the reduction. Note that this is not complete
 -- termination detection, which cannot exist.
-instance (MyShow s, MyShow v,
+instance (Show s, Show v,
           Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => Show (CReduction s v r o) where
-    show (CRConst (RConst [] _ _) _)   = error "Reduction without terms"
-    show (CRConst (RConst ts _ z) phi) = show t ++ show' t z 0
+    show (CRCons (RCons [] _ _) _)   = error "Reduction without terms"
+    show (CRCons (RCons ts _ z) phi) = show t ++ show' t z 0
         where t = ts!!(to_int z)
               show' s a d
                   | less_height s d = ""
@@ -115,12 +114,12 @@ instance (MyShow s, MyShow v,
 -- Yield the initial term of a computably convergent reduction.
 initial_term :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => CReduction s v r o -> Term s v
-initial_term (CRConst (RConst ts _ z) _) = ts!!(to_int z)
+initial_term (CRCons (RCons ts _ z) _) = ts!!(to_int z)
 
 -- Yield the final term of a computably convergent reduction.
 final_term :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => CReduction s v r o -> Term s v
-final_term (CRConst (RConst ts _ z) phi)
+final_term (CRCons (RCons ts _ z) phi)
     = final_subterm [] (stable_terms 0)
     where final_subterm ps ss = construct_subterm top ps (tail ss)
                   where top = get_symbol (head ss) ps
@@ -135,7 +134,7 @@ final_term (CRConst (RConst ts _ z) phi)
 -- positions up to a certain depth d in the final term of the reduction.
 needed_steps :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => CReduction s v r o -> Int -> [Step s v]
-needed_steps s@(CRConst (RConst _ ps z) phi) d
+needed_steps s@(CRCons (RCons _ ps z) phi) d
     = needed_steps' (pos_to_depth (final_term s) d) a (k a)
     where a = phi z d
           needed_steps' qs b SuccOrdinal

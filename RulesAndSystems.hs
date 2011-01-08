@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-
 Copyright (C) 2010 Jeroen Ketema and Jakob Grue Simonsen
 
@@ -27,7 +28,6 @@ module RulesAndSystems (
     RewriteSystem(rules)
 ) where
 
-import MyShow
 import SignatureAndVariables
 import Terms
 import PositionsAndSubterms
@@ -40,7 +40,7 @@ import List
 data (Signature s, Variables v) => RewriteRule s v
     = Rule (Term s v) (Term s v)
 
-instance (MyShow s, MyShow v, Signature s, Variables v)
+instance (Show s, Show v, Signature s, Variables v)
     => Show (RewriteRule s v) where
     show (Rule l r) = show l ++ " -> " ++ show r
 

@@ -22,8 +22,6 @@ module SignatureAndVariables (
     Symbol(FunctionSymbol, VariableSymbol)
 ) where
 
-import MyShow
-
 -- A signature is a set with an comparison operator and an arity function.
 class Eq s => Signature s where
     arity :: s -> Int
@@ -42,7 +40,7 @@ instance (Signature s, Variables v)
     VariableSymbol x == VariableSymbol y = x == y
     _ == _                               = False
 
-instance (MyShow s, MyShow v, Signature s, Variables v)
+instance (Show s, Show v, Signature s, Variables v)
     => Show (Symbol s v) where
-    show (FunctionSymbol f) = myshow f
-    show (VariableSymbol x) = myshow x
+    show (FunctionSymbol f) = show f
+    show (VariableSymbol x) = show x

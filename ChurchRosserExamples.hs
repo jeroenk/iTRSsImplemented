@@ -18,16 +18,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- This file defines some reductions that can be tried with the Church-Rosser
 -- algorithm.
 
-import MyShow
 import RulesAndSystems
 import OmegaReductions
 import ChurchRosser
 import ExampleTermsAndSubstitutions
 import ExampleRulesAndSystems
-
--- The following is needed to display the reductions.
-instance MyShow Char where
-    myshow x = [x]
 
 -- The combinations to try with the reductions below are the following:
 --
@@ -36,41 +31,41 @@ instance MyShow Char where
 
 -- a -> f(a) -> f^2(a) -> ... -> f^n(a) -> ...
 red_1a :: Reduction Sigma Var System_a_f_x
-red_1a = RConst ts (zip ps rs)
+red_1a = RCons ts (zip ps rs)
     where ps = iterate (\p -> 1:p) []
           rs = rule_a_to_f_a : rs
           ts = rewrite_steps a (zip ps rs)
 
 c_red_1a :: CReduction Sigma Var System_a_f_x
-c_red_1a = CRConst red_1a (\x -> x + 1)
+c_red_1a = CRCons red_1a (\x -> x + 1)
 
 -- f^\omega
 red_1b :: Reduction Sigma Var System_a_f_x
-red_1b = RConst [f_omega] []
+red_1b = RCons [f_omega] []
 
 c_red_1b :: CReduction Sigma Var System_a_f_x
-c_red_1b = CRConst red_1b (\_ -> 0)
+c_red_1b = CRCons red_1b (\_ -> 0)
 
 -- f^omega -> g(f^\omega) -> g(f(g(f^\omega))) -> ... -> (gf)^n(f^\omega) -> ...
 red_1c :: Reduction Sigma Var System_a_f_x
-red_1c = RConst ts (zip ps rs)
+red_1c = RCons ts (zip ps rs)
     where ps = iterate (\p -> 1:1:p) []
           rs = rule_f_x_to_g_x : rs
           ts = rewrite_steps f_omega (zip ps rs)
 
 c_red_1c :: CReduction Sigma Var System_a_f_x
-c_red_1c = CRConst red_1c (\x -> x + 1)
+c_red_1c = CRCons red_1c (\x -> x + 1)
 
 -- a -> f(a) -> g(a) -> g(f(a)) -> g(f(f(a))) -> g(f(g(a))) -> ... -> (gf)^n(a)
 --        -> (gf)^n(f(a)) -> (gf)^n(g(a)) -> ...
 red_1d :: Reduction Sigma Var System_a_f_x
-red_1d = RConst ts (zip ps rs)
+red_1d = RCons ts (zip ps rs)
     where ps = [] : [] : [1] : (map (\p -> 1:1:p) ps)
           rs = rule_a_to_f_a : rule_f_x_to_g_x : rule_a_to_f_a : rs
           ts = rewrite_steps a (zip ps rs)
 
 c_red_1d :: CReduction Sigma Var System_a_f_x
-c_red_1d = CRConst red_1d modulus
+c_red_1d = CRCons red_1d modulus
     where modulus n = e * 2 + o + 2
               where e = n `div` 2
                     o = n `div` 2 + n `mod` 2
