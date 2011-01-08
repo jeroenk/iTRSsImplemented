@@ -12,7 +12,7 @@ of the code:
 
 * GHC requires the "-XMultiParamTypeClasses" option
 
-* Hugs requires the "-X" option
+* Hugs requires the "-98" option
 
 To obtain GHC, it is best to install the Haskell Platform:
 
