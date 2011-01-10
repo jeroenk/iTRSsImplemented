@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -- This module defines systems of notation (for computable ordinals).
 
-module SystemsOfNotation (
+module SystemOfNotation (
     OrdinalKind(ZeroOrdinal, SuccOrdinal, LimitOrdinal),
     SystemOfNotation(k, p, q, to_int),
     get_limit_pred,

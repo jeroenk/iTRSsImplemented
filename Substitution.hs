@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -- This module defines substitutions.
 
-module Substitutions (
+module Substitution (
     Substitution,
     in_substitution,
     substitute,
@@ -25,7 +25,7 @@ module Substitutions (
 ) where
 
 import SignatureAndVariables
-import Terms
+import Term
 
 import Array
 import List

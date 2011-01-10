@@ -22,8 +22,8 @@ module Confluence (
 ) where
 
 import SignatureAndVariables
-import RulesAndSystems
-import OmegaReductions
+import RuleAndSystem
+import OmegaReduction
 import StripLemma
 
 -- The function confl_devel computes one side of the confluence diagram. The

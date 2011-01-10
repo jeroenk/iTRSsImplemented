@@ -26,8 +26,8 @@ module RationalTerms (
 ) where
 
 import SignatureAndVariables
-import Terms
-import Substitutions
+import Term
+import Substitution
 
 -- A regular system is a substitution.
 type RegularSystem s v = Substitution s v

@@ -26,9 +26,9 @@ module Compression (
 ) where
 
 import SignatureAndVariables
-import RulesAndSystems
-import SystemsOfNotation hiding (q)
-import TransfiniteReductions
+import RuleAndSystem
+import SystemOfNotation hiding (q)
+import TransfiniteReduction
 
 -- The function compr_devel computes the compressed reduction. The steps of the
 -- reduction are returned as a list of lists of steps, where it is ensured for

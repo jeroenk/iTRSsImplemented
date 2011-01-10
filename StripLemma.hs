@@ -22,9 +22,9 @@ module StripLemma (
 ) where
 
 import SignatureAndVariables
-import PositionsAndSubterms
-import RulesAndSystems
-import OmegaReductions
+import PositionAndSubterm
+import RuleAndSystem
+import OmegaReduction
 
 -- Yield a sequence of steps all employing the same rule r given a set of
 -- parallel positions and the rule r.

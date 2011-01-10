@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -- This module defines rewrite rules and steps and rewrite system
 
-module RulesAndSystems (
+module RuleAndSystem (
     RewriteRule(Rule),
     left_height,
     Step,
@@ -29,9 +29,9 @@ module RulesAndSystems (
 ) where
 
 import SignatureAndVariables
-import Terms
-import PositionsAndSubterms
-import Substitutions
+import Term
+import PositionAndSubterm
+import Substitution
 
 import Array
 import List

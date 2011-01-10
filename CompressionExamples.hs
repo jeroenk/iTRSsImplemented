@@ -18,10 +18,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- This file defines some reductions that can be tried with the compression
 -- algorithm.
 
-import Terms
-import PositionsAndSubterms
-import SystemsOfNotation
-import TransfiniteReductions
+import Term
+import PositionAndSubterm
+import SystemOfNotation
+import TransfiniteReduction
 import Compression
 import ExampleTermsAndSubstitutions
 import ExampleRulesAndSystems

@@ -35,7 +35,7 @@ module ExampleRulesAndSystems (
     System_a_b_f_x(System_a_b_f_x)
 ) where
 
-import RulesAndSystems
+import RuleAndSystem
 import ExampleTermsAndSubstitutions
 
 type Rule_Sigma_Var = RewriteRule Sigma Var

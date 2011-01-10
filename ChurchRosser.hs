@@ -29,8 +29,8 @@ module ChurchRosser (
 ) where
 
 import SignatureAndVariables
-import RulesAndSystems
-import OmegaReductions
+import RuleAndSystem
+import OmegaReduction
 import Confluence
 
 -- The function interleave_devel computes interleaving of a pair of reductions

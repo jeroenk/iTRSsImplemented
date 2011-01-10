@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -- This module defines (finite and infinite) terms.
 
-module Terms (
+module Term (
     Term(Function, Variable),
     constant, function_term,
     term_height, less_height

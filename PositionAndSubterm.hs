@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --
 -- As usual, positions are represented by lists of natural numbers.
 
-module PositionsAndSubterms (
+module PositionAndSubterm (
     Position, Positions,
     is_prefix, position_of_term,
     pos, pos_to_depth, non_var_pos, var_pos,
@@ -28,7 +28,7 @@ module PositionsAndSubterms (
 ) where
 
 import SignatureAndVariables
-import Terms
+import Term
 
 import Array
 import List

@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- computed in case a modulus of convergence is associated with the reduction;
 -- the final term might be uncomputable otherwise.
 
-module OmegaReductions (
+module OmegaReduction (
     Reduction(RCons), Modulus,
     CReduction(CRCons),
     get_terms, get_modulus,
@@ -30,9 +30,9 @@ module OmegaReductions (
 ) where
 
 import SignatureAndVariables
-import Terms
-import PositionsAndSubterms
-import RulesAndSystems
+import Term
+import PositionAndSubterm
+import RuleAndSystem
 
 -- Computable reductions are lists of terms and rewrite steps.
 --

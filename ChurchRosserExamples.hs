@@ -18,8 +18,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- This file defines some reductions that can be tried with the Church-Rosser
 -- algorithm.
 
-import RulesAndSystems
-import OmegaReductions
+import RuleAndSystem
+import OmegaReduction
 import ChurchRosser
 import ExampleTermsAndSubstitutions
 import ExampleRulesAndSystems

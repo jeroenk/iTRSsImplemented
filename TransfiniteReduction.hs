@@ -25,7 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --
 -- This module is incompatible with the OmegaReductions module.
 
-module TransfiniteReductions (
+module TransfiniteReduction (
     Reduction(RCons), Modulus,
     CReduction(CRCons),
     initial_term, final_term,
@@ -33,10 +33,10 @@ module TransfiniteReductions (
 ) where
 
 import SignatureAndVariables
-import Terms
-import PositionsAndSubterms
-import RulesAndSystems
-import SystemsOfNotation hiding (q)
+import Term
+import PositionAndSubterm
+import RuleAndSystem
+import SystemOfNotation hiding (q)
 
 -- Computable reductions are lists of terms and rewrite steps.
 --

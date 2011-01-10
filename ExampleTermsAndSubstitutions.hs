@@ -31,8 +31,8 @@ module ExampleTermsAndSubstitutions (
 ) where
 
 import SignatureAndVariables
-import Substitutions
-import Terms
+import Substitution
+import Term
 
 data Sigma = SigmaCons Char
 data Var   = VarCons Char

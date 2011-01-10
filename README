@@ -38,14 +38,15 @@ The code has been split in several files whose contents should be mostly
 obvious from the file names, or otherwise from the initial comments in
 each of the files.
 
-Besides employing a recursive data type instead of natural numbers, the
-code deviates in two ways from the presentation in the paper:
+Besides employing a recursive data type instead of natural numbers to
+represent terms, the code deviates in two ways from the presentation in the
+paper:
 
-* A special type is defined, in OmegaReductions.hs, to represent reductions
+* A special type is defined, in OmegaReduction.hs, to represent reductions
   of length at most omega. This type is employed in the context of the Strip
   Lemma, confluence, and the Church-Rosser theorem and implicitly assumes
-  the univalent system of notation for omega from SystemsOfNotation.hs. The
-  introduction of the special type is mere programming convenience, making
+  the univalent system of notation for omega from SystemOfNotation.hs. The
+  introduction of the special type is a mere programming convenience, making
   the code cleaner and omitting the otherwise obligatory compression that
   needs to be performed in the confluence and Church-Rosser theorems.
 
@@ -61,13 +62,13 @@ Correspondence with the Paper
 The correspondence between the Turing machines defined in the Theorems, Lemmas,
 etc of the paper and the functions as present in the code is as follows:
 
-Lemma 1       : substitute     in Substitutions.hs
-Proposition 2 : subterm        in PositionsAndSubterms.hs
-Lemma 3       : rewrite_step   in RulesAndSystems.hs
+Lemma 1       : substitute     in Substitution.hs
+Proposition 2 : subterm        in PositionAndSubterm.hs
+Lemma 3       : rewrite_step   in RuleAndSystem.hs
 Theorem 5     : compression    in Compression.hs
-Proposition 6 : origins_across in RulesAndSystems.hs (across a single step)
-Proposition 7 : needed_steps   in OmegaReductions.hs
-                                      and TransfiniteReductions.hs
+Proposition 6 : origins_across in RuleAndSystem.hs (across a single step)
+Proposition 7 : needed_steps   in OmegaReduction.hs
+                                      and TransfiniteReduction.hs
 Theorem 10    : confluence     in Confluence.hs
 Lemma 11      : implicit in StripLemma.hs
 Lemma 12      : strip_lemma    in StripLemma.hs
