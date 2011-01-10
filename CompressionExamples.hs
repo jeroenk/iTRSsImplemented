@@ -26,14 +26,6 @@ import Compression
 import ExampleTermsAndSubstitutions
 import ExampleRulesAndSystems
 
--- Define two function symbols we need below
-
-f :: Sigma
-f = SigmaCons 'f'
-
-g :: Sigma
-g = SigmaCons 'g'
-
 -- Define an encoding of the ordinal omega.2 + 1 into natural numbers
 --
 -- The mapping is as follows:

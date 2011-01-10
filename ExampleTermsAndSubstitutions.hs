@@ -22,6 +22,7 @@ module ExampleTermsAndSubstitutions (
     Sigma(SigmaCons), Var(VarCons),
     Term_Sigma_Var, Symbol_Sigma_Var,
     Substitution_Sigma_Var,
+    f, g, h,
     a, b, c, f_a, g_a, f_f_a, g_f_a, g_g_a,
     f_x, g_x, h_x_x, h_x_f_x,
     f_omega, g_omega, h_omega,
