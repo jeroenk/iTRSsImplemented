@@ -30,9 +30,9 @@ import ExampleRulesAndSystems
 --
 -- The mapping is as follows:
 --
--- 0 1 ...  n  ... omega (omega + 1) ... (omega + n) ... (omega.2)
--- | |      |        |        |               |              |
--- 2 4 ... 2.n ...   1        3      ...  (2.n + 1)  ...     0
+-- 0 1 ...     n     ... omega (omega + 1) ... (omega + n) ... (omega.2)
+-- | |         |           |        |               |              |
+-- 2 4 ... (2.n + 2) ...   1        3      ...  (2.n + 1)  ...     0
 
 data OmegaTwoPlusOne = OmegaTwoPlusOneElement Int
 
@@ -47,7 +47,7 @@ instance SystemOfNotation OmegaTwoPlusOne where
         | otherwise = SuccOrdinal   -- even: n; odd: omega + n
     p  (OmegaTwoPlusOneElement n)
         | n > 2     = OmegaTwoPlusOneElement (n - 2)
-        | otherwise = error "Predeccessor undefined"
+        | otherwise = error "Predecessor undefined"
     q  (OmegaTwoPlusOneElement n)
         | n == 0    = (\m -> OmegaTwoPlusOneElement ((2 * m) + 3))
         | n == 1    = (\m -> OmegaTwoPlusOneElement ((2 * m) + 2))
@@ -68,8 +68,6 @@ instance UnivalSystem OmegaTwoPlusOne where
     zer = OmegaTwoPlusOneElement 2
     suc (OmegaTwoPlusOneElement n)
        | n == 0    = error "omega.2 does not have a successor"
-       | n == 1    = OmegaTwoPlusOneElement 3
-       | n == 2    = OmegaTwoPlusOneElement 4
        | otherwise = OmegaTwoPlusOneElement (n + 2)
 
 -- a -> f(a) -> f^2(a) -> ... -> f^n(a) -> ...

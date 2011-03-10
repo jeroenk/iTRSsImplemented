@@ -15,7 +15,8 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
--- This module defines computable reductions up to length omega.
+-- This module defines computable reductions of arbitrary computable ordinal
+-- length.
 --
 -- Note that the final term of a reduction is not represented, but can be
 -- computed in case a modulus of convergence is associated with the reduction;
