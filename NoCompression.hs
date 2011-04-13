@@ -19,6 +19,9 @@ import SignatureAndVariables
 import Substitution
 import Term
 import RuleAndSystem
+import SystemOfNotation hiding (k)
+
+import Array
 
 data Sigma = SigmaCons String
 data Var   = VarCons Char
@@ -29,6 +32,7 @@ type Substitution_Sigma_Var = Substitution Sigma Var
 type Rule_Sigma_Var         = RewriteRule Sigma Var
 
 instance Signature Sigma where
+    arity (SigmaCons "c")  = 0
     arity (SigmaCons "f")  = 3
     arity (SigmaCons "f'") = 3
     arity (SigmaCons "h")  = 1
@@ -58,6 +62,9 @@ y = VarCons 'y'
 
 z :: Var
 z = VarCons 'z'
+
+c :: Sigma
+c = SigmaCons "c"
 
 f :: Sigma
 f = SigmaCons "f"
@@ -119,3 +126,32 @@ rule_k_h' = Rule k_h'_x h_k_x
 
 rule_k_h :: Rule_Sigma_Var
 rule_k_h = Rule k_h_x h_x
+
+term :: (UnivalSystem o)
+    => (Int -> Bool) -> (Int -> Bool) -> (Int -> o) -> o -> o -> Term_Sigma_Var
+term in_set geq_lub nu alpha beta = replace_c (term' 0 alpha beta)
+    where term' d delta gamma
+              | in_set d && in_range
+                  = function_term f [(1, t_1), (2, t_2), (3, t_3)]
+              | geq_lub d || empty_range
+                  = constant c
+              | otherwise
+                  = function_term h [(1, term' (d + 1) delta gamma)]
+                  where kappa       = nu d
+                        in_range    = delta `leq` kappa && suc kappa `leq` gamma
+                        empty_range = (suc delta) `leq` gamma
+                        t_1         = term' (d + 1) delta kappa
+                        t_2         = constant c
+                        t_3         = rename (term' (d + 1) (suc kappa) gamma)
+          rename (Function g ts)
+              | g == f    = Function f' (ts // [(1, rename (ts!1))])
+              | g == h    = Function h' (ts // [(1, rename (ts!1))])
+              | g == c    = constant c
+              | otherwise = error "Illegal symbol in constructed term"
+          rename _
+              = error "Illegal symbol in constructed term"
+          replace_c (Function symbol ts)
+              | symbol == c = h_omega
+              | otherwise   = Function symbol (fmap replace_c ts)
+          replace_c (Variable v)
+              = Variable v
