@@ -37,7 +37,7 @@ import SignatureAndVariables
 import Term
 import PositionAndSubterm
 import RuleAndSystem
-import SystemOfNotation hiding (q)
+import SystemOfNotation
 
 -- Computable reductions are lists of terms and rewrite steps.
 --
@@ -55,13 +55,13 @@ show_from :: (Show s, Show v,
               Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => (Reduction s v r o) -> o -> String
 show_from (RCons ts _ _) a
-    | indexof (to_int a) ts = show' a True True
-    | otherwise             = error "Reduction without terms"
+    | indexof (ord_to_int a) ts = show' a True True
+    | otherwise                 = error "Reduction without terms"
         where show' b True frst = fst_term ++ lst_terms
-                  where n = to_int b
+                  where n = ord_to_int b
                         fst_term = (if frst then "" else " -> ") ++ show (ts!!n)
-                        lst_terms = show' (suc b) is_index False
-                        is_index = indexof (to_int (suc b)) ts
+                        lst_terms = show' (ord_succ b) is_index False
+                        is_index = indexof (ord_to_int (ord_succ b)) ts
               show' _ False _   = ""
               indexof _ []     = False
               indexof 0 _      = True
@@ -93,29 +93,31 @@ instance (Show s, Show v,
     => Show (CReduction s v r o) where
     show (CRCons (RCons [] _ _) _)   = error "Reduction without terms"
     show (CRCons (RCons ts _ z) phi) = show t ++ show' t z 0
-        where t = ts!!(to_int z)
+        where t = ts!!(ord_to_int z)
               show' s a d
                   | less_height s d = ""
                   | otherwise       = fst_steps ++ lst_steps
                       where fst_steps = show_steps fst_terms
                             lst_steps = show' s_new a_new (d + 1)
-                            fst_terms = collect_terms (suc a) a_new
+                            fst_terms = collect_terms (ord_succ a) a_new
                             s_new
                                 | null fst_terms = s
                                 | otherwise      = last fst_terms
                             a_new
-                                | (suc a) `leq` (phi z d) = phi z d
-                                | otherwise               = a
+                                | (ord_succ a) `ord_leq` (phi z d) = phi z d
+                                | otherwise                        = a
               collect_terms a b
-                  | a `leq` b = ts!!(to_int a) : collect_terms (suc a) b
-                  | otherwise = []
+                  | a `ord_leq` b
+                      = ts!!(ord_to_int a) : collect_terms (ord_succ a) b
+                  | otherwise
+                      = []
               show_steps []     = ""
               show_steps (s:ss) = " -> " ++ show s ++ show_steps ss
 
 -- Yield the initial term of a computably convergent reduction.
 initial_term :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => CReduction s v r o -> Term s v
-initial_term (CRCons (RCons ts _ z) _) = ts!!(to_int z)
+initial_term (CRCons (RCons ts _ z) _) = ts!!(ord_to_int z)
 
 -- Yield the final term of a computably convergent reduction.
 final_term :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
@@ -128,28 +130,29 @@ final_term (CRCons (RCons ts _ z) phi)
                   where s = [final_subterm (ps ++ [i]) ss | i <- [1..arity f]]
           construct_subterm (VariableSymbol x) _ _   = Variable x
           stable_terms d = ts!!n : stable_terms (d + 1)
-              where n = to_int (phi z d)
+              where n = ord_to_int (phi z d)
 
 -- Yield the needed steps of a reduction in case we are interested in the
 -- positions up to a certain depth d in the final term of the reduction.
 needed_steps :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
     => CReduction s v r o -> Int -> [Step s v]
 needed_steps s@(CRCons (RCons _ ps z) phi) d
-    = needed_steps' (pos_to_depth (final_term s) d) a (k a)
+    = needed_steps' (pos_to_depth (final_term s) d) a (ord_kind a)
     where a = phi z d
           needed_steps' qs b SuccOrdinal
-              | b `leq` z = []
-              | otherwise = ps_new
-                  where q@(q', _) = ps!!(to_int (p b))
+              | b `ord_leq` z = []
+              | otherwise     = ps_new
+                  where q@(q', _) = ps!!(ord_to_int (ord_pred b))
                         qs_new = origins_across q qs
                         ps_new
                             | q' `elem` qs_new = ps' ++ [q]
                             | otherwise        = ps'
-                        ps' = needed_steps' qs_new (p b) (k (p b))
+                        ps' = needed_steps' qs_new pb (ord_kind pb)
+                        pb  = ord_pred b
           needed_steps' qs b LimitOrdinal
-              | b `leq` z = []
-              | otherwise = needed_steps' qs b' (k b')
+              | b `ord_leq` z = []
+              | otherwise     = needed_steps' qs b' (ord_kind b')
                   where b' = phi b (maximum (map length qs))
           needed_steps' _ b ZeroOrdinal
-              | b `leq` z = []
-              | otherwise = error "Inconsistent system of notation"
+              | b `ord_leq` z = []
+              | otherwise     = error "Inconsistent system of notation"

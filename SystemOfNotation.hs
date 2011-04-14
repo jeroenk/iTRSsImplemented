@@ -19,9 +19,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module SystemOfNotation (
     OrdinalKind(ZeroOrdinal, SuccOrdinal, LimitOrdinal),
-    SystemOfNotation(k, p, q, to_int),
+    SystemOfNotation(ord_kind, ord_pred, ord_limit, ord_to_int),
     get_limit_pred,
-    UnivalSystem(leq, zer, suc),
+    UnivalSystem(ord_leq, ord_zero, ord_succ),
     Omega(OmegaElement)
 ) where
 
@@ -37,52 +37,53 @@ instance Eq OrdinalKind where
     LimitOrdinal == LimitOrdinal = True
     _ == _                       = False
 
--- A system of notation defines functions k, p, and q.
+-- A system of notation defines functions ord_kind, ord_pred, and ord_limit
+-- (called k, p, and q in Kleene's original paper).
 --
--- Because we want some flexibility, we leave the actual type of a system of
--- notation unspecified (we do not default to natural numbers). This means we
--- do need a way to unpack an element of the type to a natural number (to_int).
+-- To add flexibility, the type of a system of notation is left unspecified
+-- (not defaulting to natural numbers). This does mean a way is needed to
+-- unpack an element of the type to a natural number (ord_to_int).
 class SystemOfNotation o where
-    k :: o -> OrdinalKind
-    p :: o -> o
-    q :: o -> (Int -> o)
-    to_int :: o -> Int
+    ord_kind   :: o -> OrdinalKind
+    ord_pred   :: o -> o
+    ord_limit  :: o -> (Int -> o)
+    ord_to_int :: o -> Int
 
--- Get the largest ordinal that is a limit ordinal or zero and smaller than a
--- certain other ordinal.
+-- Given an ordinal yield the largest ordinal that is a limit ordinal or zero
+-- and that is smaller than the given ordinal.
 get_limit_pred :: (SystemOfNotation o) => o -> o
-get_limit_pred n = get_limit_pred' (k n) n
+get_limit_pred n = get_limit_pred' (ord_kind n) n
     where get_limit_pred' ZeroOrdinal  m = m
-          get_limit_pred' SuccOrdinal  m = get_limit_pred (p m)
+          get_limit_pred' SuccOrdinal  m = get_limit_pred (ord_pred m)
           get_limit_pred' LimitOrdinal m = m
 
 -- In a univalent, recursively related system of notation it is possible to
 -- compare two ordinals, to find the representation of zero, and to compute
 -- the successor of an ordinal.
 class SystemOfNotation o => UnivalSystem o where
-    leq :: o -> o -> Bool
-    zer :: o      -- Existence follows by univalence
-    suc :: o -> o -- Existence follows by univalence
+    ord_leq  :: o -> o -> Bool
+    ord_zero :: o      -- Existence follows by univalence
+    ord_succ :: o -> o -- Existence follows by univalence
 
 -- A system of notation for the ordinal omega.
 data Omega = OmegaElement Int
 
 instance SystemOfNotation Omega where
-    k (OmegaElement n)
+    ord_kind (OmegaElement n)
         | n == 0    = ZeroOrdinal
         | otherwise = SuccOrdinal
-    p  (OmegaElement n)
+    ord_pred  (OmegaElement n)
         | n > 0     = OmegaElement (n - 1)
         | otherwise = error "Predeccessor undefined"
-    q  (OmegaElement _)
+    ord_limit  (OmegaElement _)
         = error "Limit function undefined" -- omega has no limit ordinals
-    to_int  (OmegaElement n)
+    ord_to_int  (OmegaElement n)
         = n
 
 instance UnivalSystem Omega where
-    leq (OmegaElement m) (OmegaElement n)
+    ord_leq (OmegaElement m) (OmegaElement n)
         = m <= n
-    zer
+    ord_zero
         = OmegaElement 0
-    suc (OmegaElement n)
+    ord_succ (OmegaElement n)
         = OmegaElement (n + 1)

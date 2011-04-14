@@ -40,23 +40,23 @@ instance Show OmegaTwoPlusOne where
     show (OmegaTwoPlusOneElement n) = show n
 
 instance SystemOfNotation OmegaTwoPlusOne where
-    k (OmegaTwoPlusOneElement n)
+    ord_kind (OmegaTwoPlusOneElement n)
         | n == 0    = LimitOrdinal  -- omega.2
         | n == 1    = LimitOrdinal  -- omega
         | n == 2    = ZeroOrdinal   -- 0
         | otherwise = SuccOrdinal   -- even: n; odd: omega + n
-    p  (OmegaTwoPlusOneElement n)
+    ord_pred  (OmegaTwoPlusOneElement n)
         | n > 2     = OmegaTwoPlusOneElement (n - 2)
         | otherwise = error "Predecessor undefined"
-    q  (OmegaTwoPlusOneElement n)
+    ord_limit  (OmegaTwoPlusOneElement n)
         | n == 0    = (\m -> OmegaTwoPlusOneElement ((2 * m) + 3))
         | n == 1    = (\m -> OmegaTwoPlusOneElement ((2 * m) + 2))
         | otherwise = error "Limit function undefined"
-    to_int  (OmegaTwoPlusOneElement n)
+    ord_to_int  (OmegaTwoPlusOneElement n)
         = n
 
 instance UnivalSystem OmegaTwoPlusOne where
-    leq  (OmegaTwoPlusOneElement m)  (OmegaTwoPlusOneElement n)
+    ord_leq  (OmegaTwoPlusOneElement m) (OmegaTwoPlusOneElement n)
         | n == m                                   = True
         | n == 0                                   = True
         | n == 1 && m > 0              && (even m) = True
@@ -65,8 +65,8 @@ instance UnivalSystem OmegaTwoPlusOne where
         | n > 2  && m > 2  && (odd n)  && (even m) = True
         | n > 2  && m > 2  && (even n) && (even m) = m <= n
         | otherwise                                = False
-    zer = OmegaTwoPlusOneElement 2
-    suc (OmegaTwoPlusOneElement n)
+    ord_zero = OmegaTwoPlusOneElement 2
+    ord_succ (OmegaTwoPlusOneElement n)
        | n == 0    = error "omega.2 does not have a successor"
        | otherwise = OmegaTwoPlusOneElement (n + 2)
 
@@ -82,7 +82,7 @@ instance UnivalSystem OmegaTwoPlusOne where
 -- and f(x) -> g(x) steps.
 
 red_1 :: Reduction Sigma Var System_a_f_x OmegaTwoPlusOne
-red_1 = RCons ts (zip ps rs) zer
+red_1 = RCons ts (zip ps rs) ord_zero
     where ps = step 0
               where step :: Integer -> [Position]
                     step 0 = error "Undefined step" : step 1
@@ -124,7 +124,7 @@ c_red_1 = CRCons red_1 modulus
 --     final_term (compression System_a_f_x c_red_2)
 
 red_2 :: Reduction Sigma Var System_a_f_x OmegaTwoPlusOne
-red_2 = RCons ts (zip ps rs) zer
+red_2 = RCons ts (zip ps rs) ord_zero
     where ps = step 0
               where step :: Integer -> [Position]
                     step 0 = error "Undefined step" : step 1
@@ -163,7 +163,7 @@ c_red_2 = CRCons red_2 modulus
 -- at least depth are performed first.
 
 red_3 :: Reduction Sigma Var System_a_f_x Omega
-red_3 = RCons ts (zip ps rs) zer
+red_3 = RCons ts (zip ps rs) ord_zero
     where ts = [f_a, f_f_a, g_f_a, g_g_a]
           ps = [[1], [], [1]]
           rs = [rule_a_to_f_a, rule_f_x_to_g_x, rule_f_x_to_g_x]
@@ -179,10 +179,10 @@ c_red_3 = CRCons red_3 modulus
 -- Compression of the following reduction demonstrates an edge case.
 
 red_4 :: Reduction Sigma Var System_a_f_x Omega
-red_4 = RCons [f_omega] [] zer
+red_4 = RCons [f_omega] [] ord_zero
 
 c_red_4 :: CReduction Sigma Var System_a_f_x Omega
 c_red_4 = CRCons red_4 modulus
     where modulus (OmegaElement n)
-              | n == 0 = (\_ -> zer)
+              | n == 0 = (\_ -> ord_zero)
               | otherwise = error "Invalid input to modulus"
