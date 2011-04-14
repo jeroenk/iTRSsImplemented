@@ -19,7 +19,7 @@ import SignatureAndVariables
 import Substitution
 import Term
 import RuleAndSystem
-import SystemOfNotation hiding (k)
+import SystemOfNotation
 
 import Array
 
@@ -82,38 +82,36 @@ k :: Sigma
 k = SigmaCons "k"
 
 f_x_x_y :: Term_Sigma_Var
-f_x_x_y = function_term f [(1, Variable x), (2, Variable x), (3, Variable y)]
+f_x_x_y = function_term f [Variable x, Variable x, Variable y]
 
 h_k_y :: Term_Sigma_Var
-h_k_y = function_term h [(1, k_y)]
-    where k_y = function_term k [(1, Variable y)]
+h_k_y = function_term h [k_y]
+    where k_y = function_term k [Variable y]
 
 k_f'_x_y_z :: Term_Sigma_Var
-k_f'_x_y_z = function_term k [(1, f'_x_y_z)]
-    where f'_x_y_z = function_term f' [(1, Variable x), (2, Variable y),
-                                           (3, Variable z)]
+k_f'_x_y_z = function_term k [f'_x_y_z]
+    where f'_x_y_z = function_term f' [Variable x, Variable y, Variable z]
 
 f_k_x_y_z :: Term_Sigma_Var
-f_k_x_y_z = function_term f [(1, k_x), (2, Variable y), (3, Variable z)]
-    where k_x = function_term k [(1, Variable x)]
+f_k_x_y_z = function_term f [k_x, Variable y, Variable z]
+    where k_x = function_term k [Variable x]
 
 k_h'_x :: Term_Sigma_Var
-k_h'_x = function_term k [(1, h'_x)]
-    where h'_x = function_term h' [(1, Variable x)]
+k_h'_x = function_term k [h'_x]
+    where h'_x = function_term h' [Variable x]
 
 h_k_x :: Term_Sigma_Var
-h_k_x = function_term h [(1, k_x)]
-    where k_x = function_term k [(1, Variable x)]
+h_k_x = function_term h [k_x]
+    where k_x = function_term k [Variable x]
 
 k_h_x :: Term_Sigma_Var
-k_h_x = function_term k [(1, h_x)]
-    where h_x = function_term h [(1, Variable x)]
+k_h_x = function_term k [h_x]
 
 h_x :: Term_Sigma_Var
-h_x = function_term h [(1, Variable x)]
+h_x = function_term h [Variable x]
 
 h_omega :: Term_Sigma_Var
-h_omega = function_term h [(1, h_omega)]
+h_omega = function_term h [h_omega]
 
 rule_f :: Rule_Sigma_Var
 rule_f = Rule f_x_x_y h_k_y
@@ -127,22 +125,24 @@ rule_k_h' = Rule k_h'_x h_k_x
 rule_k_h :: Rule_Sigma_Var
 rule_k_h = Rule k_h_x h_x
 
-term :: (UnivalSystem o)
+term :: (UnivalentSystem o)
     => (Int -> Bool) -> (Int -> Bool) -> (Int -> o) -> o -> o -> Term_Sigma_Var
 term in_set geq_lub nu alpha beta = replace_c (term' 0 alpha beta)
     where term' d delta gamma
               | in_set d && in_range
-                  = function_term f [(1, t_1), (2, t_2), (3, t_3)]
+                  = function_term f [t_1, t_2, t_3]
               | geq_lub d || empty_range
                   = constant c
               | otherwise
-                  = function_term h [(1, term' (d + 1) delta gamma)]
+                  = function_term h [term' (d + 1) delta gamma]
                   where kappa       = nu d
-                        in_range    = delta `leq` kappa && suc kappa `leq` gamma
-                        empty_range = (suc delta) `leq` gamma
+                        succ_kappa  = ord_succ kappa
+                        in_range    = delta `ord_leq` kappa
+                                          && succ_kappa `ord_leq` gamma
+                        empty_range = (ord_succ delta) `ord_leq` gamma
                         t_1         = term' (d + 1) delta kappa
                         t_2         = constant c
-                        t_3         = rename (term' (d + 1) (suc kappa) gamma)
+                        t_3         = rename (term' (d + 1) (succ_kappa) gamma)
 
 rename :: Term_Sigma_Var -> Term_Sigma_Var
 rename (Function g ts)
