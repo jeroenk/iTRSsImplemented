@@ -143,15 +143,33 @@ term in_set geq_lub nu alpha beta = replace_c (term' 0 alpha beta)
                         t_1         = term' (d + 1) delta kappa
                         t_2         = constant c
                         t_3         = rename (term' (d + 1) (suc kappa) gamma)
-          rename (Function g ts)
-              | g == f    = Function f' (ts // [(1, rename (ts!1))])
-              | g == h    = Function h' (ts // [(1, rename (ts!1))])
-              | g == c    = constant c
-              | otherwise = error "Illegal symbol in constructed term"
-          rename _
-              = error "Illegal symbol in constructed term"
-          replace_c (Function symbol ts)
-              | symbol == c = h_omega
-              | otherwise   = Function symbol (fmap replace_c ts)
-          replace_c (Variable v)
-              = Variable v
+
+rename :: Term_Sigma_Var -> Term_Sigma_Var
+rename (Function g ts)
+    | g == f    = Function f' (ts // [(1, rename (ts!1))])
+    | g == h    = Function h' (ts // [(1, rename (ts!1))])
+    | g == c    = constant c
+    | otherwise = error "Illegal symbol in constructed term"
+rename _
+    = error "Illegal symbol in constructed term"
+
+replace_c :: Term_Sigma_Var -> Term_Sigma_Var
+replace_c (Function g ts)
+    | g == c    = h_omega
+    | otherwise = Function g (fmap replace_c ts)
+replace_c (Variable v)
+    = (Variable v)
+
+-- Reductie stap:
+-- * geen limiet ordinaal: zoek vorige en doe unieke stap
+-- * wel limiet ordinaal of nul: bereken term en doe unieke stap
+--            let op: we moeten wel weten of het een k stap of een f stap is,
+--                    anders gaan we misschien zoeken in h_omega subterm
+--
+-- Modulus:
+--    kijk of er nog latere stappen in de gevraagde range zitten die hoger
+--    liggen dan nu^{-1}(d) (kan omdat we over een bijectie spreken en dus
+--    iedere diepte maar een keer voor komt). We moeten we compenseren voor de
+--    k-stappen, maar deze gebeuren altijd onder de nu^{-1}(d) stap die we
+--    zoeken.
+
