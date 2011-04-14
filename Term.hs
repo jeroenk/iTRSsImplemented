@@ -49,12 +49,13 @@ constant c
     | arity c == 0 = Function c (array (1,0) [])
     | otherwise    = error "Input is not a constant"
 
--- Wrapper for the definition of a terms with a function symbol at the root and
--- a number of subterms.
+-- Wrapper for the definition of terms with a function symbol at the root and
+-- a number of subterms. The subterms should be given in order of occurence
+-- from left to right.
 function_term :: (Signature s, Variables v)
-    => s -> [(Int, Term s v)] -> Term s v
+    => s -> [Term s v] -> Term s v
 function_term f ts
-    | has_length a ts = Function f (array (1, a) ts)
+    | has_length a ts = Function f (listArray (1, a) ts)
     | otherwise       = error "Number of provided subterms not matching arity"
         where a = arity f
               has_length 0 []     = True

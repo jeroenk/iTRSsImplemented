@@ -103,8 +103,8 @@ red_1 = RCons ts (zip ps rs) zer
                                   f_n m = c_f (f_n (m - 1))
                                   g_n 0 = f_omega
                                   g_n m = c_g (g_n (m - 1))
-                                  c_f t = function_term f [(1, t)]
-                                  c_g t = function_term g [(1, t)]
+                                  c_f t = function_term f [t]
+                                  c_g t = function_term g [t]
                     term _ = error "Undefined terms"
 
 c_red_1 :: CReduction Sigma Var System_a_f_x OmegaTwoPlusOne
@@ -145,8 +145,8 @@ red_2 = RCons ts (zip ps rs) zer
                                   f_g_n m = (c_f (c_g (f_g_n (m - 1))))
                                   g_g_n 0 = f_g_omega
                                   g_g_n m = (c_g (c_g (g_g_n (m - 1))))
-                                  c_f t = function_term f [(1, t)]
-                                  c_g t = function_term g [(1, t)]
+                                  c_f t = function_term f [t]
+                                  c_g t = function_term g [t]
                     term _ = error "Undefined terms"
 
 c_red_2 :: CReduction Sigma Var System_a_f_x OmegaTwoPlusOne

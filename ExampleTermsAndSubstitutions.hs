@@ -97,55 +97,55 @@ k :: Sigma
 k = SigmaCons 'k'
 
 f_a :: Term_Sigma_Var
-f_a = function_term f [(1, a)]
+f_a = function_term f [a]
 
 g_a :: Term_Sigma_Var
-g_a = function_term g [(1, a)]
+g_a = function_term g [a]
 
 f_f_a :: Term_Sigma_Var
-f_f_a = function_term f [(1, f_a)]
+f_f_a = function_term f [f_a]
 
 g_f_a :: Term_Sigma_Var
-g_f_a = function_term g [(1, f_a)]
+g_f_a = function_term g [f_a]
 
 g_g_a :: Term_Sigma_Var
-g_g_a = function_term g [(1, g_a)]
+g_g_a = function_term g [g_a]
 
 f_x :: Term_Sigma_Var
-f_x = function_term f [(1, Variable x)]
+f_x = function_term f [Variable x]
 
 g_x :: Term_Sigma_Var
-g_x = function_term g [(1, Variable x)]
+g_x = function_term g [Variable x]
 
 h_x_x :: Term_Sigma_Var
-h_x_x = function_term h [(1, Variable x), (2, Variable x)]
+h_x_x = function_term h [Variable x, Variable x]
 
 h_x_f_x :: Term_Sigma_Var
-h_x_f_x = function_term h [(1, Variable x), (2, f_x)]
+h_x_f_x = function_term h [Variable x, f_x]
 
 f_omega :: Term_Sigma_Var
-f_omega = function_term f [(1, f_omega)]
+f_omega = function_term f [f_omega]
 
 g_omega :: Term_Sigma_Var
-g_omega = function_term g [(1, g_omega)]
+g_omega = function_term g [g_omega]
 
 h_omega :: Term_Sigma_Var
-h_omega = function_term h [(1, h_omega), (2, h_omega)]
+h_omega = function_term h [h_omega, h_omega]
 
 f_g_omega :: Term_Sigma_Var
-f_g_omega = function_term f [(1, g_f_omega)]
+f_g_omega = function_term f [g_f_omega]
 
 g_f_omega :: Term_Sigma_Var
-g_f_omega = function_term g [(1, f_g_omega)]
+g_f_omega = function_term g [f_g_omega]
 
 h_x_omega :: Term_Sigma_Var
-h_x_omega = function_term h [(1, Variable x), (2, h_x_omega)]
+h_x_omega = function_term h [Variable x, h_x_omega]
 
 k_f_omega :: Term_Sigma_Var
-k_f_omega = function_term k [(1, f_k_omega), (2, f_k_omega), (3, f_k_omega)]
+k_f_omega = function_term k [f_k_omega, f_k_omega, f_k_omega]
 
 f_k_omega :: Term_Sigma_Var
-f_k_omega = function_term f [(1, k_f_omega)]
+f_k_omega = function_term f [k_f_omega]
 
 sigma_simple :: Substitution_Sigma_Var
 sigma_simple = [(x, a)]

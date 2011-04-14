@@ -125,8 +125,7 @@ final_term (CRCons (RCons ts _ z) phi)
     where final_subterm ps ss = construct_subterm top ps (tail ss)
                   where top = get_symbol (head ss) ps
           construct_subterm (FunctionSymbol f) ps ss = function_term f s
-                  where a = arity f
-                        s = [(i, final_subterm (ps ++ [i]) ss) | i <- [1..a]]
+                  where s = [final_subterm (ps ++ [i]) ss | i <- [1..arity f]]
           construct_subterm (VariableSymbol x) _ _   = Variable x
           stable_terms d = ts!!n : stable_terms (d + 1)
               where n = to_int (phi z d)
