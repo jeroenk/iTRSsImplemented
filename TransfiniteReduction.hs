@@ -1,5 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses,
-             FlexibleContexts #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleContexts #-}
 {-
 Copyright (C) 2010, 2011 Jeroen Ketema and Jakob Grue Simonsen
 
@@ -28,6 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- have omega + 1 terms).
 
 module TransfiniteReduction (
+    TermSequence, StepSequence,
     Reduction(RCons), Modulus,
     CReduction(CRCons),
     initial_term, final_term,

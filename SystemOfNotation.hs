@@ -1,6 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses,
-             FunctionalDependencies,
-             FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
 {-
 Copyright (C) 2010, 2011 Jeroen Ketema and Jakob Grue Simonsen
 
@@ -26,8 +24,6 @@ module SystemOfNotation (
     SystemOfNotation(ord_kind, ord_pred, ord_limit, ord_lim_pred),
     UnivalentSystem(ord_leq, ord_eq, ord_less, ord_zero, ord_succ),
     ComputableSequence(get_elem, get_from, get_range, select),
-    Omega(OmegaElement),
-    OmegaSequence, construct_sequence
 ) where
 
 -- An ordinal can have three different types.
@@ -108,51 +104,3 @@ class UnivalentSystem o => ComputableSequence o t s | s -> o t where
     select _ _ (_, Nothing)    = []
     select s f (x, Just alpha) = get_elem s alpha : select s f next_elem
         where next_elem = f (x, alpha)
-
--- A system of notation for the ordinal omega.
-data Omega = OmegaElement Int
-
-instance SystemOfNotation Omega where
-    ord_kind (OmegaElement n)
-        | n == 0    = ZeroOrdinal
-        | otherwise = SuccOrdinal
-    ord_pred  (OmegaElement n)
-        | n > 0     = OmegaElement (n - 1)
-        | otherwise = error "Predeccessor undefined"
-    ord_limit  (OmegaElement _)
-        = error "Limit function undefined" -- Omega has no limit ordinals
-    ord_lim_pred (OmegaElement _)
-        = OmegaElement 0
-
-instance UnivalentSystem Omega where
-    ord_leq (OmegaElement m) (OmegaElement n)
-        = m <= n
-    ord_eq (OmegaElement m) (OmegaElement n)
-        = m == n
-    ord_less (OmegaElement m) (OmegaElement n)
-        = m < n
-    ord_zero
-        = OmegaElement 0
-    ord_succ (OmegaElement n)
-        = OmegaElement (n + 1)
-
-data OmegaSequence t = OmegaSequenceCons [t]
-
-instance ComputableSequence Omega t (OmegaSequence t) where
-    get_elem (OmegaSequenceCons xs) (OmegaElement n)
-        = xs!!n
-    get_from (OmegaSequenceCons xs) (OmegaElement n)
-        = drop n xs
-    get_range (OmegaSequenceCons xs) (OmegaElement m) (OmegaElement n)
-        = take (n - m) (drop m xs)
-    select (OmegaSequenceCons xs) f alpha
-        = select' xs 0 alpha
-        where select' _  _ (_, Nothing)   = []
-              select' ys m (z, Just beta) = head ys' : select' ys' n next_elem
-                  where ys'            = drop (n - m) ys
-                        next_elem      = f (z, beta)
-                        OmegaElement n = beta
-
--- Construct a computable sequence of length at most omega out of a list
-construct_sequence :: [t] -> OmegaSequence t
-construct_sequence xs = OmegaSequenceCons xs
