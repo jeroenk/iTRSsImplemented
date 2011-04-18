@@ -1,5 +1,5 @@
 {-
-Copyright (C) 2010 Jeroen Ketema and Jakob Grue Simonsen
+Copyright (C) 2010, 2011 Jeroen Ketema and Jakob Grue Simonsen
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -34,9 +34,9 @@ data (Signature s, Variables v) => Term s v
 
 instance (Show s, Show v, Signature s, Variables v)
     => Show (Term s v) where
-    show (Function f ts)
+    show (Function f ss)
         | arity f == 0  = show f
-        | otherwise     = show f ++ "(" ++ show' (elems ts) True ++ ")"
+        | otherwise     = show f ++ "(" ++ show' (elems ss) True ++ ")"
             where show' [] _         = ""
                   show' (x:xs) True  = show x ++ show' xs False
                   show' (x:xs) False = "," ++ show x ++ show' xs False
@@ -54,8 +54,8 @@ constant c
 -- from left to right.
 function_term :: (Signature s, Variables v)
     => s -> [Term s v] -> Term s v
-function_term f ts
-    | has_length a ts = Function f (listArray (1, a) ts)
+function_term f ss
+    | has_length a ss = Function f (listArray (1, a) ss)
     | otherwise       = error "Number of provided subterms not matching arity"
         where a = arity f
               has_length 0 []     = True
@@ -65,8 +65,8 @@ function_term f ts
 -- The height of a term: height(t) = max {|p| : p in Pos(t)}.
 term_height :: (Signature s, Variables v)
     => Term s v -> Int
-term_height (Function _ ts)
-    = foldl max 0 (map term_height' (elems ts))
+term_height (Function _ ss)
+    = foldl max 0 (map term_height' (elems ss))
     where term_height' t = 1 + term_height t
 term_height (Variable _)
     = 0
@@ -74,8 +74,8 @@ term_height (Variable _)
 -- Establish if a term t is of height less than n.
 less_height :: (Signature s, Variables v)
     => Term s v -> Int -> Bool
-less_height (Function _ ts) n
-    | n > 0     = and (map less_height' (elems ts))
+less_height (Function _ ss) n
+    | n > 0     = and (map less_height' (elems ss))
     | otherwise = False
         where less_height' t = less_height t (n - 1)
 less_height (Variable _) n

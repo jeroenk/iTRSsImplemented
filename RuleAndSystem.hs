@@ -1,6 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-
-Copyright (C) 2010 Jeroen Ketema and Jakob Grue Simonsen
+Copyright (C) 2010, 2011 Jeroen Ketema and Jakob Grue Simonsen
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -63,9 +63,9 @@ rewrite_step t (p, Rule l r)
 -- Apply multiple rewrite steps in sequence, yielding a list of terms.
 rewrite_steps :: (Signature s, Variables v)
     => Term s v -> [Step s v] -> [Term s v]
-rewrite_steps t ps = t : rewrite_steps' t ps
+rewrite_steps t steps = t : rewrite_steps' t steps
     where rewrite_steps' _ []     = []
-          rewrite_steps' s (q:qs) = rewrite_steps (rewrite_step s q) qs
+          rewrite_steps' s (x:xs) = rewrite_steps (rewrite_step s x) xs
 
 -- Helper function for descendants and origins. The function recurses a term
 -- following a given position until a variable is found. Once a variable is
@@ -73,11 +73,11 @@ rewrite_steps t ps = t : rewrite_steps' t ps
 -- beging recursed.
 get_var_and_pos :: (Signature s, Variables v)
     => Term s v -> Position -> (v, Position)
-get_var_and_pos (Function f ts) (n:p)
-    | 1 <= n && n <= arity f = get_var_and_pos (ts!n) p
-    | otherwise              = error "Asking for a variable at invalid position"
+get_var_and_pos (Function f ss) (i:p)
+    | 1 <= i && i <= arity f = get_var_and_pos (ss!i) p
+    | otherwise              = error "No subterm at required position"
 get_var_and_pos (Function _ _) []
-    = error "Asking for a variable where a function symbol occurs"
+    = error "Function symbol occurs at position"
 get_var_and_pos (Variable x) p
     = (x, p)
 
@@ -93,14 +93,14 @@ descendants_of_position (p, Rule l r) q
 
 descendants_across :: (Signature s, Variables v)
     => Step s v -> Positions -> Positions
-descendants_across s ps
-    = concat (map (descendants_of_position s) ps)
+descendants_across step ps
+    = concat (map (descendants_of_position step) ps)
 
 -- Descendants across multiple steps.
 descendants :: (Signature s, Variables v)
     => [Step s v] -> Positions -> Positions
-descendants [] qs     = qs
-descendants (p:ps) qs = descendants ps (descendants_across p qs)
+descendants [] ps           = ps
+descendants (step:steps) ps = descendants steps (descendants_across step ps)
 
 -- Origins across a rewrite step.
 origins_of_position :: (Signature s, Variables v)
@@ -116,8 +116,8 @@ origins_of_position (p, Rule l r) q
 
 origins_across :: (Signature s, Variables v)
     => Step s v -> Positions -> Positions
-origins_across s ps
-    = nub (concat (map (origins_of_position s) ps))
+origins_across step ps
+    = nub (concat (map (origins_of_position step) ps))
 
 -- Filter the steps from a reduction based on the steps found previously. It is
 -- assumed that the steps found previously form a subsequence of the total

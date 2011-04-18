@@ -1,5 +1,5 @@
 {-
-Copyright (C) 2010 Jeroen Ketema and Jakob Grue Simonsen
+Copyright (C) 2010, 2011 Jeroen Ketema and Jakob Grue Simonsen
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -36,8 +36,8 @@ type RegularSystem s v = Substitution s v
 rational_term :: (Signature s, Variables v)
     => RegularSystem s v -> v -> Term s v
 rational_term sigma x = rational (Variable x)
-    where rational (Function f ts)
-              = Function f (fmap rational ts)
-          rational s -- s is a variable
-              | in_substitution sigma x = rational (substitute sigma s)
-              | otherwise               = s
+    where rational (Function f ss)
+              = Function f (fmap rational ss)
+          rational t@(Variable y)
+              | in_substitution sigma y = rational (substitute sigma t)
+              | otherwise               = t

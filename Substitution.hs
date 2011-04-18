@@ -1,5 +1,5 @@
 {-
-Copyright (C) 2010 Jeroen Ketema and Jakob Grue Simonsen
+Copyright (C) 2010, 2011 Jeroen Ketema and Jakob Grue Simonsen
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -54,8 +54,8 @@ substitute_variable ((y, t):sigma') x
 -- Apply a substitution to a term.
 substitute :: (Signature s, Variables v)
     => Substitution s v -> Term s v -> Term s v
-substitute sigma (Function f ts)
-    = Function f (fmap (substitute sigma) ts)
+substitute sigma (Function f ss)
+    = Function f (fmap (substitute sigma) ss)
 substitute sigma (Variable x)
     = substitute_variable sigma x
 
