@@ -1,4 +1,6 @@
-{-# LANGUAGE MultiParamTypeClasses, FlexibleContexts #-}
+{-# LANGUAGE MultiParamTypeClasses,
+             FlexibleContexts,
+             ExistentialQuantification #-}
 {-
 Copyright (C) 2010, 2011 Jeroen Ketema and Jakob Grue Simonsen
 
@@ -29,7 +31,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module TransfiniteReduction (
     TermSequence, StepSequence,
     Reduction(RCons), Modulus,
-    CReduction(CRCons),
+    CReduction(CRCons), at_most_omega,
     initial_term, final_term,
     needed_depth, needed_steps
 ) where
@@ -71,13 +73,13 @@ instance (Show s, Show v, TermSequence s v ts o, StepSequence s v r ss o)
 type Modulus o = o -> Int -> o
 
 -- Computably convergent reductions are reductions with an associated modulus.
-data (TermSequence s v ts o, StepSequence s v r ss o)
-    => CReduction s v r ts ss o
-    = CRCons (Reduction s v r ts ss o) (Modulus o)
+data RewriteSystem s v r => CReduction s v r
+    = forall o ts ss. (TermSequence s v ts o, StepSequence s v r ss o)
+          => CRCons (Reduction s v r ts ss o) (Modulus o)
 
 -- A show function for computably convergent reductions.
-instance (Show s, Show v, TermSequence s v ts o, StepSequence s v r ss o)
-    => Show (CReduction s v r ts ss o) where
+instance (Show s, Show v, RewriteSystem s v r)
+    => Show (CReduction s v r) where
     show reduction = show_terms (get_terms reduction) True
         where show_terms [] _        = ""
               show_terms (x:xs) True  = show x ++ show_terms xs False
@@ -90,8 +92,8 @@ instance (Show s, Show v, TermSequence s v ts o, StepSequence s v r ss o)
 -- The function detects whether more terms exist based on (a) the height of the
 -- last term computed and (b) the modulus associated with the reduction. Note
 -- that this is not complete termination detection, which cannot exist.
-get_terms :: (TermSequence s v ts o, StepSequence s v r ss o)
-    => CReduction s v r ts ss o -> [Term s v]
+get_terms :: RewriteSystem s v r
+    => CReduction s v r -> [Term s v]
 get_terms (CRCons (RCons ts _) phi) = fst_term : lst_terms
     where terms     = get_from ts ord_zero
           fst_term  = head terms
@@ -103,14 +105,20 @@ get_terms (CRCons (RCons ts _) phi) = fst_term : lst_terms
               | otherwise            = y : get_terms' y ys (ord_succ a) d
                   where modulus = phi ord_zero d
 
+-- May yield True in case the computably convergent reduction has length at most
+-- omega.
+at_most_omega :: RewriteSystem s v r
+    => CReduction s v r -> Bool
+at_most_omega (CRCons (RCons ts _) _) = from_omega ts
+
 -- Yield the initial term of a computably convergent reduction.
-initial_term :: (TermSequence s v ts o, StepSequence s v r ss o)
-    => CReduction s v r ts ss o -> Term s v
+initial_term :: RewriteSystem s v r
+    => CReduction s v r -> Term s v
 initial_term (CRCons (RCons ts _) _) = get_elem ts ord_zero
 
 -- Yield the final term of a computably convergent reduction.
-final_term :: (TermSequence s v ts o, StepSequence s v r ss o)
-    => CReduction s v r ts ss o -> Term s v
+final_term :: RewriteSystem s v r
+    => CReduction s v r -> Term s v
 final_term (CRCons (RCons ts _) phi) = final_term' (stable_terms ts phi)
     where final_term' xs
               = construct_term (root_symbol (head xs)) (tail xs)
@@ -154,8 +162,8 @@ acc_wrap steps (steps_acc, ps) = (steps_new ++ steps_acc, ps_new)
 -- Compute the needed steps of a reduction for all positions up to a given depth
 -- d of the final term of the reduction. The function also yields the needed
 -- positions of the initial term of the reduction.
-accumulate :: (TermSequence s v ts o, StepSequence s v r ss o)
-    => CReduction s v r ts ss o -> Int -> ([Step s v], Positions)
+accumulate :: RewriteSystem s v r
+    => CReduction s v r -> Int -> ([Step s v], Positions)
 accumulate (CRCons (RCons ts ss) phi) d
     = accumulate' ([], positions) modulus limit (ord_kind limit)
         where modulus   = phi ord_zero d
@@ -173,13 +181,13 @@ accumulate (CRCons (RCons ts ss) phi) d
 
 -- Yield the needed depth of the initial term of a reduction for all positions
 -- up to a given depth d of the final term of the reduction.
-needed_depth :: (TermSequence s v ts o, StepSequence s v r ss o)
-    => CReduction s v r ts ss o -> Int -> Int
+needed_depth :: RewriteSystem s v r
+    => CReduction s v r -> Int -> Int
 needed_depth reduction depth
     = maximum (map length (snd (accumulate reduction depth)))
 
 -- Yield the needed steps of a reduction for all positions up to a given depth d
 -- of the final term of the reduction.
-needed_steps :: (TermSequence s v ts o, StepSequence s v r ss o)
-    => CReduction s v r ts ss o -> Int -> [Step s v]
+needed_steps :: RewriteSystem s v r
+    => CReduction s v r -> Int -> [Step s v]
 needed_steps reduction depth = fst (accumulate reduction depth)

@@ -21,9 +21,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module SystemOfNotation (
     OrdinalKind(ZeroOrdinal, SuccOrdinal, LimitOrdinal),
-    SystemOfNotation(ord_kind, ord_pred, ord_limit, ord_lim_pred),
+    SystemOfNotation(ord_kind, ord_pred, ord_limit, ord_lim_pred, ord_to_int),
     UnivalentSystem(ord_leq, ord_eq, ord_less, ord_zero, ord_succ),
-    ComputableSequence(get_elem, get_from, get_range, select),
+    ComputableSequence(from_omega, get_elem, get_from, enum, get_range, select),
 ) where
 
 -- An ordinal can have three different types.
@@ -44,18 +44,23 @@ instance Eq OrdinalKind where
 --
 -- The function ord_lim_pred yields the largest ordinal limit ordinal smaller
 -- than or equal to the given ordinal and yields zero in case no such ordinal
--- exists.
+-- exists. The function ord_to_int only makes sense in case the represented
+-- ordinal is at most omega.
 class SystemOfNotation o where
     ord_kind     :: o -> OrdinalKind
     ord_pred     :: o -> o
     ord_limit    :: o -> (Int -> o)
     ord_lim_pred :: o -> o
+    ord_to_int   :: o -> Int
 
     -- Default implementation of ord_lim_pred
     ord_lim_pred alpha = ord_lim_pred' (ord_kind alpha) alpha
         where ord_lim_pred' ZeroOrdinal  beta = beta
               ord_lim_pred' SuccOrdinal  beta = ord_lim_pred (ord_pred beta)
               ord_lim_pred' LimitOrdinal beta = beta
+
+    -- Default implementation of ord_to_int
+    ord_to_int _ = error "Represented ordinal too large"
 
 -- In a univalent, recursively related system of notation it is possible to
 -- compare two ordinals, to find the representation of zero, and to compute
@@ -83,12 +88,18 @@ class SystemOfNotation o => UnivalentSystem o where
 -- * get_from s a       Enumerates the elements of s starting from a
 -- * get_range s a b    Enumerates the elements of s starting from s and up to b
 -- * select s f (x, a)  Selects elements of the sequence; the function f yields
---                      the next element to select and expected to be monotone.
+--                      the next element to select and expected to be monotone
+--
+-- The following operations assume the employed ordinal:
+-- * from_omega s       May yield True if the employed ordinal is at most omega
+-- * enum s             Enumerates the elements of s starting from zero
 class UnivalentSystem o => ComputableSequence o t s | s -> o t where
-    get_elem  :: s -> o -> t
-    get_from  :: s -> o -> [t]
-    get_range :: s -> o -> o -> [t]
-    select    :: s -> ((a, o) -> (a, Maybe o)) -> (a, Maybe o) -> [t]
+    get_elem   :: s -> o -> t
+    get_from   :: s -> o -> [t]
+    get_range  :: s -> o -> o -> [t]
+    select     :: s -> ((a, o) -> (a, Maybe o)) -> (a, Maybe o) -> [t]
+    from_omega :: s -> Bool
+    enum       :: s -> [t]
 
     -- Default implementation of get_from
     get_from s alpha = get_elem s alpha : get_from s (ord_succ alpha)
@@ -104,3 +115,11 @@ class UnivalentSystem o => ComputableSequence o t s | s -> o t where
     select _ _ (_, Nothing)    = []
     select s f (x, Just alpha) = get_elem s alpha : select s f next_elem
         where next_elem = f (x, alpha)
+
+    -- Default implementation of from_omega
+    from_omega _ = False
+
+    -- Default implementation of enum
+    enum s
+        | from_omega s = get_from s ord_zero
+        | otherwise    = error "Employed ordinal to large, cannot enumerate"

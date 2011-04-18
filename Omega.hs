@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, TypeSynonymInstances #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
 {-
 Copyright (C) 2010, 2011 Jeroen Ketema and Jakob Grue Simonsen
 
@@ -17,15 +17,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
 -- This module defines a system of notation for the ordinal omega, including
--- computable sequences of length at most omega (with sequences of terms and
--- steps as special cases) and computably convergent reductions of length at
--- most omega.
+-- computable sequences of length at most omega.
 
 module Omega (
     Omega(OmegaElement),
-    OmegaSequence, construct_sequence,
-    OmegaTermSequence, OmegaStepSequence,
-    OmegaCReduction
+    OmegaSequence,
+    construct_sequence
 ) where
 
 import SignatureAndVariables
@@ -48,6 +45,8 @@ instance SystemOfNotation Omega where
         = error "Limit function undefined" -- Omega has no limit ordinals
     ord_lim_pred (OmegaElement _)
         = OmegaElement 0
+    ord_to_int (OmegaElement n)
+        = n
 
 instance UnivalentSystem Omega where
     ord_leq (OmegaElement m) (OmegaElement n)
@@ -61,9 +60,12 @@ instance UnivalentSystem Omega where
     ord_succ (OmegaElement n)
         = OmegaElement (n + 1)
 
+-- Computable sequences of length at most omega.
 data OmegaSequence t = OmegaSequenceCons [t]
 
 instance ComputableSequence Omega t (OmegaSequence t) where
+    from_omega _
+        = True
     get_elem (OmegaSequenceCons xs) (OmegaElement n)
         = xs!!n
     get_from (OmegaSequenceCons xs) (OmegaElement n)
@@ -78,20 +80,13 @@ instance ComputableSequence Omega t (OmegaSequence t) where
                         next_elem      = f (z, beta)
                         OmegaElement n = beta
 
--- Construct a computable sequence of length at most omega out of a list
+-- Construct a computable sequence of length at most omega out of a list.
 construct_sequence :: [t] -> OmegaSequence t
 construct_sequence xs = OmegaSequenceCons xs
 
--- Computable sequences of terms and rewrite steps
-type OmegaTermSequence s v   = OmegaSequence (Term s v)
-type OmegaStepSequence s v r = OmegaSequence (Step s v)
-
+-- Computable sequences of terms and rewrite steps behave as they should.
 instance (Signature s, Variables v)
-    => TermSequence s v (OmegaTermSequence s v) Omega
+    => TermSequence s v (OmegaSequence (Term s v)) Omega
 
 instance (RewriteSystem s v r)
-    => StepSequence s v r (OmegaStepSequence s v r) Omega
-
--- Computably convergent reductions of length at most omega
-type OmegaCReduction s v r
-    = CReduction s v r (OmegaTermSequence s v) (OmegaStepSequence s v r) Omega
+    => StepSequence s v r (OmegaSequence (Step s v)) Omega

@@ -1,5 +1,5 @@
 {-
-Copyright (C) 2010 Jeroen Ketema and Jakob Grue Simonsen
+Copyright (C) 2010, 2011 Jeroen Ketema and Jakob Grue Simonsen
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -24,7 +24,9 @@ module StripLemma (
 import SignatureAndVariables
 import PositionAndSubterm
 import RuleAndSystem
-import OmegaReduction
+import SystemOfNotation
+import TransfiniteReduction
+import Omega
 
 -- Yield a sequence of steps all employing the same rule r given a set of
 -- parallel positions and the rule r.
@@ -32,83 +34,104 @@ sequence_steps :: (Signature s, Variables v)
     => Positions -> RewriteRule s v -> [Step s v]
 sequence_steps ps r = map (\p -> (p, r)) ps
 
--- The function bottom_devel computes developments of the bottom reduction
+-- The function bottom_list computes developments of the bottom reduction
 -- of the Strip Lemma. The computation proceeds from left to right and each
 -- development is represented by a list of steps.
-bottom_devel :: (Signature s, Variables v, RewriteSystem s v r)
-    => CReduction s v r -> Step s v -> [[Step s v]]
-bottom_devel (CRCons (RCons _ ps) _) (q, r) = project ps [q]
+bottom_list :: (Signature s, Variables v)
+    => [Step s v] -> Step s v -> [[Step s v]]
+bottom_list steps (p, r) = project steps [p]
     where project [] _
               = []
-          project ((p', r'):ps') qs
-              = new_steps : project ps' descendants_qs
-              where down_steps     = sequence_steps qs r
-                    descendants_p  = descendants down_steps [p']
-                    new_steps      = sequence_steps descendants_p r'
-                    descendants_qs = descendants [(p', r')] qs
+          project (x@(p', r'):xs) qs
+              = steps_new : project xs descendants_qs
+              where steps_down     = sequence_steps qs r
+                    descendants_p' = descendants steps_down [p']
+                    steps_new      = sequence_steps descendants_p' r'
+                    descendants_qs = descendants [x] qs
 
 -- Concatenate the developments of the bottom reduction to obtain all steps.
-bottom_steps :: (Signature s, Variables v, RewriteSystem s v r)
+bottom_steps :: RewriteSystem s v r
     => CReduction s v r -> Step s v -> [Step s v]
-bottom_steps s p = concat (bottom_devel s p)
+bottom_steps (CRCons (RCons _ ss) _) step = concat steps_list
+    where steps_list = bottom_list (enum ss) step
 
 -- Compute the modulus of the bottom reduction using the observation that in
 -- the worse case a variable in the left-hand side of a rewrite rule is moved
 -- all the way to the top of the right-hand side term.
-bottom_modulus :: (Signature s, Variables v, RewriteSystem s v r)
-    => CReduction s v r -> Step s v -> Modulus
-bottom_modulus s@(CRCons _ phi) p@(_, rule) n
-    = length (concat (take (phi (n + left_height rule)) (bottom_devel s p)))
+bottom_modulus :: RewriteSystem s v r
+    => CReduction s v r -> Step s v -> Modulus Omega
+bottom_modulus (CRCons (RCons _ ss) phi) step@(_, r) (OmegaElement n)
+    | n == 0    = \m -> OmegaElement (compute m)
+    | otherwise = error "Modulus only defined for zero"
+        where compute m = length (concat (take modulus steps_list))
+                  where modulus = ord_to_int (phi ord_zero (m + left_height r))
+                        steps_list = bottom_list (enum ss) step
 
 -- Yield the bottom reduction of the Strip Lemma.
-bottom_reduction :: (Signature s, Variables v, RewriteSystem s v r)
+bottom_reduction :: RewriteSystem s v r
     => CReduction s v r -> Step s v -> CReduction s v r
-bottom_reduction t s = CRCons (RCons terms steps) modulus
-    where terms   = rewrite_steps (rewrite_step (initial_term t) s) steps
-          steps   = bottom_steps t s
-          modulus = bottom_modulus t s
+bottom_reduction reduction step = CRCons (RCons ts ss) phi
+    where ts    = construct_sequence terms
+          ss    = construct_sequence steps
+          phi   = bottom_modulus reduction step
+          terms = rewrite_steps term steps
+          term  = rewrite_step (initial_term reduction) step
+          steps = bottom_steps reduction step
 
--- The function right_devel computes the right-most reduction of the Strip
+-- The function right_list computes the right-most reduction of the Strip
 -- Lemma (which is a development). The steps of the reduction are returned as
--- a list of lists of steps, where it is ensured for the ith item in the list
--- that all its steps occur at depth i.
-right_devel :: (Signature s, Variables v, RewriteSystem s v r)
-    => CReduction s v r -> Step s v -> [[Step s v]]
-right_devel (CRCons (RCons _ ps) phi) (q, r) = project ps [q] 0 0
+-- a list of lists of steps, where it is ensured for the i-th item in the list
+-- that all steps occur at depth i.
+right_list :: (Signature s, Variables v, UnivalentSystem o)
+    => [Step s v] -> Modulus o -> Step s v -> [[Step s v]]
+right_list steps phi (p, r) = project steps [p] 0 0
     where project _ [] _ _
               = []
-          project ps' qs n d
-              = new_steps : project ps_left descendants_nd n' (d + 1)
-              where n' = max n (phi d)
-                    ps_use  = take (n' - n) ps'
-                    ps_left = drop (n' - n) ps'
-                    descendants_qs = descendants ps_use qs
-                    descendants_d  = filter at_d descendants_qs
-                        where at_d xs = (length xs) == d
-                    descendants_nd = filter not_at_d descendants_qs
-                        where not_at_d xs = (length xs) /= d
-                    new_steps = sequence_steps descendants_d r
+          project xs ps n depth
+              = steps_new : project xs_left descendants_nd n' (depth + 1)
+              where n' = max n (ord_to_int (phi ord_zero depth))
+                    xs_use  = take (n' - n) xs
+                    xs_left = drop (n' - n) xs
+                    descendants_ps = descendants xs_use ps
+                    descendants_d  = filter at_d descendants_ps
+                        where at_d q = (length q) == depth
+                    descendants_nd = filter not_at_d descendants_ps
+                        where not_at_d q = (length q) /= depth
+                    steps_new = sequence_steps descendants_d r
 
 -- Concatenate the lists of the right-most reduction to obtain all steps
-right_steps :: (Signature s, Variables v, RewriteSystem s v r)
+right_steps :: RewriteSystem s v r
     => CReduction s v r -> Step s v -> [Step s v]
-right_steps t p = concat (right_devel t p)
+right_steps (CRCons (RCons _ ss) phi) step = concat steps_list
+    where steps_list = right_list (enum ss) phi step
 
 -- Compute the modulus of the right-most reduction using that the ith element
 -- of the list produced by right_develop contains all steps at depth i.
-right_modulus :: (Signature s, Variables v, RewriteSystem s v r)
-    => CReduction s v r -> Step s v -> Modulus
-right_modulus s p n = length (concat (take (n + 1) (right_devel s p)))
+right_modulus :: RewriteSystem s v r
+    => CReduction s v r -> Step s v -> Modulus Omega
+right_modulus (CRCons (RCons _ ss) phi) step (OmegaElement n)
+    | n == 0    = \m -> OmegaElement (compute m)
+    | otherwise = error "Modulus only defined for zero"
+        where compute m  = length (concat (take (m + 1) steps_list))
+              steps_list = right_list (enum ss) phi step
 
 -- Yield the right-most reduction of the Strip Lemma.
-right_reduction :: (Signature s, Variables v, RewriteSystem s v r)
+right_reduction :: RewriteSystem s v r
     => CReduction s v r -> Step s v -> CReduction s v r
-right_reduction s p = CRCons (RCons terms steps) modulus
-    where terms   = rewrite_steps (final_term s) steps
-          steps   = right_steps s p
-          modulus = right_modulus s p
+right_reduction reduction step = CRCons (RCons ts ss) phi
+    where ts    = construct_sequence terms
+          ss    = construct_sequence steps
+          phi   = right_modulus reduction step
+          terms = rewrite_steps (final_term reduction) steps
+          steps = right_steps reduction step
 
 -- Strip Lemma for orthogonal systems with finite right-hand sides.
-strip_lemma :: (Signature s, Variables v, RewriteSystem s v r)
+--
+-- It is assumed the input reduction has at most length omega.
+strip_lemma :: RewriteSystem s v r
     => r -> CReduction s v r -> Step s v -> (CReduction s v r, CReduction s v r)
-strip_lemma _ s p = (bottom_reduction s p, right_reduction s p)
+strip_lemma _ reduction step
+    | at_most_omega reduction = (bottom, right)
+    | otherwise               = error "Reduction too long"
+        where bottom = bottom_reduction reduction step
+              right  = right_reduction reduction step
