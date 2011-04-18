@@ -2,7 +2,7 @@
              FunctionalDependencies,
              FlexibleInstances #-}
 {-
-Copyright (C) 2010 Jeroen Ketema and Jakob Grue Simonsen
+Copyright (C) 2010, 2011 Jeroen Ketema and Jakob Grue Simonsen
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -25,7 +25,7 @@ module SystemOfNotation (
     OrdinalKind(ZeroOrdinal, SuccOrdinal, LimitOrdinal),
     SystemOfNotation(ord_kind, ord_pred, ord_limit, ord_lim_pred),
     UnivalentSystem(ord_leq, ord_eq, ord_less, ord_zero, ord_succ),
-    ComputableSequence(get_elem, get_from, get_range),
+    ComputableSequence(get_elem, get_from, get_range, select),
     Omega(OmegaElement),
     OmegaSequence, construct_sequence
 ) where
@@ -56,10 +56,10 @@ class SystemOfNotation o where
     ord_lim_pred :: o -> o
 
     -- Default implementation of ord_lim_pred
-    ord_lim_pred a = ord_lim_pred' (ord_kind a) a
-        where ord_lim_pred' ZeroOrdinal  b = b
-              ord_lim_pred' SuccOrdinal  b = ord_lim_pred (ord_pred b)
-              ord_lim_pred' LimitOrdinal b = b
+    ord_lim_pred alpha = ord_lim_pred' (ord_kind alpha) alpha
+        where ord_lim_pred' ZeroOrdinal  beta = beta
+              ord_lim_pred' SuccOrdinal  beta = ord_lim_pred (ord_pred beta)
+              ord_lim_pred' LimitOrdinal beta = beta
 
 -- In a univalent, recursively related system of notation it is possible to
 -- compare two ordinals, to find the representation of zero, and to compute
@@ -74,7 +74,7 @@ class SystemOfNotation o => UnivalentSystem o where
     ord_succ    :: o -> o         -- Existence follows by univalence
 
     -- Default implementation of ord_less
-    a `ord_less` b    = a `ord_leq` b && not (a `ord_eq` b)
+    alpha `ord_less` beta = alpha `ord_leq` beta && not (alpha `ord_eq` beta)
 
 -- A computable sequence of elements is a function from some ordinal to the
 -- elements of a certain type. The employed ordinal might be choosen larger
@@ -83,21 +83,31 @@ class SystemOfNotation o => UnivalentSystem o where
 -- defined sequence.
 --
 -- The operations are as follows:
--- * get_elem s a     Yields the a-th element of the sequence s
--- * get_from s a     Enumerates the elements of s starting from a
--- * get_range s a b  Enumerates the elements of s starting from s and up to b
+-- * get_elem s a       Yields the a-th element of the sequence s
+-- * get_from s a       Enumerates the elements of s starting from a
+-- * get_range s a b    Enumerates the elements of s starting from s and up to b
+-- * select s f (x, a)  Selects elements of the sequence; the function f yields
+--                      the next element to select and expected to be monotone.
 class UnivalentSystem o => ComputableSequence o t s | s -> o t where
     get_elem  :: s -> o -> t
     get_from  :: s -> o -> [t]
     get_range :: s -> o -> o -> [t]
+    select    :: s -> ((a, o) -> (a, Maybe o)) -> (a, Maybe o) -> [t]
 
     -- Default implementation of get_from
-    get_from s a = get_elem s a : get_from s (ord_succ a)
+    get_from s alpha = get_elem s alpha : get_from s (ord_succ alpha)
 
     -- Default implementation of get_range
-    get_range s a b
-        | b `ord_leq` a = []
-        | otherwise     = get_elem s a : get_range s (ord_succ a) b
+    get_range s alpha beta
+        | beta `ord_leq` alpha
+            = []
+        | otherwise
+            = get_elem s alpha : get_range s (ord_succ alpha) beta
+
+    -- Default implementation of select
+    select _ _ (_, Nothing)    = []
+    select s f (x, Just alpha) = get_elem s alpha : select s f next_elem
+        where next_elem = f (x, alpha)
 
 -- A system of notation for the ordinal omega.
 data Omega = OmegaElement Int
@@ -129,12 +139,19 @@ instance UnivalentSystem Omega where
 data OmegaSequence t = OmegaSequenceCons [t]
 
 instance ComputableSequence Omega t (OmegaSequence t) where
-    get_elem  (OmegaSequenceCons xs) (OmegaElement n)
+    get_elem (OmegaSequenceCons xs) (OmegaElement n)
         = xs!!n
-    get_from  (OmegaSequenceCons xs) (OmegaElement n)
+    get_from (OmegaSequenceCons xs) (OmegaElement n)
         = drop n xs
     get_range (OmegaSequenceCons xs) (OmegaElement m) (OmegaElement n)
         = take (n - m) (drop m xs)
+    select (OmegaSequenceCons xs) f alpha
+        = select' xs 0 alpha
+        where select' _  _ (_, Nothing)   = []
+              select' ys m (z, Just beta) = head ys' : select' ys' n next_elem
+                  where ys'            = drop (n - m) ys
+                        next_elem      = f (z, beta)
+                        OmegaElement n = beta
 
 -- Construct a computable sequence of length at most omega out of a list
 construct_sequence :: [t] -> OmegaSequence t

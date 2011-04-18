@@ -1,5 +1,7 @@
+{-# LANGUAGE MultiParamTypeClasses,
+             FlexibleContexts #-}
 {-
-Copyright (C) 2010 Jeroen Ketema and Jakob Grue Simonsen
+Copyright (C) 2010, 2011 Jeroen Ketema and Jakob Grue Simonsen
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -18,19 +20,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- This module defines computable reductions of arbitrary computable ordinal
 -- length.
 --
--- Note that the final term of a reduction is not represented, but can be
--- computed in case a modulus of convergence is associated with the reduction;
--- the final term might be uncomputable otherwise. A consequence of all this
--- is that it suffices to use a system of notation for omega to express
--- convergent reductions of length omega (which have omega + 1 terms).
---
--- This module is incompatible with the OmegaReductions module.
+-- The final term of a reduction is not represented in case the reduction is
+-- of limit ordinal length. The final term can be computed in case a modulus of
+-- convergence is associated with the reduction; the term may be uncomputable
+-- otherwise. As consequence, it for example suffices to employ a system of
+-- notation for omega to denote convergent reductions of length omega (which
+-- have omega + 1 terms).
 
 module TransfiniteReduction (
     Reduction(RCons), Modulus,
     CReduction(CRCons),
     initial_term, final_term,
-    needed_steps
+    needed_depth, needed_steps
 ) where
 
 import SignatureAndVariables
@@ -39,39 +40,30 @@ import PositionAndSubterm
 import RuleAndSystem
 import SystemOfNotation
 
--- Computable reductions are lists of terms and rewrite steps.
---
--- The number of terms is equal to 1 + alpha, where alpha is the number of
--- steps in the reduction.
---
--- The initial index of terms and steps is given explicitly (and is assumed to
--- be the same for both).
-data (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
-     => Reduction s v r o
-    = RCons [Term s v] [Step s v] o
+-- Computable sequences of terms and rewrite steps are computable sequences.
+class (Signature s, Variables v, ComputableSequence o (Term s v) ts)
+    => TermSequence s v ts o
+
+class (RewriteSystem s v r, ComputableSequence o (Step s v) ss)
+    => StepSequence s v r ss o
+
+-- Computable reductions are computable sequences of terms and rewrite steps.
+data (TermSequence s v ts o, StepSequence s v r ss o) => Reduction s v r ts ss o
+    = RCons ts ss
 
 -- Helper function for show.
-show_from :: (Show s, Show v,
-              Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
-    => (Reduction s v r o) -> o -> String
-show_from (RCons ts _ _) a
-    | indexof (ord_to_int a) ts = show' a True True
-    | otherwise                 = error "Reduction without terms"
-        where show' b True frst = fst_term ++ lst_terms
-                  where n = ord_to_int b
-                        fst_term = (if frst then "" else " -> ") ++ show (ts!!n)
-                        lst_terms = show' (ord_succ b) is_index False
-                        is_index = indexof (ord_to_int (ord_succ b)) ts
-              show' _ False _   = ""
-              indexof _ []     = False
-              indexof 0 _      = True
-              indexof n (_:ss) = indexof (n - 1) ss
+show_from :: (Show s, Show v, TermSequence s v ts o, StepSequence s v r ss o)
+    => (Reduction s v r ts ss o) -> o -> String
+show_from (RCons ts _) alpha = show' (get_from ts alpha) True
+    where show' [] True      = error "Reduction without terms"
+          show' [] False     = ""
+          show' (term:terms) start = fst_term ++ lst_terms
+                  where fst_term  = (if start then "" else " -> ") ++ show term
+                        lst_terms = show' terms False
 
-instance (Show s, Show v,
-          Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
-    => Show (Reduction s v r o) where
-    show s = show_from s (get_zero s)
-        where get_zero (RCons _ _ z) = z
+instance (Show s, Show v, TermSequence s v ts o, StepSequence s v r ss o)
+    => Show (Reduction s v r ts ss o) where
+    show reduction = show_from reduction ord_zero
 
 -- Moduli of convergence are functions from limit ordinals to functions from
 -- natural numbers to ordinals (where the ordinals come from a designated
@@ -79,80 +71,115 @@ instance (Show s, Show v,
 type Modulus o = o -> Int -> o
 
 -- Computably convergent reductions are reductions with an associated modulus.
-data (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
-    => CReduction s v r o
-    = CRCons (Reduction s v r o) (Modulus o)
+data (TermSequence s v ts o, StepSequence s v r ss o)
+    => CReduction s v r ts ss o
+    = CRCons (Reduction s v r ts ss o) (Modulus o)
 
 -- A show function for computably convergent reductions.
+instance (Show s, Show v, TermSequence s v ts o, StepSequence s v r ss o)
+    => Show (CReduction s v r ts ss o) where
+    show reduction = show_terms (get_terms reduction) True
+        where show_terms [] _        = ""
+              show_terms (x:xs) True  = show x ++ show_terms xs False
+              show_terms (x:xs) False = " -> " ++ show x ++ show_terms xs False
+
+-- Get the terms of a computably convergent reduction.
 --
--- The function detects whether more terms need to be shown based on the
--- modulus associated with the reduction. Note that this is not complete
--- termination detection, which cannot exist.
-instance (Show s, Show v,
-          Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
-    => Show (CReduction s v r o) where
-    show (CRCons (RCons [] _ _) _)   = error "Reduction without terms"
-    show (CRCons (RCons ts _ z) phi) = show t ++ show' t z 0
-        where t = ts!!(ord_to_int z)
-              show' s a d
-                  | less_height s d = ""
-                  | otherwise       = fst_steps ++ lst_steps
-                      where fst_steps = show_steps fst_terms
-                            lst_steps = show' s_new a_new (d + 1)
-                            fst_terms = collect_terms (ord_succ a) a_new
-                            s_new
-                                | null fst_terms = s
-                                | otherwise      = last fst_terms
-                            a_new
-                                | (ord_succ a) `ord_leq` (phi z d) = phi z d
-                                | otherwise                        = a
-              collect_terms a b
-                  | a `ord_leq` b
-                      = ts!!(ord_to_int a) : collect_terms (ord_succ a) b
-                  | otherwise
-                      = []
-              show_steps []     = ""
-              show_steps (s:ss) = " -> " ++ show s ++ show_steps ss
+-- This is a helper function for show.
+--
+-- The function detects whether more terms exist based on (a) the height of the
+-- last term computed and (b) the modulus associated with the reduction. Note
+-- that this is not complete termination detection, which cannot exist.
+get_terms :: (TermSequence s v ts o, StepSequence s v r ss o)
+    => CReduction s v r ts ss o -> [Term s v]
+get_terms (CRCons (RCons ts _) phi) = fst_term : lst_terms
+    where terms     = get_from ts ord_zero
+          fst_term  = head terms
+          lst_terms = get_terms' fst_term (tail terms) ord_zero 0
+          get_terms' _ [] _ _        = []
+          get_terms' x xs@(y:ys) a d
+              | less_height x d      = []
+              | modulus `ord_leq` a  = get_terms' x xs a (d + 1)
+              | otherwise            = y : get_terms' y ys (ord_succ a) d
+                  where modulus = phi ord_zero d
 
 -- Yield the initial term of a computably convergent reduction.
-initial_term :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
-    => CReduction s v r o -> Term s v
-initial_term (CRCons (RCons ts _ z) _) = ts!!(ord_to_int z)
+initial_term :: (TermSequence s v ts o, StepSequence s v r ss o)
+    => CReduction s v r ts ss o -> Term s v
+initial_term (CRCons (RCons ts _) _) = get_elem ts ord_zero
 
 -- Yield the final term of a computably convergent reduction.
-final_term :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
-    => CReduction s v r o -> Term s v
-final_term (CRCons (RCons ts _ z) phi)
-    = final_subterm [] (stable_terms 0)
-    where final_subterm ps ss = construct_subterm top ps (tail ss)
-                  where top = get_symbol (head ss) ps
-          construct_subterm (FunctionSymbol f) ps ss = function_term f s
-                  where s = [final_subterm (ps ++ [i]) ss | i <- [1..arity f]]
-          construct_subterm (VariableSymbol x) _ _   = Variable x
-          stable_terms d = ts!!n : stable_terms (d + 1)
-              where n = ord_to_int (phi z d)
+final_term :: (TermSequence s v ts o, StepSequence s v r ss o)
+    => CReduction s v r ts ss o -> Term s v
+final_term (CRCons (RCons ts _) phi) = final_term' (stable_terms ts phi)
+    where final_term' xs
+              = construct_term (root_symbol (head xs)) (tail xs)
+          construct_term (FunctionSymbol f) xs
+              = function_term f [final_term' (subterms i) | i <- [1..arity f]]
+                  where subterms i = map (\x -> subterm x [i]) xs
+          construct_term (VariableSymbol x) _
+              = Variable x
 
--- Yield the needed steps of a reduction in case we are interested in the
--- positions up to a certain depth d in the final term of the reduction.
-needed_steps :: (Signature s, Variables v, RewriteSystem s v r, UnivalSystem o)
-    => CReduction s v r o -> Int -> [Step s v]
-needed_steps s@(CRCons (RCons _ ps z) phi) d
-    = needed_steps' (pos_to_depth (final_term s) d) a (ord_kind a)
-    where a = phi z d
-          needed_steps' qs b SuccOrdinal
-              | b `ord_leq` z = []
-              | otherwise     = ps_new
-                  where q@(q', _) = ps!!(ord_to_int (ord_pred b))
-                        qs_new = origins_across q qs
-                        ps_new
-                            | q' `elem` qs_new = ps' ++ [q]
-                            | otherwise        = ps'
-                        ps' = needed_steps' qs_new pb (ord_kind pb)
-                        pb  = ord_pred b
-          needed_steps' qs b LimitOrdinal
-              | b `ord_leq` z = []
-              | otherwise     = needed_steps' qs b' (ord_kind b')
-                  where b' = phi b (maximum (map length qs))
-          needed_steps' _ b ZeroOrdinal
-              | b `ord_leq` z = []
-              | otherwise     = error "Inconsistent system of notation"
+-- Yield a list of terms that are stable with respect to a given modulus
+--
+-- This is a helper function for final_term.
+stable_terms :: TermSequence s v ts o
+    => ts -> Modulus o -> [Term s v]
+stable_terms ts phi = select ts f (0, Just (phi ord_zero 0))
+    where f (depth, alpha)
+              | modulus `ord_leq` alpha = (depth + 1, Just alpha)
+              | otherwise               = (depth + 1, Just modulus)
+                  where modulus = phi ord_zero (depth + 1)
+
+-- Compute which steps from a finite reduction (represented by its steps) are
+-- needed for a certain prefix-closed set of positions of the final term of
+-- the reduction. The function also yields the needed positions of the initial
+-- term of the reduction.
+acc_finite :: (Signature s, Variables v)
+    => [Step s v] -> Positions -> ([Step s v], Positions)
+acc_finite [] ps                  = ([], ps)
+acc_finite (step@(p, _):steps) ps = (steps_new, ps_new)
+    where (steps', ps') = acc_finite steps ps
+          ps_new        = origins_across step ps'
+          steps_new
+              | p `elem` ps_new = step : steps'
+              | otherwise       = steps'
+
+-- Wrapper for acc_finite, which deals with already accumulated step.
+acc_wrap :: (Signature s, Variables v)
+    => [Step s v] -> ([Step s v], Positions) -> ([Step s v], Positions)
+acc_wrap steps (steps_acc, ps) = (steps_new ++ steps_acc, ps_new)
+    where (steps_new, ps_new) = acc_finite steps ps
+
+-- Compute the needed steps of a reduction for all positions up to a given depth
+-- d of the final term of the reduction. The function also yields the needed
+-- positions of the initial term of the reduction.
+accumulate :: (TermSequence s v ts o, StepSequence s v r ss o)
+    => CReduction s v r ts ss o -> Int -> ([Step s v], Positions)
+accumulate (CRCons (RCons ts ss) phi) d
+    = accumulate' ([], positions) modulus limit (ord_kind limit)
+        where modulus   = phi ord_zero d
+              limit     = ord_lim_pred modulus
+              positions = pos_to_depth (get_elem ts modulus) d
+              accumulate' sp alpha beta ZeroOrdinal
+                  = acc_wrap (get_range ss beta alpha) sp
+              accumulate' _ _ _ SuccOrdinal
+                  = error "Inconsistent system of notation"
+              accumulate' sp alpha beta LimitOrdinal
+                  = accumulate' sp' alpha' beta' (ord_kind beta')
+                      where sp'    = acc_wrap (get_range ss beta alpha) sp
+                            alpha' = phi beta (maximum (map length (snd sp')))
+                            beta'  = ord_lim_pred alpha'
+
+-- Yield the needed depth of the initial term of a reduction for all positions
+-- up to a given depth d of the final term of the reduction.
+needed_depth :: (TermSequence s v ts o, StepSequence s v r ss o)
+    => CReduction s v r ts ss o -> Int -> Int
+needed_depth reduction depth
+    = maximum (map length (snd (accumulate reduction depth)))
+
+-- Yield the needed steps of a reduction for all positions up to a given depth d
+-- of the final term of the reduction.
+needed_steps :: (TermSequence s v ts o, StepSequence s v r ss o)
+    => CReduction s v r ts ss o -> Int -> [Step s v]
+needed_steps reduction depth = fst (accumulate reduction depth)
