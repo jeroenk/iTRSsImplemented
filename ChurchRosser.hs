@@ -59,12 +59,9 @@ interleave_steps reduction_0 reduction_1 = concat steps_list
 -- interleave_devel contains all steps at depth i.
 interleave_modulus :: RewriteSystem s v r
     => CReduction s v r -> CReduction s v r -> Modulus Omega
-interleave_modulus reduction_0 reduction_1 (OmegaElement n)
-    | n == 0    = \m -> OmegaElement (compute m)
-    | otherwise = error "Modulus only defined for zero"
-        where compute m  = length (concat (take (m + 1) steps_list))
-              steps_list = interleave_list reduction_0 reduction_1
-
+interleave_modulus reduction_0 reduction_1 = construct_modulus phi
+    where phi x      = length (concat (take (x + 1) steps_list))
+          steps_list = interleave_list reduction_0 reduction_1
 
 -- Yield the interleaving of a pair of reductions that can be concatenated,
 -- i.e. given s ->>.->> t a reduction s ->> t is returned.

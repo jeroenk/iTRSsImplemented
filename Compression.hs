@@ -45,11 +45,9 @@ compr_steps reduction = concat list_steps
 -- compr_devel contains all steps at depth i.
 compr_modulus :: RewriteSystem s v r
     => CReduction s v r -> (Modulus Omega)
-compr_modulus reduction (OmegaElement n)
-    | n == 0    = \m -> OmegaElement (compute m)
-    | otherwise = error "Modulus only defined for zero"
-        where compute m  = length (concat (take (m + 1) steps_list))
-              steps_list = compr_list reduction
+compr_modulus reduction = construct_modulus phi
+    where phi x      = length (concat (take (x + 1) steps_list))
+          steps_list = compr_list reduction
 
 -- Compression of left-linear rewrite systems with finite right-hand sides.
 compression :: RewriteSystem s v r

@@ -54,11 +54,9 @@ confl_steps system reduction_0 reduction_1 = concat steps_list
 -- confl_devel contains all steps at depth i.
 confl_modulus :: RewriteSystem s v r
     => r -> CReduction s v r -> CReduction s v r -> Modulus Omega
-confl_modulus system reduction_0 reduction_1 (OmegaElement n)
-    | n == 0    = \m -> OmegaElement (compute m)
-    | otherwise = error "Modulus only defined for zero"
-        where compute m  = length (concat (take (m + 1) steps_list))
-              steps_list = confl_list system reduction_0 reduction_1
+confl_modulus system reduction_0 reduction_1 = construct_modulus phi
+    where phi x      = length (concat (take (x + 1) steps_list))
+          steps_list = confl_list system reduction_0 reduction_1
 
 -- Yield either the right-most or bottom reduction of the confluence diagram.
 confl_side :: RewriteSystem s v r

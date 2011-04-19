@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, TypeSynonymInstances #-}
 {-
 Copyright (C) 2010, 2011 Jeroen Ketema and Jakob Grue Simonsen
 
@@ -21,8 +21,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Omega (
     Omega(OmegaElement),
-    OmegaSequence,
-    construct_sequence
+    OmegaSequence, construct_sequence,
+    OmegaTermSequence, OmegaStepSequence,
+    OmegaReduction, construct_modulus
 ) where
 
 import SignatureAndVariables
@@ -85,8 +86,19 @@ construct_sequence :: [t] -> OmegaSequence t
 construct_sequence xs = OmegaSequenceCons xs
 
 -- Computable sequences of terms and rewrite steps behave as they should.
+type OmegaTermSequence s v   = OmegaSequence (Term s v)
+type OmegaStepSequence s v r = OmegaSequence (Step s v)
+
 instance (Signature s, Variables v)
-    => TermSequence s v (OmegaSequence (Term s v)) Omega
+    => TermSequence s v (OmegaTermSequence s v) Omega
 
 instance (RewriteSystem s v r)
-    => StepSequence s v r (OmegaSequence (Step s v)) Omega
+    => StepSequence s v r (OmegaStepSequence s v r) Omega
+
+type OmegaReduction s v r
+    = Reduction s v r (OmegaTermSequence s v) (OmegaStepSequence s v r) Omega
+
+construct_modulus :: (Int -> Int) -> Modulus Omega
+construct_modulus f (OmegaElement n) m
+    | n == 0    = OmegaElement (f m)
+    | otherwise = error "Modulus only defined for zero"

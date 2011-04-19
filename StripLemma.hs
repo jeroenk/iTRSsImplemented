@@ -60,12 +60,10 @@ bottom_steps (CRCons (RCons _ ss) _) step = concat steps_list
 -- all the way to the top of the right-hand side term.
 bottom_modulus :: RewriteSystem s v r
     => CReduction s v r -> Step s v -> Modulus Omega
-bottom_modulus (CRCons (RCons _ ss) phi) step@(_, r) (OmegaElement n)
-    | n == 0    = \m -> OmegaElement (compute m)
-    | otherwise = error "Modulus only defined for zero"
-        where compute m = length (concat (take (ord_to_int modulus) steps_list))
-                  where modulus    = phi ord_zero (m + left_height r)
-                        steps_list = bottom_list (enum ss) step
+bottom_modulus (CRCons (RCons _ ss) phi) step@(_, r) = construct_modulus phi_new
+    where phi_new x = length (concat (take (ord_to_int modulus) steps_list))
+              where modulus    = phi ord_zero (x + left_height r)
+                    steps_list = bottom_list (enum ss) step
 
 -- Yield the bottom reduction of the Strip Lemma.
 bottom_reduction :: RewriteSystem s v r
@@ -109,11 +107,9 @@ right_steps (CRCons (RCons _ ss) phi) step = concat steps_list
 -- of the list produced by right_develop contains all steps at depth i.
 right_modulus :: RewriteSystem s v r
     => CReduction s v r -> Step s v -> Modulus Omega
-right_modulus (CRCons (RCons _ ss) phi) step (OmegaElement n)
-    | n == 0    = \m -> OmegaElement (compute m)
-    | otherwise = error "Modulus only defined for zero"
-        where compute m  = length (concat (take (m + 1) steps_list))
-              steps_list = right_list (enum ss) phi step
+right_modulus (CRCons (RCons _ ss) phi) step = construct_modulus phi_new
+    where phi_new x  = length (concat (take (x + 1) steps_list))
+          steps_list = right_list (enum ss) phi step
 
 -- Yield the right-most reduction of the Strip Lemma.
 right_reduction :: RewriteSystem s v r

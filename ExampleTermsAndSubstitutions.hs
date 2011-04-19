@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-
-Copyright (C) 2010 Jeroen Ketema and Jakob Grue Simonsen
+Copyright (C) 2010, 2011 Jeroen Ketema and Jakob Grue Simonsen
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by

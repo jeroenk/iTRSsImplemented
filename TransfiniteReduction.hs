@@ -33,7 +33,7 @@ module TransfiniteReduction (
     Reduction(RCons), Modulus,
     CReduction(CRCons), at_most_omega,
     initial_term, final_term,
-    needed_depth, needed_steps
+    needed_depth, needed_steps, get_terms
 ) where
 
 import SignatureAndVariables
@@ -98,12 +98,12 @@ get_terms (CRCons (RCons ts _) phi) = fst_term : lst_terms
     where terms     = get_from ts ord_zero
           fst_term  = head terms
           lst_terms = get_terms' fst_term (tail terms) ord_zero 0
-          get_terms' _ [] _ _        = []
-          get_terms' x xs@(y:ys) a d
+          get_terms' x xs a d
               | less_height x d      = []
               | modulus `ord_leq` a  = get_terms' x xs a (d + 1)
               | otherwise            = y : get_terms' y ys (ord_succ a) d
                   where modulus = phi ord_zero d
+                        y:ys    = xs
 
 -- May yield True in case the computably convergent reduction has length at most
 -- omega.
