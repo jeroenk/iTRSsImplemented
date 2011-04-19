@@ -63,8 +63,8 @@ bottom_modulus :: RewriteSystem s v r
 bottom_modulus (CRCons (RCons _ ss) phi) step@(_, r) (OmegaElement n)
     | n == 0    = \m -> OmegaElement (compute m)
     | otherwise = error "Modulus only defined for zero"
-        where compute m = length (concat (take modulus steps_list))
-                  where modulus = ord_to_int (phi ord_zero (m + left_height r))
+        where compute m = length (concat (take (ord_to_int modulus) steps_list))
+                  where modulus    = phi ord_zero (m + left_height r)
                         steps_list = bottom_list (enum ss) step
 
 -- Yield the bottom reduction of the Strip Lemma.

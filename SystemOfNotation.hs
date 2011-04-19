@@ -23,7 +23,7 @@ module SystemOfNotation (
     OrdinalKind(ZeroOrdinal, SuccOrdinal, LimitOrdinal),
     SystemOfNotation(ord_kind, ord_pred, ord_limit, ord_lim_pred, ord_to_int),
     UnivalentSystem(ord_leq, ord_eq, ord_less, ord_zero, ord_succ),
-    ComputableSequence(from_omega, get_elem, get_from, enum, get_range, select),
+    ComputableSequence(omega_dom, get_elem, get_from, enum, get_range, select),
 ) where
 
 -- An ordinal can have three different types.
@@ -91,15 +91,15 @@ class SystemOfNotation o => UnivalentSystem o where
 --                      the next element to select and expected to be monotone
 --
 -- The following operations assume the employed ordinal:
--- * from_omega s       May yield True if the employed ordinal is at most omega
+-- * omega_dom s        May yield True if the employed ordinal is at most omega
 -- * enum s             Enumerates the elements of s starting from zero
 class UnivalentSystem o => ComputableSequence o t s | s -> o t where
-    get_elem   :: s -> o -> t
-    get_from   :: s -> o -> [t]
-    get_range  :: s -> o -> o -> [t]
-    select     :: s -> ((a, o) -> (a, Maybe o)) -> (a, Maybe o) -> [t]
-    from_omega :: s -> Bool
-    enum       :: s -> [t]
+    get_elem  :: s -> o -> t
+    get_from  :: s -> o -> [t]
+    get_range :: s -> o -> o -> [t]
+    select    :: s -> ((a, o) -> (a, Maybe o)) -> (a, Maybe o) -> [t]
+    omega_dom :: s -> Bool
+    enum      :: s -> [t]
 
     -- Default implementation of get_from
     get_from s alpha = get_elem s alpha : get_from s (ord_succ alpha)
@@ -116,10 +116,10 @@ class UnivalentSystem o => ComputableSequence o t s | s -> o t where
     select s f (x, Just alpha) = get_elem s alpha : select s f next_elem
         where next_elem = f (x, alpha)
 
-    -- Default implementation of from_omega
-    from_omega _ = False
+    -- Default implementation of omega_dom
+    omega_dom _ = False
 
     -- Default implementation of enum
     enum s
-        | from_omega s = get_from s ord_zero
-        | otherwise    = error "Employed ordinal to large, cannot enumerate"
+        | omega_dom s = get_from s ord_zero
+        | otherwise   = error "Employed ordinal to large, cannot enumerate"

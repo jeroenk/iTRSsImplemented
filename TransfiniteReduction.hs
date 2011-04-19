@@ -109,7 +109,7 @@ get_terms (CRCons (RCons ts _) phi) = fst_term : lst_terms
 -- omega.
 at_most_omega :: RewriteSystem s v r
     => CReduction s v r -> Bool
-at_most_omega (CRCons (RCons ts _) _) = from_omega ts
+at_most_omega (CRCons (RCons ts _) _) = omega_dom ts
 
 -- Yield the initial term of a computably convergent reduction.
 initial_term :: RewriteSystem s v r

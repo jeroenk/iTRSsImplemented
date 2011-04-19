@@ -64,8 +64,6 @@ instance UnivalentSystem Omega where
 data OmegaSequence t = OmegaSequenceCons [t]
 
 instance ComputableSequence Omega t (OmegaSequence t) where
-    from_omega _
-        = True
     get_elem (OmegaSequenceCons xs) (OmegaElement n)
         = xs!!n
     get_from (OmegaSequenceCons xs) (OmegaElement n)
@@ -79,6 +77,8 @@ instance ComputableSequence Omega t (OmegaSequence t) where
                   where ys'            = drop (n - m) ys
                         next_elem      = f (z, beta)
                         OmegaElement n = beta
+    omega_dom _
+        = True
 
 -- Construct a computable sequence of length at most omega out of a list.
 construct_sequence :: [t] -> OmegaSequence t
