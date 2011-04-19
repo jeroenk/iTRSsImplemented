@@ -1,5 +1,5 @@
 {-
-Copyright (C) 2010 Jeroen Ketema and Jakob Grue Simonsen
+Copyright (C) 2010, 2011 Jeroen Ketema and Jakob Grue Simonsen
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -15,7 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
--- This module implements Church-Rosser for reductions up to length omega.
+-- This module implements Church-Rosser.
 --
 -- A conversion is defined as a finite sequence of valleys, i.e. a sequence
 -- of the form: s (->>.<<-)^+ t. The sequence is represented as a element
@@ -30,41 +30,52 @@ module ChurchRosser (
 
 import SignatureAndVariables
 import RuleAndSystem
-import OmegaReduction
+import TransfiniteReduction
+import Omega
+import Compression
 import Confluence
 
 -- The function interleave_devel computes interleaving of a pair of reductions
 -- that can be concatenated. The steps of the reduction are returned as a list
 -- of lists of steps, where it is ensured for the ith item in the list that
 -- all its steps occur at depth i.
-interleave_devel :: (Signature s, Variables v, RewriteSystem s v r)
+interleave_list :: RewriteSystem s v r
     => CReduction s v r -> CReduction s v r -> [[Step s v]]
-interleave_devel s t = interleave_devel' 0 []
-    where interleave_devel' d prev = new_steps : interleave_devel' (d + 1) total
-              where total = needed_steps s d' ++ needed_steps t d
-                    d'    = needed_depth t d
-                    new_steps = filter_steps prev total
+interleave_list reduction_0 reduction_1 = interleave_list' 0 []
+    where interleave_list' d prev = steps_new : interleave_list' (d + 1) total
+              where total     = steps_0 ++ steps_1
+                    steps_0   = needed_steps reduction_0 d'
+                    steps_1   = needed_steps reduction_1 d
+                    d'        = needed_depth reduction_1 d
+                    steps_new = filter_steps prev total
 
 -- Concatenate the lists produced by interleave_devel to obtain all steps.
-interleave_steps :: (Signature s, Variables v, RewriteSystem s v r)
+interleave_steps :: RewriteSystem s v r
     => CReduction s v r -> CReduction s v r -> [Step s v]
-interleave_steps s t = concat (interleave_devel s t)
+interleave_steps reduction_0 reduction_1 = concat steps_list
+    where steps_list = interleave_list reduction_0 reduction_1
 
 -- Compute the modulus using that the ith element of the list produced by
 -- interleave_devel contains all steps at depth i.
-interleave_modulus :: (Signature s, Variables v, RewriteSystem s v r)
-    => CReduction s v r -> CReduction s v r -> Modulus
-interleave_modulus s t n = length (concat (take (n + 1) steps))
-    where steps = interleave_devel s t
+interleave_modulus :: RewriteSystem s v r
+    => CReduction s v r -> CReduction s v r -> Modulus Omega
+interleave_modulus reduction_0 reduction_1 (OmegaElement n)
+    | n == 0    = \m -> OmegaElement (compute m)
+    | otherwise = error "Modulus only defined for zero"
+        where compute m  = length (concat (take (m + 1) steps_list))
+              steps_list = interleave_list reduction_0 reduction_1
+
 
 -- Yield the interleaving of a pair of reductions that can be concatenated,
 -- i.e. given s ->>.->> t a reduction s ->> t is returned.
-interleave :: (Signature s, Variables v, RewriteSystem s v r)
+interleave :: RewriteSystem s v r
     => r -> CReduction s v r -> CReduction s v r -> CReduction s v r
-interleave _ s t = CRCons (RCons terms steps) modulus
-    where terms   = rewrite_steps (initial_term s) steps
-          steps   = interleave_steps s t
-          modulus = interleave_modulus s t
+interleave _ reduction_0 reduction_1 = CRCons (RCons ts ss) phi
+    where ts    = construct_sequence terms
+          ss    = construct_sequence steps
+          terms = rewrite_steps (initial_term reduction_0) steps
+          steps = interleave_steps reduction_0 reduction_1
+          phi   = interleave_modulus reduction_0 reduction_1
 
 -- Church-Rosser of orthogonal, non-collapsing rewrite systems with finite
 -- right-hand sides. The function implements the classic proof except for
@@ -73,12 +84,14 @@ interleave _ s t = CRCons (RCons terms steps) modulus
 church_rosser ::  (Signature s, Variables v, RewriteSystem s v r)
     => r -> [(CReduction s v r, CReduction s v r)]
                -> (CReduction s v r, CReduction s v r)
-church_rosser _ []
-    = error "Conversion without reductions"
-church_rosser _ ((s, t):[])
-    = (s, t)
-church_rosser r ((s_1, t_1):(s_2, t_2):cs)
-    = church_rosser r ((s_new, t_new) : cs)
-    where s_new = interleave r s_1 (fst confl)
-          t_new = interleave r t_2 (snd confl)
-          confl = confluence r (t_1, s_2)
+church_rosser system conversion = church_rosser' (map compress conversion)
+    where compress (s, t) = (compression system s, compression system t)
+          church_rosser' []
+              = error "Conversion withour reductions"
+          church_rosser' ((s, t):[])
+              = (s, t)
+          church_rosser' ((s_1, t_1):(s_2, t_2):cs)
+              = church_rosser' ((s_new, t_new) : cs)
+              where s_new = interleave system s_1 (fst confl)
+                    t_new = interleave system t_2 (snd confl)
+                    confl = confluence system (t_1, s_2)
