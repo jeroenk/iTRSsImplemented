@@ -5,22 +5,11 @@ This package provides an effective version of infinitary term rewriting,
 as described in the paper "Computing with Infinite Terms and Reductions"
 by Jeroen Ketema and Jakob Grue Simonsen.
 
-The Haskell code in this package has been tested with both version 6.12.3
-of the Glasgow Haskell Compiler (GHC) and the September 2006 release of
-Hugs 98. Both systems require certain extensions to be enabled on execution
-of the code:
-
-* GHC requires the "-XMultiParamTypeClasses" option
-
-* Hugs requires the "-98" option
-
-To obtain GHC, it is best to install the Haskell Platform:
+The Haskell code in this package has been tested with version 6.12.3 of
+the Glasgow Haskell Compiler (GHC). To obtain GHC, it is best to install
+the Haskell Platform:
 
   http://hackage.haskell.org/platform/
-
-The source code of Hugs 98 can be obtained from:
-
-  http://www.haskell.org/hugs/
 
 Usage
 -----
@@ -28,8 +17,8 @@ Usage
 To experiment with the code, it is best to load either CompressionExamples.hs
 (for the compression theorem), ConfluenceExamples.hs (for the confluence
 theorem), or ChurchRosserExamples.hs (for the Church-Rosser theorem) in the
-interpreter supplied with either GHC (ghci) or Hugs 98 (hugs). Then, input
-the examples as described in the comments of the respective source files.
+interpreter supplied with GHC (ghci). Then, input the examples as described
+in the comments of the respective source files.
 
 Structure
 ---------
@@ -64,4 +53,3 @@ Theorem 15    : church_rosser  in ChurchRosser.hs
 Lemma 16      : interleave     in ChurchRosser.hs
 
 (End of README)
-
