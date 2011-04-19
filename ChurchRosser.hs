@@ -30,7 +30,7 @@ module ChurchRosser (
 
 import SignatureAndVariables
 import RuleAndSystem
-import TransfiniteReduction
+import Reduction
 import Omega
 import Compression
 import Confluence

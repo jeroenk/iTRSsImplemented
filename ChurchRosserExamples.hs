@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- algorithm.
 
 import RuleAndSystem
-import TransfiniteReduction
+import Reduction
 import Omega
 import ChurchRosser
 import ExampleTermsAndSubstitutions

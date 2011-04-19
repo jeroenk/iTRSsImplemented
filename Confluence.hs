@@ -23,7 +23,7 @@ module Confluence (
 
 import RuleAndSystem
 import SystemOfNotation
-import TransfiniteReduction
+import Reduction
 import Omega
 import StripLemma
 import Compression

@@ -25,7 +25,7 @@ import SignatureAndVariables
 import PositionAndSubterm
 import RuleAndSystem
 import SystemOfNotation
-import TransfiniteReduction
+import Reduction
 import Omega
 
 -- Yield a sequence of steps all employing the same rule r given a set of

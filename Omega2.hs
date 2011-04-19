@@ -30,7 +30,7 @@ import SignatureAndVariables
 import Term
 import RuleAndSystem
 import SystemOfNotation
-import TransfiniteReduction
+import Reduction
 
 -- System of notation for the ordinal omega
 data Omega2

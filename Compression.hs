@@ -22,7 +22,7 @@ module Compression (
 ) where
 
 import RuleAndSystem
-import TransfiniteReduction
+import Reduction
 import Omega
 
 -- The function compr_list computes the compressed reduction. The steps of the

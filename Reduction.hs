@@ -28,7 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- notation for omega to denote convergent reductions of length omega (which
 -- have omega + 1 terms).
 
-module TransfiniteReduction (
+module Reduction (
     TermSequence, StepSequence,
     Reduction(RCons), Modulus,
     CReduction(CRCons), at_most_omega,
