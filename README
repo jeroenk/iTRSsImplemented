@@ -39,22 +39,11 @@ obvious from the file names, or otherwise from the initial comments in
 each of the files.
 
 Besides employing a recursive data type instead of natural numbers to
-represent terms, the code deviates in two ways from the presentation in the
-paper:
-
-* A special type is defined, in OmegaReduction.hs, to represent reductions
-  of length at most omega. This type is employed in the context of the Strip
-  Lemma, confluence, and the Church-Rosser theorem and implicitly assumes
-  the univalent system of notation for omega from SystemOfNotation.hs. The
-  introduction of the special type is a mere programming convenience, making
-  the code cleaner and omitting the otherwise obligatory compression that
-  needs to be performed in the confluence and Church-Rosser theorems.
-
-* The needed steps function for both transfinite reductions and reductions up
-  to length omega combine the computation of the prefix-closed subset of
-  positions of the final term of a reduction and the actual needed step
-  computation. Again, this is a mere programming convenience, leading to
-  slightly cleaner code.
+represent terms, the code deviates from the paper in that the needed
+steps function combines the computation of the prefix-closed subset of
+positions of the final term of a reduction and the actual needed step
+computation. This is a mere programming convenience, leading to slightly
+cleaner code.
 
 Correspondence with the Paper
 -----------------------------
@@ -67,8 +56,7 @@ Proposition 2 : subterm        in PositionAndSubterm.hs
 Lemma 3       : rewrite_step   in RuleAndSystem.hs
 Theorem 5     : compression    in Compression.hs
 Proposition 6 : origins_across in RuleAndSystem.hs (across a single step)
-Proposition 7 : needed_steps   in OmegaReduction.hs
-                                      and TransfiniteReduction.hs
+Proposition 7 : needed_steps   in Reduction.hs
 Theorem 10    : confluence     in Confluence.hs
 Lemma 11      : implicit in StripLemma.hs
 Lemma 12      : strip_lemma    in StripLemma.hs
