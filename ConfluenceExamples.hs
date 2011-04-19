@@ -28,10 +28,10 @@ import ExampleRulesAndSystems
 -- The next three reductions start in f^omega. Interesting combinations to try
 -- are:
 --
--- fst (confluence System_a_f_x (c_red_1a, c_red_1b))
--- snd (confluence System_a_f_x (c_red_1a, c_red_1b))
--- final_term (fst (confluence System_a_f_x (c_red_1b, c_red_1c)))
--- final_term (snd (confluence System_a_f_x (c_red_1b, c_red_1c)))
+-- fst (confluence system_a_f_x (c_red_1a, c_red_1b))
+-- snd (confluence system_a_f_x (c_red_1a, c_red_1b))
+-- final_term (fst (confluence system_a_f_x (c_red_1b, c_red_1c)))
+-- final_term (snd (confluence system_a_f_x (c_red_1b, c_red_1c)))
 
 -- f^omega -> g(f^omega) -> g^2(f^omega) -> .. -> g^n(f^omega) -> ...
 red_1a :: OmegaReduction Sigma Var System_a_f_x
@@ -74,8 +74,8 @@ c_red_1c = CRCons red_1c (construct_modulus phi)
 -- that the confluence algorithm also applies in the finite case. The two
 -- obvious combinations are:
 --
--- fst (confluence System_a_b_f_x (c_red_2a, c_red_2b))
--- snd (confluence System_a_b_f_x (c_red_2a, c_red_2b))
+-- fst (confluence system_a_b_f_x (c_red_2a, c_red_2b))
+-- snd (confluence system_a_b_f_x (c_red_2a, c_red_2b))
 
 -- f(a) -> h(a, f(a)) -> h(a, h(a, f(a))) -> h(a, h(a, h(a, f(a))))
 red_2a :: OmegaReduction Sigma Var System_a_b_f_x
@@ -105,8 +105,8 @@ c_red_2b = CRCons red_2b (construct_modulus phi)
 -- symbol is not touched in either reduction.  The two
 -- obvious combinations are:
 --
--- fst (confluence System_a_b_f_x (c_red_3a, c_red_3b))
--- snd (confluence System_a_b_f_x (c_red_3a, c_red_3b))
+-- fst (confluence system_a_b_f_x (c_red_3a, c_red_3b))
+-- snd (confluence system_a_b_f_x (c_red_3a, c_red_3b))
 
 -- f(f(a)) -> f(f(b))
 red_3a :: OmegaReduction Sigma Var System_a_b_f_x

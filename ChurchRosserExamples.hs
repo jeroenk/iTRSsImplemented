@@ -27,8 +27,8 @@ import ExampleRulesAndSystems
 
 -- The combinations to try with the reductions below are the following:
 --
--- fst (church_rosser System_a_f_x [(c_red_1a, c_red_1b), (c_red_1c, c_red_1d)])
--- snd (church_rosser System_a_f_x [(c_red_1a, c_red_1b), (c_red_1c, c_red_1d)])
+-- fst (church_rosser system_a_f_x [(c_red_1a, c_red_1b), (c_red_1c, c_red_1d)])
+-- snd (church_rosser system_a_f_x [(c_red_1a, c_red_1b), (c_red_1c, c_red_1d)])
 
 -- a -> f(a) -> f^2(a) -> ... -> f^n(a) -> ...
 red_1a :: OmegaReduction Sigma Var System_a_f_x
@@ -42,7 +42,7 @@ c_red_1a :: CReduction Sigma Var System_a_f_x
 c_red_1a = CRCons red_1a (construct_modulus phi)
     where phi x = x + 1
 
--- f^\omega
+-- f^omega
 red_1b :: OmegaReduction Sigma Var System_a_f_x
 red_1b = RCons (construct_sequence [f_omega]) (construct_sequence [])
 
@@ -50,7 +50,7 @@ c_red_1b :: CReduction Sigma Var System_a_f_x
 c_red_1b = CRCons red_1b (construct_modulus phi)
     where phi _ = 0
 
--- f^omega -> g(f^\omega) -> g(f(g(f^\omega))) -> ... -> (gf)^n(f^\omega) -> ...
+-- f^omega -> g(f^omega) -> g(f(g(f^omega))) -> ... -> (gf)^n(f^omega) -> ...
 red_1c :: OmegaReduction Sigma Var System_a_f_x
 red_1c = RCons (construct_sequence terms) (construct_sequence steps)
     where terms = rewrite_steps f_omega steps

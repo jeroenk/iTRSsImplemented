@@ -31,7 +31,7 @@ import ExampleRulesAndSystems
 -- The compressed reduction obtained through the compression algorithm can be
 -- obtained through
 --
---     compression System_a_f_x c_red_1
+--     compression system_a_f_x c_red_1
 --
 -- As can be seen the compressed reduction alternates between a -> f(a) steps
 -- and f(x) -> g(x) steps.
@@ -61,7 +61,7 @@ c_red_1 = CRCons red_1 phi
 --
 -- To obtain the final term of the compressed reduction peform
 --
---     final_term (compression System_a_f_x c_red_2)
+--     final_term (compression system_a_f_x c_red_2)
 red_2 :: Omega2Reduction Sigma Var System_a_f_x
 red_2 = RCons ts ss
     where ts = construct_sequence terms_1 terms_2
@@ -100,7 +100,7 @@ c_red_3 = CRCons red_3 phi
     where phi (OmegaElement 0) m = OmegaElement (if m == 0 then 2 else 3)
           phi _ _                = error "Illegal modulus"
 
--- f_omega
+-- f^omega
 --
 -- Compression of the following reduction demonstrates an edge case.
 red_4 :: Omega2Reduction Sigma Var System_a_f_x

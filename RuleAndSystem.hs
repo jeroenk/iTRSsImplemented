@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
 {-
 Copyright (C) 2010, 2011 Jeroen Ketema and Jakob Grue Simonsen
 
@@ -25,7 +25,8 @@ module RuleAndSystem (
     rewrite_step, rewrite_steps,
     descendants, origins_across,
     filter_steps,
-    RewriteSystem(rules)
+    RewriteSystem(rules),
+    BasicSystem(BasicSystemCons)
 ) where
 
 import SignatureAndVariables
@@ -146,3 +147,10 @@ filter_steps previous total = filter_steps' previous total []
 -- A rewrite system is a singleton set with an associated rule function.
 class (Signature s, Variables v) => RewriteSystem s v r where
     rules :: r -> [RewriteRule s v]
+
+data (Signature s, Variables v) => BasicSystem s v
+    = BasicSystemCons [RewriteRule s v]
+
+instance (Signature s, Variables v)
+    => RewriteSystem s v (BasicSystem s v) where
+    rules (BasicSystemCons rs) = rs

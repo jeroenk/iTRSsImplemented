@@ -31,8 +31,8 @@ module ExampleRulesAndSystems (
     rule_f_x_to_a,
     rule_f_x_to_g_x,
     rule_f_x_to_h_x_f_x,
-    System_a_f_x(System_a_f_x),
-    System_a_b_f_x(System_a_b_f_x)
+    System_a_f_x, system_a_f_x,
+    System_a_b_f_x, system_a_b_f_x
 ) where
 
 import RuleAndSystem
@@ -61,12 +61,12 @@ rule_f_x_to_g_x = Rule f_x g_x
 rule_f_x_to_h_x_f_x :: Rule_Sigma_Var
 rule_f_x_to_h_x_f_x = Rule f_x h_x_f_x
 
-data System_a_f_x = System_a_f_x
+type System_a_f_x = BasicSystem Sigma Var
 
-instance RewriteSystem Sigma Var System_a_f_x where
-    rules System_a_f_x = [rule_a_to_f_a, rule_f_x_to_g_x]
+system_a_f_x :: System_a_f_x
+system_a_f_x = BasicSystemCons [rule_a_to_f_a, rule_f_x_to_g_x]
 
-data System_a_b_f_x = System_a_b_f_x
+type System_a_b_f_x = BasicSystem Sigma Var
 
-instance RewriteSystem Sigma Var System_a_b_f_x where
-    rules System_a_b_f_x = [rule_a_to_b, rule_b_to_c, rule_f_x_to_h_x_f_x]
+system_a_b_f_x :: System_a_b_f_x
+system_a_b_f_x = BasicSystemCons [rule_a_to_b, rule_b_to_c, rule_f_x_to_h_x_f_x]
