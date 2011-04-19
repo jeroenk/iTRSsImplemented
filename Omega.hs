@@ -39,10 +39,10 @@ instance SystemOfNotation Omega where
     ord_kind (OmegaElement n)
         | n == 0    = ZeroOrdinal
         | otherwise = SuccOrdinal
-    ord_pred  (OmegaElement n)
+    ord_pred (OmegaElement n)
         | n > 0     = OmegaElement (n - 1)
         | otherwise = error "Predeccessor undefined"
-    ord_limit  (OmegaElement _)
+    ord_limit (OmegaElement _)
         = error "Limit function undefined" -- Omega has no limit ordinals
     ord_lim_pred (OmegaElement _)
         = OmegaElement 0
@@ -99,6 +99,7 @@ type OmegaReduction s v r
     = Reduction s v r (OmegaTermSequence s v) (OmegaStepSequence s v r) Omega
 
 construct_modulus :: (Int -> Int) -> Modulus Omega
-construct_modulus f (OmegaElement n) m
-    | n == 0    = OmegaElement (f m)
-    | otherwise = error "Modulus only defined for zero"
+construct_modulus f (OmegaElement 0) m
+    = OmegaElement (f m)
+construct_modulus _ _ _
+    = error "Modulus only defined for zero"

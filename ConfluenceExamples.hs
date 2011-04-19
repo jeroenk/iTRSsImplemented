@@ -51,7 +51,7 @@ red_1b = RCons (construct_sequence terms) (construct_sequence steps)
     where terms = rewrite_steps f_omega steps
           steps = zip ps rs
           ps = iterate (\p -> 1:1:p) []
-          rs = rule_f_x_to_g_x : rs
+          rs = repeat rule_f_x_to_g_x
 
 c_red_1b :: CReduction Sigma Var System_a_f_x
 c_red_1b = CRCons red_1b (construct_modulus phi)
@@ -64,7 +64,7 @@ red_1c = RCons (construct_sequence terms) (construct_sequence steps)
     where terms = rewrite_steps f_omega steps
           steps = zip ps rs
           ps = iterate (\p -> 1:1:p) [1]
-          rs = rule_f_x_to_g_x : rs
+          rs = repeat rule_f_x_to_g_x
 
 c_red_1c :: CReduction Sigma Var System_a_f_x
 c_red_1c = CRCons red_1c (construct_modulus phi)
