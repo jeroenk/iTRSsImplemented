@@ -1,5 +1,5 @@
 {-
-Copyright (C) 2010 Jeroen Ketema and Jakob Grue Simonsen
+Copyright (C) 2010, 2011 Jeroen Ketema and Jakob Grue Simonsen
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -19,7 +19,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- algorithm.
 
 import RuleAndSystem
-import OmegaReduction
+import TransfiniteReduction
+import Omega
 import ChurchRosser
 import ExampleTermsAndSubstitutions
 import ExampleRulesAndSystems
@@ -30,42 +31,48 @@ import ExampleRulesAndSystems
 -- snd (church_rosser System_a_f_x [(c_red_1a, c_red_1b), (c_red_1c, c_red_1d)])
 
 -- a -> f(a) -> f^2(a) -> ... -> f^n(a) -> ...
-red_1a :: Reduction Sigma Var System_a_f_x
-red_1a = RCons ts (zip ps rs)
-    where ps = iterate (\p -> 1:p) []
+red_1a :: OmegaReduction Sigma Var System_a_f_x
+red_1a = RCons (construct_sequence terms) (construct_sequence steps)
+    where terms = rewrite_steps a steps
+          steps = zip ps rs
+          ps = iterate (\p -> 1:p) []
           rs = rule_a_to_f_a : rs
-          ts = rewrite_steps a (zip ps rs)
 
 c_red_1a :: CReduction Sigma Var System_a_f_x
-c_red_1a = CRCons red_1a (\x -> x + 1)
+c_red_1a = CRCons red_1a (construct_modulus phi)
+    where phi x = x + 1
 
 -- f^\omega
-red_1b :: Reduction Sigma Var System_a_f_x
-red_1b = RCons [f_omega] []
+red_1b :: OmegaReduction Sigma Var System_a_f_x
+red_1b = RCons (construct_sequence [f_omega]) (construct_sequence [])
 
 c_red_1b :: CReduction Sigma Var System_a_f_x
-c_red_1b = CRCons red_1b (\_ -> 0)
+c_red_1b = CRCons red_1b (construct_modulus phi)
+    where phi _ = 0
 
 -- f^omega -> g(f^\omega) -> g(f(g(f^\omega))) -> ... -> (gf)^n(f^\omega) -> ...
-red_1c :: Reduction Sigma Var System_a_f_x
-red_1c = RCons ts (zip ps rs)
-    where ps = iterate (\p -> 1:1:p) []
+red_1c :: OmegaReduction Sigma Var System_a_f_x
+red_1c = RCons (construct_sequence terms) (construct_sequence steps)
+    where terms = rewrite_steps f_omega steps
+          steps = zip ps rs
+          ps = iterate (\p -> 1:1:p) []
           rs = rule_f_x_to_g_x : rs
-          ts = rewrite_steps f_omega (zip ps rs)
 
 c_red_1c :: CReduction Sigma Var System_a_f_x
-c_red_1c = CRCons red_1c (\x -> x + 1)
+c_red_1c = CRCons red_1c (construct_modulus phi)
+    where phi x = x + 1
 
 -- a -> f(a) -> g(a) -> g(f(a)) -> g(f(f(a))) -> g(f(g(a))) -> ... -> (gf)^n(a)
 --        -> (gf)^n(f(a)) -> (gf)^n(g(a)) -> ...
-red_1d :: Reduction Sigma Var System_a_f_x
-red_1d = RCons ts (zip ps rs)
-    where ps = [] : [] : [1] : (map (\p -> 1:1:p) ps)
+red_1d :: OmegaReduction Sigma Var System_a_f_x
+red_1d = RCons (construct_sequence terms) (construct_sequence steps)
+    where terms = rewrite_steps a steps
+          steps = zip ps rs
+          ps = [] : [] : [1] : (map (\p -> 1:1:p) ps)
           rs = rule_a_to_f_a : rule_f_x_to_g_x : rule_a_to_f_a : rs
-          ts = rewrite_steps a (zip ps rs)
 
 c_red_1d :: CReduction Sigma Var System_a_f_x
-c_red_1d = CRCons red_1d modulus
-    where modulus n = e * 2 + o + 2
-              where e = n `div` 2
-                    o = n `div` 2 + n `mod` 2
+c_red_1d = CRCons red_1d (construct_modulus phi)
+    where phi x = e * 2 + o + 2
+              where e = x `div` 2
+                    o = x `div` 2 + x `mod` 2
