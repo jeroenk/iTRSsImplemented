@@ -101,14 +101,20 @@ instance ComputableSequence Omega2 t (Omega2Sequence t) where
         = take (n - m) (drop m xs)
     get_range _ _ _
         = []
-{-    select (Omega2SequenceCons xs ys) f alpha
-        = select' xs 0 alpha
-        where select' _  _ (_, Nothing)   = []
-              select' ys m (z, Just beta) = head ys' : select' ys' n next_elem
-                  where ys'            = drop (n - m) ys
-                        next_elem      = f (z, beta)
-                        OmegaElement n = beta
--}
+    select (Omega2SequenceCons xs ys) f alpha
+        = select' xs 0 0 alpha
+        where select' _ _ _ (_, Nothing) = []
+              select' zs m n (z, Just beta) = el : ls
+                  where el = head zs'
+                        ls = select' zs' m_new n_new (f (z, beta))
+                        (zs', m_new, n_new) = compute zs m n beta
+                        compute ws k l (OmegaElement i)
+                            = (drop (i - k) ws, i, l)
+                        compute _ _ 0 (Omega2Element i)
+                            = (drop i ys, 0, i)
+                        compute ws _ l (Omega2Element i)
+                            = (drop (i - l) ws, 0, i)
+
 -- Construct a computable sequence of length at most omega out of a list.
 construct_sequence :: [t] -> [t] -> Omega2Sequence t
 construct_sequence xs ys = Omega2SequenceCons xs ys
