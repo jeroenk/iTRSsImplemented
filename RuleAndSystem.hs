@@ -47,7 +47,7 @@ instance (Show s, Show v, Signature s, Variables v)
 
 -- Calculate the height of the left-hand side (which should be finite).
 left_height :: (Signature s, Variables v)
-    => RewriteRule s v -> Int
+    => RewriteRule s v -> Integer
 left_height (Rule l _) = term_height l
 
 -- Rewrite steps are (position, rewrite rule)-pairs
@@ -57,8 +57,8 @@ type Step s v = (Position, RewriteRule s v)
 rewrite_step :: (Signature s, Variables v)
     => Term s v -> Step s v -> Term s v
 rewrite_step t (p, Rule l r)
-    | position_of_term t p = replace_subterm t p sigma_r
-    | otherwise            = error "Applying rewrite step at invalid position"
+    | pos_of_term t p = replace_subterm t p sigma_r
+    | otherwise       = error "Applying rewrite step at invalid position"
         where sigma_r = substitute (match l (subterm t p)) r
 
 -- Apply multiple rewrite steps in sequence, yielding a list of terms.

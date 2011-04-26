@@ -32,8 +32,10 @@ import RuleAndSystem
 import SystemOfNotation
 import Reduction
 
+import List
+
 -- System of notation for the ordinal omega
-data Omega = OmegaElement Int
+data Omega = OmegaElement Integer
 
 instance SystemOfNotation Omega where
     ord_kind (OmegaElement n)
@@ -66,16 +68,16 @@ data OmegaSequence t = OmegaSequenceCons [t]
 
 instance ComputableSequence Omega t (OmegaSequence t) where
     get_elem (OmegaSequenceCons xs) (OmegaElement n)
-        = xs!!n
+        = genericIndex xs n
     get_from (OmegaSequenceCons xs) (OmegaElement n)
-        = drop n xs
+        = genericDrop n xs
     get_range (OmegaSequenceCons xs) (OmegaElement m) (OmegaElement n)
-        = take (n - m) (drop m xs)
+        = genericTake (n - m) (genericDrop m xs)
     select (OmegaSequenceCons xs) f alpha
         = select' xs 0 alpha
         where select' _  _ (_, Nothing)   = []
               select' ys m (z, Just beta) = head ys' : select' ys' n next_elem
-                  where ys'            = drop (n - m) ys
+                  where ys'            = genericDrop (n - m) ys
                         next_elem      = f (z, beta)
                         OmegaElement n = beta
     omega_dom _
@@ -98,7 +100,7 @@ instance (RewriteSystem s v r)
 type OmegaReduction s v r
     = Reduction s v r (OmegaTermSequence s v) (OmegaStepSequence s v r) Omega
 
-construct_modulus :: (Int -> Int) -> Modulus Omega
+construct_modulus :: (Integer -> Integer) -> Modulus Omega
 construct_modulus f (OmegaElement 0) m
     = OmegaElement (f m)
 construct_modulus _ _ _

@@ -35,6 +35,8 @@ import Omega
 import Compression
 import Confluence
 
+import List
+
 -- The function interleave_devel computes interleaving of a pair of reductions
 -- that can be concatenated. The steps of the reduction are returned as a list
 -- of lists of steps, where it is ensured for the ith item in the list that
@@ -60,7 +62,7 @@ interleave_steps reduction_0 reduction_1 = concat steps_list
 interleave_modulus :: RewriteSystem s v r
     => CReduction s v r -> CReduction s v r -> Modulus Omega
 interleave_modulus reduction_0 reduction_1 = construct_modulus phi
-    where phi x      = length (concat (take (x + 1) steps_list))
+    where phi x      = genericLength (concat (genericTake (x + 1) steps_list))
           steps_list = interleave_list reduction_0 reduction_1
 
 -- Yield the interleaving of a pair of reductions that can be concatenated,

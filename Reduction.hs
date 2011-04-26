@@ -70,7 +70,7 @@ instance (Show s, Show v, TermSequence s v ts o, StepSequence s v r ss o)
 -- Moduli of convergence are functions from limit ordinals to functions from
 -- natural numbers to ordinals (where the ordinals come from a designated
 -- system of notation).
-type Modulus o = o -> Int -> o
+type Modulus o = o -> Integer -> o
 
 -- Computably convergent reductions are reductions with an associated modulus.
 data RewriteSystem s v r => CReduction s v r
@@ -163,7 +163,7 @@ acc_wrap steps (steps_acc, ps) = (steps_new ++ steps_acc, ps_new)
 -- d of the final term of the reduction. The function also yields the needed
 -- positions of the initial term of the reduction.
 accumulate :: RewriteSystem s v r
-    => CReduction s v r -> Int -> ([Step s v], Positions)
+    => CReduction s v r -> Integer -> ([Step s v], Positions)
 accumulate (CRCons (RCons ts ss) phi) d
     = accumulate' ([], positions) modulus limit (ord_kind limit)
         where modulus   = phi ord_zero d
@@ -176,18 +176,18 @@ accumulate (CRCons (RCons ts ss) phi) d
               accumulate' sp alpha beta LimitOrdinal
                   = accumulate' sp' alpha' beta' (ord_kind beta')
                       where sp'    = acc_wrap (get_range ss beta alpha) sp
-                            alpha' = phi beta (maximum (map length (snd sp')))
+                            alpha' = phi beta (maximum (map pos_len (snd sp')))
                             beta'  = ord_lim_pred alpha'
 
 -- Yield the needed depth of the initial term of a reduction for all positions
 -- up to a given depth d of the final term of the reduction.
 needed_depth :: RewriteSystem s v r
-    => CReduction s v r -> Int -> Int
+    => CReduction s v r -> Integer -> Integer
 needed_depth reduction depth
-    = maximum (map length (snd (accumulate reduction depth)))
+    = maximum (map pos_len (snd (accumulate reduction depth)))
 
 -- Yield the needed steps of a reduction for all positions up to a given depth d
 -- of the final term of the reduction.
 needed_steps :: RewriteSystem s v r
-    => CReduction s v r -> Int -> [Step s v]
+    => CReduction s v r -> Integer -> [Step s v]
 needed_steps reduction depth = fst (accumulate reduction depth)

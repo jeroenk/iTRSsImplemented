@@ -32,10 +32,12 @@ import RuleAndSystem
 import SystemOfNotation
 import Reduction
 
+import List
+
 -- System of notation for the ordinal omega
 data Omega2
-    = OmegaElement Int
-    | Omega2Element Int
+    = OmegaElement Integer
+    | Omega2Element Integer
 
 instance SystemOfNotation Omega2 where
     ord_kind (OmegaElement n)
@@ -86,19 +88,19 @@ data Omega2Sequence t = Omega2SequenceCons [t] [t]
 
 instance ComputableSequence Omega2 t (Omega2Sequence t) where
     get_elem (Omega2SequenceCons xs _) (OmegaElement n)
-        = xs!!n
+        = genericIndex xs n
     get_elem (Omega2SequenceCons _ xs) (Omega2Element n)
-        = xs!!n
+        = genericIndex xs n
     get_from (Omega2SequenceCons xs _) (OmegaElement n)
-        = drop n xs
+        = genericDrop n xs
     get_from (Omega2SequenceCons _ xs) (Omega2Element n)
-        = drop n xs
+        = genericDrop n xs
     get_range (Omega2SequenceCons xs _) (OmegaElement m) (OmegaElement n)
-        = take (n - m) (drop m xs)
+        = genericTake (n - m) (genericDrop m xs)
     get_range (Omega2SequenceCons xs _) (OmegaElement m) (Omega2Element _)
-        = drop m xs
+        = genericDrop m xs
     get_range (Omega2SequenceCons _ xs) (Omega2Element m) (Omega2Element n)
-        = take (n - m) (drop m xs)
+        = genericTake (n - m) (genericDrop m xs)
     get_range _ _ _
         = []
     select (Omega2SequenceCons xs ys) f alpha
@@ -109,11 +111,11 @@ instance ComputableSequence Omega2 t (Omega2Sequence t) where
                         ls = select' zs' m_new n_new (f (z, beta))
                         (zs', m_new, n_new) = compute zs m n beta
                         compute ws k l (OmegaElement i)
-                            = (drop (i - k) ws, i, l)
+                            = (genericDrop (i - k) ws, i, l)
                         compute _ _ 0 (Omega2Element i)
-                            = (drop i ys, 0, i)
+                            = (genericDrop i ys, 0, i)
                         compute ws _ l (Omega2Element i)
-                            = (drop (i - l) ws, 0, i)
+                            = (genericDrop (i - l) ws, 0, i)
 
 -- Construct a computable sequence of length at most omega out of a list.
 construct_sequence :: [t] -> [t] -> Omega2Sequence t

@@ -28,6 +28,8 @@ import SystemOfNotation
 import Reduction
 import Omega
 
+import List
+
 -- Yield a sequence of steps all employing the same rule r given a set of
 -- parallel positions and the rule r.
 sequence_steps :: (Signature s, Variables v)
@@ -61,8 +63,8 @@ bottom_steps (CRCons (RCons _ ss) _) step = concat steps_list
 bottom_modulus :: RewriteSystem s v r
     => CReduction s v r -> Step s v -> Modulus Omega
 bottom_modulus (CRCons (RCons _ ss) phi) step@(_, r) = construct_modulus phi_new
-    where phi_new x = length (concat (take (ord_to_int modulus) steps_list))
-              where modulus    = phi ord_zero (x + left_height r)
+    where phi_new x = genericLength (concat (genericTake modulus steps_list))
+              where modulus    = ord_to_int (phi ord_zero (x + left_height r))
                     steps_list = bottom_list (enum ss) step
 
 -- Yield the bottom reduction of the Strip Lemma.
@@ -88,13 +90,13 @@ right_list steps phi (p, r) = project steps [p] 0 0
           project xs ps n depth
               = steps_new : project xs_left descendants_nd n' (depth + 1)
               where n' = max n (ord_to_int (phi ord_zero depth))
-                    xs_use  = take (n' - n) xs
-                    xs_left = drop (n' - n) xs
+                    xs_use  = genericTake (n' - n) xs
+                    xs_left = genericDrop (n' - n) xs
                     descendants_ps = descendants xs_use ps
                     descendants_d  = filter at_d descendants_ps
-                        where at_d q = (length q) == depth
+                        where at_d q = (pos_len q) == depth
                     descendants_nd = filter not_at_d descendants_ps
-                        where not_at_d q = (length q) /= depth
+                        where not_at_d q = (pos_len q) /= depth
                     steps_new = sequence_steps descendants_d r
 
 -- Concatenate the lists of the right-most reduction to obtain all steps
@@ -108,7 +110,7 @@ right_steps (CRCons (RCons _ ss) phi) step = concat steps_list
 right_modulus :: RewriteSystem s v r
     => CReduction s v r -> Step s v -> Modulus Omega
 right_modulus (CRCons (RCons _ ss) phi) step = construct_modulus phi_new
-    where phi_new x  = length (concat (take (x + 1) steps_list))
+    where phi_new x  = genericLength (concat (genericTake (x + 1) steps_list))
           steps_list = right_list (enum ss) phi step
 
 -- Yield the right-most reduction of the Strip Lemma.

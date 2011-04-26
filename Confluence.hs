@@ -28,6 +28,8 @@ import Omega
 import StripLemma
 import Compression
 
+import List
+
 -- The function confl_devel computes one side of the confluence diagram. The
 -- steps of the reduction are returned as a list of lists of steps, where it
 -- is ensured for the ith item in the list that all its steps occur at depth i.
@@ -55,7 +57,7 @@ confl_steps system reduction_0 reduction_1 = concat steps_list
 confl_modulus :: RewriteSystem s v r
     => r -> CReduction s v r -> CReduction s v r -> Modulus Omega
 confl_modulus system reduction_0 reduction_1 = construct_modulus phi
-    where phi x      = length (concat (take (x + 1) steps_list))
+    where phi x      = genericLength (concat (genericTake (x + 1) steps_list))
           steps_list = confl_list system reduction_0 reduction_1
 
 -- Yield either the right-most or bottom reduction of the confluence diagram.

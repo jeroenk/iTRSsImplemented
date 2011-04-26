@@ -25,6 +25,8 @@ import RuleAndSystem
 import Reduction
 import Omega
 
+import List
+
 -- The function compr_list computes the compressed reduction. The steps of the
 -- reduction are returned as a list of lists of steps, where it is ensured for
 -- the i-th item in the list that all its steps occur at depth i.
@@ -46,7 +48,7 @@ compr_steps reduction = concat list_steps
 compr_modulus :: RewriteSystem s v r
     => CReduction s v r -> (Modulus Omega)
 compr_modulus reduction = construct_modulus phi
-    where phi x      = length (concat (take (x + 1) steps_list))
+    where phi x      = genericLength (concat (genericTake (x + 1) steps_list))
           steps_list = compr_list reduction
 
 -- Compression of left-linear rewrite systems with finite right-hand sides.

@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module PositionAndSubterm (
     Position, Positions,
-    is_prefix, position_of_term,
+    pos_len, is_prefix, pos_of_term,
     pos, pos_to_depth, non_var_pos, var_pos,
     root_symbol, subterm, replace_subterm
 ) where
@@ -39,19 +39,23 @@ type Position  = [Int]
 -- Sets of positions
 type Positions = [Position]
 
+-- Yield the length of a position
+pos_len :: Position -> Integer
+pos_len = genericLength
+
 -- Establish if one position is a prefix of another position.
 is_prefix :: Position -> Position -> Bool
 is_prefix = isPrefixOf
 
 -- Establish if a position occurs in a term.
-position_of_term :: (Signature s, Variables v)
+pos_of_term :: (Signature s, Variables v)
     => Term s v -> Position -> Bool
-position_of_term _ []
+pos_of_term _ []
     = True
-position_of_term (Function f ts) (i:p)
-    | 1 <= i && i <= arity f = position_of_term (ts!i) p
+pos_of_term (Function f ts) (i:p)
+    | 1 <= i && i <= arity f = pos_of_term (ts!i) p
     | otherwise              = False
-position_of_term (Variable _) (_:_)
+pos_of_term (Variable _) (_:_)
     = False
 
 -- Helper function for obtaining the positions of a term.
@@ -62,7 +66,7 @@ position_of_term (Variable _) (_:_)
 subterm_pos :: (Signature s, Variables v)
     => (Term s v -> Positions) -> [Term s v] -> Positions
 subterm_pos f ts = concat (prefix (map f ts))
-    where prefix ps = zipWith (map.(:)) [1..length ps] ps
+    where prefix ps = zipWith (map . (:)) [1..length ps] ps
 
 -- All positions.
 pos :: (Signature s, Variables v)
@@ -72,7 +76,7 @@ pos (Variable _)    = [[]]
 
 -- Positions up to and including a certain depth.
 pos_to_depth :: (Signature s, Variables v)
-    => Term s v -> Int -> Positions
+    => Term s v -> Integer -> Positions
 pos_to_depth _ 0               = [[]]
 pos_to_depth (Function _ ts) d = [] : subterm_pos pos_to_depth' (elems ts)
     where pos_to_depth' t = pos_to_depth t (d - 1)
