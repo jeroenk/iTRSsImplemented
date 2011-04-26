@@ -125,8 +125,9 @@ rule_k_h' = Rule k_h'_x h_k_x
 rule_k_h :: Rule_Sigma_Var
 rule_k_h = Rule k_h_x h_x
 
-term :: (UnivalentSystem o)
-    => (Int -> Bool) -> (Int -> Bool) -> (Int -> o) -> o -> o -> Term_Sigma_Var
+term :: UnivalentSystem o
+    => (Integer -> Bool) -> (Integer -> Bool) -> (Integer -> o) -> o -> o
+       -> Term_Sigma_Var
 term in_set geq_lub nu alpha beta = replace_c (term' 0 alpha beta)
     where term' d delta gamma
               | in_set d && in_range
