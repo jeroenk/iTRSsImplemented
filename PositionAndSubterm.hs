@@ -22,9 +22,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module PositionAndSubterm (
     Position, Positions,
-    pos_len, is_prefix, pos_of_term,
+    pos_len, prefix_of, pos_of, fun_pos_of,
     pos, pos_to_depth, non_var_pos, var_pos,
-    root_symbol, subterm, replace_subterm
+    subterm, replace_subterm
 ) where
 
 import SignatureAndVariables
@@ -44,18 +44,29 @@ pos_len :: Position -> Integer
 pos_len = genericLength
 
 -- Establish if one position is a prefix of another position.
-is_prefix :: Position -> Position -> Bool
-is_prefix = isPrefixOf
+prefix_of :: Position -> Position -> Bool
+prefix_of = isPrefixOf
 
 -- Establish if a position occurs in a term.
-pos_of_term :: (Signature s, Variables v)
-    => Term s v -> Position -> Bool
-pos_of_term _ []
+pos_of :: (Signature s, Variables v)
+    => Position -> Term s v -> Bool
+pos_of [] _
     = True
-pos_of_term (Function f ts) (i:p)
-    | 1 <= i && i <= arity f = pos_of_term (ts!i) p
+pos_of (i:p) (Function f ts)
+    | 1 <= i && i <= arity f = pos_of p (ts!i)
     | otherwise              = False
-pos_of_term (Variable _) (_:_)
+pos_of (_:_) (Variable _)
+    = False
+
+-- Establish if a position is position of a function symbol.
+fun_pos_of :: (Signature s, Variables v)
+    => Position -> Term s v -> Bool
+fun_pos_of [] (Function _ _)
+    = True
+fun_pos_of (i:p) (Function f ts)
+    | 1 <= i && i <= arity f  = fun_pos_of p (ts!i)
+    | otherwise               = False
+fun_pos_of _ (Variable _)
     = False
 
 -- Helper function for obtaining the positions of a term.
@@ -93,12 +104,6 @@ var_pos :: (Signature s, Variables v)
     => Term s v -> v -> Positions
 var_pos (Function _ ts) x = subterm_pos (\t -> var_pos t x) (elems ts)
 var_pos (Variable y)    x = if x == y then [[]] else []
-
--- Yield the root symbol.
-root_symbol :: (Signature s, Variables v)
-    => Term s v -> Symbol s v
-root_symbol (Function f _) = FunctionSymbol f
-root_symbol (Variable x)   = VariableSymbol x
 
 -- Yield the subterm at a position.
 subterm :: (Signature s, Variables v)

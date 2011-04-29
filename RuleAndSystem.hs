@@ -57,8 +57,8 @@ type Step s v = (Position, RewriteRule s v)
 rewrite_step :: (Signature s, Variables v)
     => Term s v -> Step s v -> Term s v
 rewrite_step t (p, Rule l r)
-    | pos_of_term t p = replace_subterm t p sigma_r
-    | otherwise       = error "Applying rewrite step at invalid position"
+    | p `pos_of` t = replace_subterm t p sigma_r
+    | otherwise    = error "Rewrite step applied at invalid position"
         where sigma_r = substitute (match l (subterm t p)) r
 
 -- Apply multiple rewrite steps in sequence, yielding a list of terms.
@@ -70,12 +70,11 @@ rewrite_steps t steps = t : rewrite_steps' t steps
 
 -- Helper function for descendants and origins. The function recurses a term
 -- following a given position until a variable is found. Once a variable is
--- found the function yields the variable and the remainder of the position
--- beging recursed.
+-- found the function yields the variable and the remainder of the position.
 get_var_and_pos :: (Signature s, Variables v)
     => Term s v -> Position -> (v, Position)
-get_var_and_pos (Function f ss) (i:p)
-    | 1 <= i && i <= arity f = get_var_and_pos (ss!i) p
+get_var_and_pos (Function f ts) (i:p)
+    | 1 <= i && i <= arity f = get_var_and_pos (ts!i) p
     | otherwise              = error "No subterm at required position"
 get_var_and_pos (Function _ _) []
     = error "Function symbol occurs at position"
@@ -86,9 +85,9 @@ get_var_and_pos (Variable x) p
 descendants_of_position :: (Signature s, Variables v)
     => Step s v -> Position -> Positions
 descendants_of_position (p, Rule l r) q
-    | not (is_prefix p q)       = [q]
-    | q' `elem` (non_var_pos l) = []
-    | otherwise                 = [p ++ p' ++ q'' | p' <- var_pos r x]
+    | not (p `prefix_of` q) = [q]
+    | q' `fun_pos_of` l     = []
+    | otherwise             = [p ++ p' ++ q'' | p' <- var_pos r x]
         where q' = drop (length p) q
               (x, q'') = get_var_and_pos l q'
 
@@ -107,12 +106,12 @@ descendants (step:steps) ps = descendants steps (descendants_across step ps)
 origins_of_position :: (Signature s, Variables v)
     => Step s v -> Position -> Positions
 origins_of_position (p, Rule l r) q
-    | not (is_prefix p q)     = [q]
-    | q' `elem` non_var_pos r = [p ++ p' | p' <- non_var_pos l]
-    | [] `elem` var_pos r x   = [p ++ p' | p' <- non_var_pos l]
+    | not (p `prefix_of` q)  = [q]
+    | q' `fun_pos_of` r      = [p ++ p' | p' <- non_var_pos l]
+    | r `has_root_var` x     = [p ++ p' | p' <- non_var_pos l]
                                       ++ [p ++ p' ++ q'' | p' <- var_pos l x]
-    | otherwise               = [p ++ p' ++ q'' | p' <- var_pos l x]
-        where q' = drop (length p) q
+    | otherwise              = [p ++ p' ++ q'' | p' <- var_pos l x]
+        where q'       = drop (length p) q
               (x, q'') = get_var_and_pos r q'
 
 origins_across :: (Signature s, Variables v)

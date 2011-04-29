@@ -20,12 +20,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Term (
     Term(Function, Variable),
     constant, function_term,
-    term_height, less_height
+    term_height, less_height,
+    root_symbol, has_root_var
 ) where
 
 import SignatureAndVariables
 
+import Prelude hiding (foldl, and)
 import Array
+import Data.Foldable
 
 -- Terms consist of function symbols and variables.
 data (Signature s, Variables v) => Term s v
@@ -56,7 +59,7 @@ function_term :: (Signature s, Variables v)
     => s -> [Term s v] -> Term s v
 function_term f ss
     | has_length a ss = Function f (listArray (1, a) ss)
-    | otherwise       = error "Number of provided subterms not matching arity"
+    | otherwise       = error "Number of provided subterms does not match arity"
         where a = arity f
               has_length 0 []     = True
               has_length _ []     = False
@@ -66,7 +69,7 @@ function_term f ss
 term_height :: (Signature s, Variables v)
     => Term s v -> Integer
 term_height (Function _ ss)
-    = foldl max 0 (map term_height' (elems ss))
+    = foldl max 0 (fmap term_height' ss)
     where term_height' t = 1 + term_height t
 term_height (Variable _)
     = 0
@@ -75,9 +78,20 @@ term_height (Variable _)
 less_height :: (Signature s, Variables v)
     => Term s v -> Integer -> Bool
 less_height (Function _ ss) n
-    | n > 0     = and (map less_height' (elems ss))
+    | n > 0     = and (fmap less_height' ss)
     | otherwise = False
         where less_height' t = less_height t (n - 1)
 less_height (Variable _) n
     | n > 0     = True
     | otherwise = False
+
+-- Yield the root symbol of a term.
+root_symbol :: (Signature s, Variables v)
+    => Term s v -> Symbol s v
+root_symbol (Function f _) = FunctionSymbol f
+root_symbol (Variable x)   = VariableSymbol x
+
+-- Establish if a certain variable occurs at the root of a term
+has_root_var :: (Signature s, Variables v)
+    => Term s v -> v -> Bool
+has_root_var t x = root_symbol t == VariableSymbol x
