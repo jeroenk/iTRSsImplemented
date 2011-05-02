@@ -29,6 +29,7 @@ module ChurchRosser (
 ) where
 
 import SignatureAndVariables
+import PositionAndSubterm
 import RuleAndSystem
 import Reduction
 import Omega
@@ -37,32 +38,37 @@ import Confluence
 
 import List
 
--- The function interleave_devel computes interleaving of a pair of reductions
--- that can be concatenated. The steps of the reduction are returned as a list
--- of lists of steps, where it is ensured for the ith item in the list that
--- all its steps occur at depth i.
+-- The function interleave_devel computes the interleaving of a pair of
+-- reductions that can be concatenated. The steps of the reduction are returned
+-- as a list of lists of steps, where it is ensured for the ith item in the
+-- list that all its steps occur at depth at least i.
+--
+-- The function gather has three arguments: depth, previous steps, and previous
+-- parallel steps.
 interleave_list :: RewriteSystem s v r
     => CReduction s v r -> CReduction s v r -> [[Step s v]]
-interleave_list reduction_0 reduction_1 = interleave_list' 0 []
-    where interleave_list' d prev = steps_new : interleave_list' (d + 1) total
-              where total     = steps_0 ++ steps_1
-                    steps_0   = needed_steps reduction_0 d'
-                    steps_1   = needed_steps reduction_1 d
-                    d'        = needed_depth reduction_1 d
-                    steps_new = filter_steps prev total
+interleave_list reduction_0 reduction_1 = gather 0 [] []
+    where t_final = final_term reduction_1
+          gather d prev psteps = steps_d : gather (d + 1) total psteps'
+              where (steps_d, psteps') = filter_steps prev psteps total ps
+                    total   = total_0 ++ total_1
+                    total_0 = needed_steps reduction_0 ps'
+                    total_1 = needed_steps reduction_1 ps
+                    ps'     = needed_positions reduction_1 ps
+                    ps      = pos_to_depth t_final d
 
--- Concatenate the lists produced by interleave_devel to obtain all steps.
+-- Concatenate the lists produced by interleave_list to obtain all steps.
 interleave_steps :: RewriteSystem s v r
     => CReduction s v r -> CReduction s v r -> [Step s v]
 interleave_steps reduction_0 reduction_1 = concat steps_list
     where steps_list = interleave_list reduction_0 reduction_1
 
 -- Compute the modulus using that the ith element of the list produced by
--- interleave_devel contains all steps at depth i.
+-- interleave_list contains only steps at depth at least i.
 interleave_modulus :: RewriteSystem s v r
     => CReduction s v r -> CReduction s v r -> Modulus Omega
 interleave_modulus reduction_0 reduction_1 = construct_modulus phi
-    where phi x      = genericLength (concat (genericTake (x + 1) steps_list))
+    where phi n      = genericLength (concat (genericTake (n + 1) steps_list))
           steps_list = interleave_list reduction_0 reduction_1
 
 -- Yield the interleaving of a pair of reductions that can be concatenated,
@@ -76,10 +82,9 @@ interleave _ reduction_0 reduction_1 = CRCons (RCons ts ss) phi
           steps = interleave_steps reduction_0 reduction_1
           phi   = interleave_modulus reduction_0 reduction_1
 
--- Church-Rosser of orthogonal, non-collapsing rewrite systems with finite
--- right-hand sides. The function implements the classic proof except for
--- the concatenation of reductions which is replaced by an interleaving
--- scheme.
+-- Church-Rosser of orthogonal, non-collapsing rewrite systems. The function
+-- implements the classic proof except for the concatenation of reductions
+-- which is replaced by an interleaving scheme.
 church_rosser ::  (Signature s, Variables v, RewriteSystem s v r)
     => r -> [(CReduction s v r, CReduction s v r)]
                -> (CReduction s v r, CReduction s v r)

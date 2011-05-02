@@ -31,9 +31,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Reduction (
     TermSequence, StepSequence,
     Reduction(RCons), Modulus,
-    CReduction(CRCons), at_most_omega,
+    CReduction(CRCons),
+    get_terms, at_most_omega,
     initial_term, final_term,
-    needed_depth, needed_steps, get_terms
+    needed_positions, needed_steps
 ) where
 
 import SignatureAndVariables
@@ -148,12 +149,12 @@ acc_finite :: (Signature s, Variables v)
 acc_finite [] ps                  = ([], ps)
 acc_finite (step@(p, _):steps) ps = (steps_new, ps_new)
     where (steps', ps') = acc_finite steps ps
-          ps_new        = origins_across step ps'
+          ps_new        = origins [step] ps'
           steps_new
               | p `elem` ps_new = step : steps'
               | otherwise       = steps'
 
--- Wrapper for acc_finite, which deals with already accumulated step.
+-- Wrapper for acc_finite, which deals with already accumulated steps.
 acc_wrap :: (Signature s, Variables v)
     => [Step s v] -> ([Step s v], Positions) -> ([Step s v], Positions)
 acc_wrap steps (steps_acc, ps) = (steps_new ++ steps_acc, ps_new)
@@ -163,12 +164,11 @@ acc_wrap steps (steps_acc, ps) = (steps_new ++ steps_acc, ps_new)
 -- d of the final term of the reduction. The function also yields the needed
 -- positions of the initial term of the reduction.
 accumulate :: RewriteSystem s v r
-    => CReduction s v r -> Integer -> ([Step s v], Positions)
-accumulate (CRCons (RCons ts ss) phi) d
-    = accumulate' ([], positions) modulus limit (ord_kind limit)
-        where modulus   = phi ord_zero d
+    => CReduction s v r -> Positions -> ([Step s v], Positions)
+accumulate (CRCons (RCons _ ss) phi) ps
+    = accumulate' ([], ps) modulus limit (ord_kind limit)
+        where modulus   = phi ord_zero (maximum (map pos_len ps))
               limit     = ord_lim_pred modulus
-              positions = pos_to_depth (get_elem ts modulus) d
               accumulate' sp alpha beta ZeroOrdinal
                   = acc_wrap (get_range ss beta alpha) sp
               accumulate' _ _ _ SuccOrdinal
@@ -179,15 +179,14 @@ accumulate (CRCons (RCons ts ss) phi) d
                             alpha' = phi beta (maximum (map pos_len (snd sp')))
                             beta'  = ord_lim_pred alpha'
 
--- Yield the needed depth of the initial term of a reduction for all positions
--- up to a given depth d of the final term of the reduction.
-needed_depth :: RewriteSystem s v r
-    => CReduction s v r -> Integer -> Integer
-needed_depth reduction depth
-    = maximum (map pos_len (snd (accumulate reduction depth)))
+-- Yield the needed positions of the initial term of a reduction for a
+-- prefix-closed subset of positions of the final term of the reduction.
+needed_positions :: RewriteSystem s v r
+    => CReduction s v r -> Positions -> Positions
+needed_positions reduction positions = snd (accumulate reduction positions)
 
--- Yield the needed steps of a reduction for all positions up to a given depth d
--- of the final term of the reduction.
+-- Yield the needed steps of a reduction for a prefix-closed subset of the
+-- final term of the reduction.
 needed_steps :: RewriteSystem s v r
-    => CReduction s v r -> Integer -> [Step s v]
-needed_steps reduction depth = fst (accumulate reduction depth)
+    => CReduction s v r -> Positions -> [Step s v]
+needed_steps reduction positions = fst (accumulate reduction positions)

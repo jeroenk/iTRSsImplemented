@@ -30,42 +30,60 @@ import Omega
 
 import List
 
--- Yield a sequence of steps all employing the same rule r given a set of
--- parallel positions and the rule r.
-sequence_steps :: (Signature s, Variables v)
-    => Positions -> RewriteRule s v -> [Step s v]
-sequence_steps ps r = map (\p -> (p, r)) ps
+-- The function bottom_list computes the bottom reduction from the Strip Lemma.
+-- The steps of the reduction are returned as a list of lists of steps, where it
+-- is ensured for the ith item in the list that all its steps occur at depth
+-- at least i.
+--
+-- The function gather has five arguments: depth, number of used parallel steps,
+-- unused parallel steps, previous parallel steps, the final term after applying
+-- all rewrite steps found thusfar.
+--
+-- For the modulus use the observation that in the worst case a variable in the
+-- left-hand side of a rewrite rule is moved all the way to the root of the
+bottom_list :: RewriteSystem s v r
+    => CReduction s v r -> Step s v -> [[Step s v]]
+bottom_list reduction@(CRCons (RCons _ ss) phi) step@(_, rule)
+    = gather 0 0 psteps_all [] t_initial
+    where t_initial  = rewrite_step (initial_term reduction) step
+          psteps_all = project (enum ss) step
+          height     = left_height rule
+          gather d p_used unused psteps t
+              = steps_d : gather (d + 1) p_used' unused' psteps' t'
+                  where t' = last (rewrite_steps t steps_d)
+                        (steps_d, psteps') = parallel_needed_steps psteps_new ps
+                        ps         = pos_to_depth t d
+                        psteps_new = psteps ++ used
+                        (used, unused') = genericSplitAt p_new unused
+                        p_new   = p_used' - p_used
+                        p_used' = max p_used modulus
+                        modulus = ord_to_int (phi ord_zero (d + height))
 
--- The function bottom_list computes developments of the bottom reduction
--- of the Strip Lemma. The computation proceeds from left to right and each
--- development is represented by a list of steps.
-bottom_list :: (Signature s, Variables v)
-    => [Step s v] -> Step s v -> [[Step s v]]
-bottom_list steps (p, r) = project steps [p]
-    where project [] _
-              = []
-          project (x@(p', r'):xs) qs
-              = steps_new : project xs descendants_qs
-              where steps_down     = sequence_steps qs r
-                    descendants_p' = descendants steps_down [p']
-                    steps_new      = sequence_steps descendants_p' r'
-                    descendants_qs = descendants [x] qs
+project :: (Signature s, Variables v)
+    => [Step s v] -> Step s v -> [ParallelStep s v]
+project steps (position, rule) = project' steps (pos_to_dpos position)
+    where project' [] _           = []
+          project' ((p, r):ss) qd = pstep : project' ss descendants_qd
+              where relevant_qd    = genericTake (pos_len p + 1) qd
+                    steps_down     = zip (concat relevant_qd) (repeat rule)
+                    descendants_p  = descendants steps_down (pos_to_dpos p)
+                    pstep          = (descendants_p, r)
+                    descendants_qd = descendants [(p, r)] qd
 
--- Concatenate the developments of the bottom reduction to obtain all steps.
+-- Concatenate the lists produced by bottom_list to all steps of the bottom
+-- reduction.
 bottom_steps :: RewriteSystem s v r
     => CReduction s v r -> Step s v -> [Step s v]
-bottom_steps (CRCons (RCons _ ss) _) step = concat steps_list
-    where steps_list = bottom_list (enum ss) step
+bottom_steps reduction step = concat steps_list
+    where steps_list = bottom_list reduction step
 
--- Compute the modulus of the bottom reduction using the observation that in
--- the worse case a variable in the left-hand side of a rewrite rule is moved
--- all the way to the top of the right-hand side term.
+-- Compute the modulus of the bottom reduction using that the ith element of
+-- the list produced by bottom_list contains only steps at depth at least i.
 bottom_modulus :: RewriteSystem s v r
     => CReduction s v r -> Step s v -> Modulus Omega
-bottom_modulus (CRCons (RCons _ ss) phi) step@(_, r) = construct_modulus phi_new
-    where phi_new x = genericLength (concat (genericTake modulus steps_list))
-              where modulus    = ord_to_int (phi ord_zero (x + left_height r))
-                    steps_list = bottom_list (enum ss) step
+bottom_modulus reduction step = construct_modulus phi
+    where phi n      = genericLength (concat (genericTake (n + 1) steps_list))
+          steps_list = bottom_list reduction step
 
 -- Yield the bottom reduction of the Strip Lemma.
 bottom_reduction :: RewriteSystem s v r
@@ -79,39 +97,37 @@ bottom_reduction reduction step = CRCons (RCons ts ss) phi
           steps = bottom_steps reduction step
 
 -- The function right_list computes the right-most reduction of the Strip
--- Lemma (which is a development). The steps of the reduction are returned as
--- a list of lists of steps, where it is ensured for the i-th item in the list
--- that all steps occur at depth i.
-right_list :: (Signature s, Variables v, UnivalentSystem o)
-    => [Step s v] -> Modulus o -> Step s v -> [[Step s v]]
-right_list steps phi (p, r) = project steps [p] 0 0
-    where project _ [] _ _
-              = []
-          project xs ps n depth
-              = steps_new : project xs_left descendants_nd n' (depth + 1)
-              where n' = max n (ord_to_int (phi ord_zero depth))
-                    xs_use  = genericTake (n' - n) xs
-                    xs_left = genericDrop (n' - n) xs
-                    descendants_ps = descendants xs_use ps
-                    descendants_d  = filter at_d descendants_ps
-                        where at_d q = (pos_len q) == depth
-                    descendants_nd = filter not_at_d descendants_ps
-                        where not_at_d q = (pos_len q) /= depth
-                    steps_new = sequence_steps descendants_d r
+-- Lemma. The steps of the reduction are returned as a list of lists of steps,
+-- where it is ensured for the ith item in the list that all steps occur at
+-- depth i.
+--
+-- The function gather has two arguments: depth and the final term after
+-- applying all rewrite steps found thusfar.
+right_list :: RewriteSystem s v r
+    => CReduction s v r -> Step s v -> [[Step s v]]
+right_list reduction (position, rule) = gather 0 (final_term reduction)
+    where pd = pos_to_dpos position
+          gather d t = steps_d : gather (d + 1) t'
+              where t'      = last (rewrite_steps t steps_d)
+                    steps_d = zip (genericIndex pd' d) (repeat rule)
+                    pd'     = descendants steps pd
+                    steps   = needed_steps reduction ps
+                    ps      = pos_to_depth t d
 
--- Concatenate the lists of the right-most reduction to obtain all steps
+-- Concatenate the lists produced by right_list to obtain all steps of the
+-- right-most reduction.
 right_steps :: RewriteSystem s v r
     => CReduction s v r -> Step s v -> [Step s v]
-right_steps (CRCons (RCons _ ss) phi) step = concat steps_list
-    where steps_list = right_list (enum ss) phi step
+right_steps reduction step = concat steps_list
+    where steps_list = right_list reduction step
 
 -- Compute the modulus of the right-most reduction using that the ith element
--- of the list produced by right_develop contains all steps at depth i.
+-- of the list produced by right_list contains all steps at depth i.
 right_modulus :: RewriteSystem s v r
     => CReduction s v r -> Step s v -> Modulus Omega
-right_modulus (CRCons (RCons _ ss) phi) step = construct_modulus phi_new
-    where phi_new x  = genericLength (concat (genericTake (x + 1) steps_list))
-          steps_list = right_list (enum ss) phi step
+right_modulus reduction step = construct_modulus phi_new
+    where phi_new n  = genericLength (concat (genericTake (n + 1) steps_list))
+          steps_list = right_list reduction step
 
 -- Yield the right-most reduction of the Strip Lemma.
 right_reduction :: RewriteSystem s v r
@@ -123,7 +139,7 @@ right_reduction reduction step = CRCons (RCons ts ss) phi
           terms = rewrite_steps (final_term reduction) steps
           steps = right_steps reduction step
 
--- Strip Lemma for orthogonal systems with finite right-hand sides.
+-- The Strip Lemma for orthogonal systems.
 --
 -- It is assumed the input reduction has at most length omega.
 strip_lemma :: RewriteSystem s v r

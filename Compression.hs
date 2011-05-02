@@ -21,6 +21,7 @@ module Compression (
     compression
 ) where
 
+import PositionAndSubterm
 import RuleAndSystem
 import Reduction
 import Omega
@@ -29,29 +30,34 @@ import List
 
 -- The function compr_list computes the compressed reduction. The steps of the
 -- reduction are returned as a list of lists of steps, where it is ensured for
--- the i-th item in the list that all its steps occur at depth i.
+-- the ith item in the list that all its steps occur at depth at least i.
+--
+-- The function gather has four arguments: depth, previous steps, and previous
+-- parallel steps.
 compr_list :: RewriteSystem s v r
     => CReduction s v r -> [[Step s v]]
-compr_list reduction = compr_list' 0 []
-    where compr_list' depth prev = steps_new : compr_list' (depth + 1) total
-              where total     = needed_steps reduction depth
-                    steps_new = filter_steps prev total
+compr_list reduction = gather 0 [] []
+    where t_final = final_term reduction
+          gather d prev psteps = steps_d : gather (d + 1) total psteps'
+              where (steps_d, psteps') = filter_steps prev psteps total ps
+                    total = needed_steps reduction ps
+                    ps    = pos_to_depth t_final d
 
--- Concatenate the lists produced by compr_devel to obtain all steps.
+-- Concatenate the lists produced by compr_list to obtain all steps.
 compr_steps :: RewriteSystem s v r
     => CReduction s v r -> [Step s v]
 compr_steps reduction = concat list_steps
     where list_steps = compr_list reduction
 
 -- Compute the modulus using that the ith element of the list produced by
--- compr_devel contains all steps at depth i.
+-- compr_list contains only steps at depth at least i.
 compr_modulus :: RewriteSystem s v r
     => CReduction s v r -> (Modulus Omega)
 compr_modulus reduction = construct_modulus phi
-    where phi x      = genericLength (concat (genericTake (x + 1) steps_list))
+    where phi n      = genericLength (concat (genericTake (n + 1) steps_list))
           steps_list = compr_list reduction
 
--- Compression of left-linear rewrite systems with finite right-hand sides.
+-- Compression of left-linear rewrite systems.
 compression :: RewriteSystem s v r
     => r -> CReduction s v r -> CReduction s v r
 compression _ reduction

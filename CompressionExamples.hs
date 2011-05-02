@@ -50,7 +50,7 @@ red_1 = RCons ts ss
 
 c_red_1 :: CReduction Sigma Var System_a_f_x
 c_red_1 = CRCons red_1 phi
-    where phi (OmegaElement 0) m  = Omega2Element (m + 1)
+    where phi (OmegaElement 0)  m = Omega2Element (m + 1)
           phi (Omega2Element 0) m = OmegaElement (m + 1)
           phi _ _                 = error "Illegal modulus"
 
@@ -77,7 +77,7 @@ red_2 = RCons ts ss
 
 c_red_2 :: CReduction Sigma Var System_a_f_x
 c_red_2 = CRCons red_2 phi
-    where phi (OmegaElement 0) m  = Omega2Element (m + 1)
+    where phi (OmegaElement 0)  m = Omega2Element (m + 1)
           phi (Omega2Element 0) m = OmegaElement m
           phi _ _                 = error "Illegal modulus"
 
@@ -86,6 +86,8 @@ c_red_2 = CRCons red_2 phi
 -- Compression of the following reduction demonstrates the compression
 -- algorithm re-orders the redutions steps in such a way that the steps
 -- at least depth are performed first.
+--
+--     compression system_a_f_x c_red_3
 red_3 :: Omega2Reduction Sigma Var System_a_f_x
 red_3 = RCons ts ss
     where ts = construct_sequence terms []
@@ -103,6 +105,8 @@ c_red_3 = CRCons red_3 phi
 -- f^omega
 --
 -- Compression of the following reduction demonstrates an edge case.
+--
+--     compression system_a_f_x c_red_4
 red_4 :: Omega2Reduction Sigma Var System_a_f_x
 red_4 = RCons (construct_sequence [f_omega] []) (construct_sequence [] [])
 
@@ -110,3 +114,21 @@ c_red_4 :: CReduction Sigma Var System_a_f_x
 c_red_4 = CRCons red_4 phi
     where phi (OmegaElement 0) _ = OmegaElement 0
           phi _ _                = error "Illegal modulus"
+
+--
+red_5 :: Omega2Reduction Sigma Var System_a_f_x_omega
+red_5 = RCons ts ss
+    where ts = construct_sequence terms_1 terms_2
+          ss = construct_sequence steps_1 steps_2
+          terms_1 = rewrite_steps f_a steps_1
+          steps_1 = zip ps_1 rs_1
+          ps_1 = iterate (\p -> 1:p) [1]
+          rs_1 = repeat rule_a_to_f_a
+          terms_2 = rewrite_steps f_omega steps_2
+          steps_2 = [([], rule_f_x_to_h_x_omega)]
+
+c_red_5 :: CReduction Sigma Var System_a_f_x_omega
+c_red_5 = CRCons red_5 phi
+    where phi (OmegaElement 0)  _ = (Omega2Element 1)
+          phi (Omega2Element 0) m = (OmegaElement m)
+          phi _ _                 = error "Illegal modulus"
