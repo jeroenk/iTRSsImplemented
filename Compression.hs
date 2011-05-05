@@ -52,7 +52,7 @@ compr_steps reduction = concat list_steps
 -- Compute the modulus using that the ith element of the list produced by
 -- compr_list contains only steps at depth at least i.
 compr_modulus :: RewriteSystem s v r
-    => CReduction s v r -> (Modulus Omega)
+    => CReduction s v r -> Modulus Omega
 compr_modulus reduction = construct_modulus phi
     where phi n      = genericLength (concat (genericTake (n + 1) steps_list))
           steps_list = compr_list reduction
