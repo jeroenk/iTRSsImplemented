@@ -75,11 +75,12 @@ instance ComputableSequence Omega t (OmegaSequence t) where
         = genericTake (n - m) (genericDrop m xs)
     select (OmegaSequenceCons xs) f alpha
         = select' xs 0 alpha
-        where select' _  _ (_, Nothing)   = []
-              select' ys m (z, Just beta) = head ys' : select' ys' n next_elem
-                  where ys'            = genericDrop (n - m) ys
-                        next_elem      = f (z, beta)
-                        OmegaElement n = beta
+            where select' _  _ (_, Nothing)   = []
+                  select' ys m (z, Just beta) = head ys' : continuation
+                      where continuation   = select' ys' n next_elem
+                            ys'            = genericDrop (n - m) ys
+                            next_elem      = f (z, beta)
+                            OmegaElement n = beta
     omega_dom _
         = True
 

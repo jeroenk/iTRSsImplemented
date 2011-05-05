@@ -68,11 +68,9 @@ function_term f ss
 -- The height of a term: height(t) = max {|p| : p in Pos(t)}.
 term_height :: (Signature s, Variables v)
     => Term s v -> Integer
-term_height (Function _ ss)
-    = foldl max 0 (fmap term_height' ss)
+term_height (Function _ ss) = foldl max 0 (fmap term_height' ss)
     where term_height' t = 1 + term_height t
-term_height (Variable _)
-    = 0
+term_height (Variable _)    = 0
 
 -- Establish if a term t is of height less than n.
 less_height :: (Signature s, Variables v)
