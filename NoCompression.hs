@@ -19,6 +19,7 @@ import SignatureAndVariables
 import Term
 import RuleAndSystem
 import SystemOfNotation
+import Reduction
 
 import Array
 
@@ -157,27 +158,6 @@ replace_c (Function symbol ts)
 replace_c (Variable v)
     = (Variable v)
 
-construct_terms_and_steps :: UnivalentSystem o
-    => (Integer -> Bool) -> (Integer -> Bool) -> (Integer -> o) -> o
-       -> o -> (Term Sigma Var, Step Sigma Var)
-construct_terms_and_steps in_set geq_lub nu alpha beta
-    = construct initial_term beta' beta' True
-        where initial_term = construct_term in_set geq_lub nu beta' alpha
-              beta'        = ord_lim_pred beta
-              construct t delta gamma False
-                  | delta `ord_eq` beta = (t, k_step)
-                  | otherwise           = construct t' delta' gamma f_next
-                      where (f_next, k_step) = find_k_step t
-                            t'     = rewrite_step t k_step
-                            delta' = ord_succ delta
-              construct t delta gamma True
-                  | delta `ord_eq` beta = (t, f_step)
-                  | otherwise           = construct t' delta' gamma' False
-                      where f_step = find_f_step in_set nu alpha gamma
-                            t'     = rewrite_step t f_step
-                            delta' = ord_succ delta
-                            gamma' = ord_succ gamma
-
 find_k_step :: Term Sigma Var -> (Bool, Step Sigma Var)
 find_k_step term = (f_next, (position, rule))
     where (f_next, position, rule) = find_k_step' term
@@ -205,6 +185,70 @@ find_f_step in_set nu alpha beta = (find_f_step' 0, rule_f)
                   = []
               | otherwise
                   = 1 : find_f_step' (d + 1)
+
+construct_terms_and_steps :: UnivalentSystem o
+    => (Integer -> Bool) -> (Integer -> Bool) -> (Integer -> o) -> o
+       -> o -> (Term Sigma Var, Step Sigma Var)
+construct_terms_and_steps in_set geq_lub nu alpha beta
+    = construct term_initial beta' beta' True
+        where term_initial = construct_term in_set geq_lub nu beta' alpha
+              beta'        = ord_lim_pred beta
+              construct t delta gamma False
+                  | delta `ord_eq` beta = (t, k_step)
+                  | otherwise           = construct t' delta' gamma f_next
+                      where (f_next, k_step) = find_k_step t
+                            t'     = rewrite_step t k_step
+                            delta' = ord_succ delta
+              construct t delta gamma True
+                  | delta `ord_eq` beta = (t, f_step)
+                  | otherwise           = construct t' delta' gamma' False
+                      where f_step = find_f_step in_set nu alpha gamma
+                            t'     = rewrite_step t f_step
+                            delta' = ord_succ delta
+                            gamma' = ord_succ gamma
+
+construct_modulus :: UnivalentSystem o
+    => (Integer -> Bool) -> (Integer -> Bool) -> (Integer -> o) -> o
+       -> Modulus o
+construct_modulus in_set geq_lub nu alpha beta depth
+    | valid     = count_steps in_set geq_lub nu alpha delta
+    | otherwise = error "Illegal modulus"
+            where valid = ord_kind beta == LimitOrdinal
+                  delta = find_last_ordinal in_set nu beta' depth
+                  beta' = if beta `ord_eq` ord_zero then alpha else beta
+
+count_steps :: UnivalentSystem o
+    => (Integer -> Bool) -> (Integer -> Bool) -> (Integer -> o) -> o -> o
+       -> o
+count_steps in_set geq_lub nu alpha beta
+    = count term_initial beta' beta' True
+        where term_initial = construct_term in_set geq_lub nu beta' alpha
+              beta'        = ord_lim_pred beta
+              count t delta gamma False
+                  = count t' delta' gamma f_next
+                      where (f_next, k_step) = find_k_step t
+                            t'     = rewrite_step t k_step
+                            delta' = ord_succ delta
+              count t delta gamma True
+                  | gamma `ord_eq` beta = delta
+                  | otherwise           = count t' delta' gamma' False
+                      where f_step = find_f_step in_set nu alpha gamma
+                            t'     = rewrite_step t f_step
+                            delta' = ord_succ delta
+                            gamma' = ord_succ gamma
+
+find_last_ordinal :: UnivalentSystem o
+    => (Integer -> Bool) -> (Integer -> o) -> o -> Integer -> o
+find_last_ordinal in_set nu alpha depth
+    | null ordinals = ord_zero
+    | otherwise     = ord_succ (max_ord (head ordinals) (tail ordinals))
+        where ordinals = [nu d | d <- [0..depth], in_set d, in_range d]
+              in_range d = nu(d) `ord_leq` alpha
+              max_ord delta []
+                  = delta
+              max_ord delta (gamma:os)
+                  | delta `ord_less` gamma = max_ord gamma os
+                  | otherwise              = max_ord delta os
 
 -- Reductie stap:
 -- * geen limiet ordinaal: zoek vorige en doe unieke stap
@@ -237,3 +281,5 @@ fin_term = construct_term fin_in_set fin_geq_lub fin_nu (OmegaElement 0) (OmegaE
 
 fin_ts :: Omega -> (Term Sigma Var, Step Sigma Var)
 fin_ts = construct_terms_and_steps fin_in_set fin_geq_lub fin_nu (OmegaElement 4)
+
+-- ord_to_int (count_steps fin_in_set fin_geq_lub fin_nu (OmegaElement 4) (find_last_ordinal fin_in_set fin_nu (OmegaElement 4) 800))
