@@ -41,7 +41,7 @@ import List
 confl_list :: RewriteSystem s v r
     => r -> CReduction s v r -> CReduction s v r -> [[Step s v]]
 confl_list system (CRCons (RCons _ ss) phi) reduction
-    = gather 0 0 reduction (enum ss) [] []
+    = gather 0 0 reduction (get_from ss ord_zero) [] []
     where gather d n r unused prev psteps
               | add_steps = steps_d : gather (d + 1) n r unused total psteps'
               | otherwise = gather d (n + 1) r' (tail unused) prev psteps

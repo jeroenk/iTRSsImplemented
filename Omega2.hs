@@ -26,7 +26,6 @@ module Omega2 (
     Omega2Reduction
 ) where
 
-import SignatureAndVariables
 import Term
 import RuleAndSystem
 import SystemOfNotation
@@ -34,7 +33,7 @@ import Reduction
 
 import List
 
--- System of notation for the ordinal omega
+-- System of notation for the ordinal omega.2
 data Omega2
     = OmegaElement Integer
     | Omega2Element Integer
@@ -70,12 +69,6 @@ instance UnivalentSystem Omega2 where
         = False
     ord_leq (OmegaElement _) (Omega2Element _)
         = True
-    ord_eq (OmegaElement m) (OmegaElement n)
-        = m == n
-    ord_eq (Omega2Element m) (Omega2Element n)
-        = m == n
-    ord_eq _ _
-        = False
     ord_zero
         = OmegaElement 0
     ord_succ (OmegaElement n)
@@ -83,7 +76,7 @@ instance UnivalentSystem Omega2 where
     ord_succ (Omega2Element n)
         = Omega2Element (n + 1)
 
--- Computable sequences of length at most omega.
+-- Computable sequences of length at most omega.2.
 data Omega2Sequence t = Omega2SequenceCons [t] [t]
 
 instance ComputableSequence Omega2 t (Omega2Sequence t) where
@@ -95,14 +88,6 @@ instance ComputableSequence Omega2 t (Omega2Sequence t) where
         = genericDrop n xs
     get_from (Omega2SequenceCons _ xs) (Omega2Element n)
         = genericDrop n xs
-    get_range (Omega2SequenceCons xs _) (OmegaElement m) (OmegaElement n)
-        = genericTake (n - m) (genericDrop m xs)
-    get_range (Omega2SequenceCons xs _) (OmegaElement m) (Omega2Element _)
-        = genericDrop m xs
-    get_range (Omega2SequenceCons _ xs) (Omega2Element m) (Omega2Element n)
-        = genericTake (n - m) (genericDrop m xs)
-    get_range _ _ _
-        = []
     select (Omega2SequenceCons xs ys) f alpha
         = select' xs 0 0 alpha
             where select' _ _ _ (_, Nothing) = []
@@ -116,19 +101,13 @@ instance ComputableSequence Omega2 t (Omega2Sequence t) where
                             compute ws _ l (Omega2Element i)
                                 = (genericDrop (i - l) ws, 0, i)
 
--- Construct a computable sequence of length at most omega out of a list.
+-- Construct a computable sequence of length at most omega.2 out of a list.
 construct_sequence :: [t] -> [t] -> Omega2Sequence t
 construct_sequence xs ys = Omega2SequenceCons xs ys
 
--- Computable sequences of terms and rewrite steps behave as they should.
+-- Reductions of length omega.2.
 type Omega2TermSequence s v   = Omega2Sequence (Term s v)
 type Omega2StepSequence s v r = Omega2Sequence (Step s v)
-
-instance (Signature s, Variables v)
-    => TermSequence s v (Omega2TermSequence s v) Omega2
-
-instance (RewriteSystem s v r)
-    => StepSequence s v r (Omega2StepSequence s v r) Omega2
 
 type Omega2Reduction s v r
     = Reduction s v r (Omega2TermSequence s v) (Omega2StepSequence s v r) Omega2

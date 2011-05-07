@@ -1,6 +1,5 @@
-{-# LANGUAGE MultiParamTypeClasses,
-             FlexibleContexts,
-             ExistentialQuantification #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleContexts, FlexibleInstances,
+             UndecidableInstances, ExistentialQuantification #-}
 {-
 Copyright (C) 2010, 2011 Jeroen Ketema and Jakob Grue Simonsen
 
@@ -48,6 +47,12 @@ class (Signature s, Variables v, ComputableSequence o (Term s v) ts)
     => TermSequence s v ts o
 
 class (RewriteSystem s v r, ComputableSequence o (Step s v) ss)
+    => StepSequence s v r ss o
+
+instance (Signature s, Variables v, ComputableSequence o (Term s v) ts)
+    => TermSequence s v ts o
+
+instance (RewriteSystem s v r, ComputableSequence o (Step s v) ss)
     => StepSequence s v r ss o
 
 -- Computable reductions are computable sequences of terms and rewrite steps.
@@ -166,18 +171,22 @@ acc_wrap steps (steps_acc, ps) = (steps_new ++ steps_acc, ps_new)
 accumulate :: RewriteSystem s v r
     => CReduction s v r -> Positions -> ([Step s v], Positions)
 accumulate (CRCons (RCons _ ss) phi) ps
-    = accumulate' ([], ps) modulus limit (ord_kind limit)
+    = accumulate' ([], ps) limit modulus (ord_kind limit)
         where modulus   = phi ord_zero (maximum (map pos_len ps))
               limit     = ord_lim_pred modulus
               accumulate' sp alpha beta ZeroOrdinal
-                  = acc_wrap (get_range ss beta alpha) sp
+                  = acc_wrap (get_range alpha beta) sp
               accumulate' _ _ _ SuccOrdinal
                   = error "Inconsistent system of notation"
               accumulate' sp alpha beta LimitOrdinal
-                  = accumulate' sp' alpha' beta' (ord_kind beta')
-                      where sp'    = acc_wrap (get_range ss beta alpha) sp
-                            alpha' = phi beta (maximum (map pos_len (snd sp')))
-                            beta'  = ord_lim_pred alpha'
+                  = accumulate' sp' alpha' beta' (ord_kind alpha')
+                      where sp'    = acc_wrap (get_range alpha beta) sp
+                            alpha' = ord_lim_pred beta'
+                            beta'  = phi alpha (maximum (map pos_len (snd sp')))
+              get_range alpha beta = select ss f ((), Just alpha)
+                  where f (_, kappa)
+                            | beta `ord_leq` kappa = ((), Nothing)
+                            | otherwise            = ((), Just (ord_succ kappa))
 
 -- Yield the needed positions of the initial term of a reduction for a
 -- prefix-closed subset of positions of the final term of the reduction.

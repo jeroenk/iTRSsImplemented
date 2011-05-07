@@ -26,7 +26,6 @@ module Omega (
     OmegaReduction, construct_modulus
 ) where
 
-import SignatureAndVariables
 import Term
 import RuleAndSystem
 import SystemOfNotation
@@ -54,10 +53,6 @@ instance SystemOfNotation Omega where
 instance UnivalentSystem Omega where
     ord_leq (OmegaElement m) (OmegaElement n)
         = m <= n
-    ord_eq (OmegaElement m) (OmegaElement n)
-        = m == n
-    ord_less (OmegaElement m) (OmegaElement n)
-        = m < n
     ord_zero
         = OmegaElement 0
     ord_succ (OmegaElement n)
@@ -71,8 +66,6 @@ instance ComputableSequence Omega t (OmegaSequence t) where
         = genericIndex xs n
     get_from (OmegaSequenceCons xs) (OmegaElement n)
         = genericDrop n xs
-    get_range (OmegaSequenceCons xs) (OmegaElement m) (OmegaElement n)
-        = genericTake (n - m) (genericDrop m xs)
     select (OmegaSequenceCons xs) f alpha
         = select' xs 0 alpha
             where select' _  _ (_, Nothing)   = []
@@ -88,15 +81,9 @@ instance ComputableSequence Omega t (OmegaSequence t) where
 construct_sequence :: [t] -> OmegaSequence t
 construct_sequence xs = OmegaSequenceCons xs
 
--- Computable sequences of terms and rewrite steps behave as they should.
+-- Reductions of length omega.
 type OmegaTermSequence s v   = OmegaSequence (Term s v)
 type OmegaStepSequence s v r = OmegaSequence (Step s v)
-
-instance (Signature s, Variables v)
-    => TermSequence s v (OmegaTermSequence s v) Omega
-
-instance (RewriteSystem s v r)
-    => StepSequence s v r (OmegaStepSequence s v r) Omega
 
 type OmegaReduction s v r
     = Reduction s v r (OmegaTermSequence s v) (OmegaStepSequence s v r) Omega

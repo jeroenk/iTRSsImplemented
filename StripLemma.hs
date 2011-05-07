@@ -46,7 +46,7 @@ bottom_list :: RewriteSystem s v r
 bottom_list reduction@(CRCons (RCons _ ss) phi) step@(_, rule)
     = gather 0 0 psteps_all [] t_initial
     where t_initial  = rewrite_step (initial_term reduction) step
-          psteps_all = project (enum ss) step
+          psteps_all = project (get_from ss ord_zero) step
           height     = left_height rule
           gather d p_used unused psteps t
               = steps_d : gather (d + 1) p_used' unused' psteps' t'

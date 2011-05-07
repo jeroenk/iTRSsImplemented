@@ -22,8 +22,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module SystemOfNotation (
     OrdinalKind(ZeroOrdinal, SuccOrdinal, LimitOrdinal),
     SystemOfNotation(ord_kind, ord_pred, ord_limit, ord_lim_pred, ord_to_int),
-    UnivalentSystem(ord_leq, ord_eq, ord_less, ord_zero, ord_succ),
-    ComputableSequence(omega_dom, get_elem, get_from, enum, get_range, select),
+    UnivalentSystem(ord_leq, ord_zero, ord_succ),
+    ComputableSequence(get_elem, get_from, select, omega_dom),
 ) where
 
 -- An ordinal can have three different types.
@@ -69,13 +69,8 @@ class SystemOfNotation o where
 -- the given system of notation.
 class SystemOfNotation o => UnivalentSystem o where
     ord_leq     :: o -> o -> Bool
-    ord_eq      :: o -> o -> Bool -- Existence follows from univalence
-    ord_less    :: o -> o -> Bool -- Existence follows from ord_leq and ord_eq
     ord_zero    :: o              -- Existence follows by univalence
     ord_succ    :: o -> o         -- Existence follows by univalence
-
-    -- Default implementation of ord_less
-    alpha `ord_less` beta = alpha `ord_leq` beta && not (alpha `ord_eq` beta)
 
 -- A computable sequence of elements is a function from some ordinal to the
 -- elements of a certain type. The employed ordinal might be choosen larger
@@ -86,30 +81,17 @@ class SystemOfNotation o => UnivalentSystem o where
 -- The operations are as follows:
 -- * get_elem s a       Yields the a-th element of the sequence s
 -- * get_from s a       Enumerates the elements of s starting from a
--- * get_range s a b    Enumerates the elements of s starting from s and up to b
 -- * select s f (x, a)  Selects elements of the sequence; the function f yields
 --                      the next element to select and expected to be monotone
---
--- The following operations assume the employed ordinal:
--- * omega_dom s        May yield True if the employed ordinal is at most omega
--- * enum s             Enumerates the elements of s starting from zero
+-- * omega_dom s        Yield True in case the employed ordinal is at most omega
 class UnivalentSystem o => ComputableSequence o t s | s -> o t where
     get_elem  :: s -> o -> t
     get_from  :: s -> o -> [t]
-    get_range :: s -> o -> o -> [t]
     select    :: s -> ((a, o) -> (a, Maybe o)) -> (a, Maybe o) -> [t]
     omega_dom :: s -> Bool
-    enum      :: s -> [t]
 
     -- Default implementation of get_from
     get_from s alpha = get_elem s alpha : get_from s (ord_succ alpha)
-
-    -- Default implementation of get_range
-    get_range s alpha beta
-        | beta `ord_leq` alpha
-            = []
-        | otherwise
-            = get_elem s alpha : get_range s (ord_succ alpha) beta
 
     -- Default implementation of select
     select _ _ (_, Nothing)    = []
@@ -118,8 +100,3 @@ class UnivalentSystem o => ComputableSequence o t s | s -> o t where
 
     -- Default implementation of omega_dom
     omega_dom _ = False
-
-    -- Default implementation of enum
-    enum s
-        | omega_dom s = get_from s ord_zero
-        | otherwise   = error "Employed ordinal to large, cannot enumerate"
