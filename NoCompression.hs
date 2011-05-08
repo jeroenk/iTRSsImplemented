@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-
 Copyright (C) 2011 Jeroen Ketema
 
@@ -23,7 +24,7 @@ import Reduction
 
 import Array
 
-import Omega
+import Omega hiding (construct_modulus)
 
 data Sigma = SigmaCons String
 data Var   = VarCons Char
@@ -122,6 +123,19 @@ rule_k_h' = Rule k_h'_x h_k_x
 rule_k_h :: RewriteRule Sigma Var
 rule_k_h = Rule k_h_x h_x
 
+type System_Non_LL = BasicSystem Sigma Var
+
+system_non_ll :: System_Non_LL
+system_non_ll = BasicSystemCons [rule_f, rule_k_f', rule_k_h', rule_k_h]
+
+ord_less :: UnivalentSystem o
+    => o -> o -> Bool
+ord_less alpha beta = alpha `ord_leq` beta && not (beta `ord_leq` alpha)
+
+ord_eq :: UnivalentSystem o
+    => o -> o -> Bool
+ord_eq alpha beta = alpha `ord_leq` beta && beta `ord_leq` alpha
+
 construct_term :: UnivalentSystem o
     => (Integer -> Bool) -> (Integer -> Bool) -> (Integer -> o) -> o -> o
        -> Term Sigma Var
@@ -187,25 +201,37 @@ find_f_step in_set nu alpha beta = (find_f_step' 0, rule_f)
                   = 1 : find_f_step' (d + 1)
 
 construct_terms_and_steps :: UnivalentSystem o
-    => (Integer -> Bool) -> (Integer -> Bool) -> (Integer -> o) -> o
-       -> o -> (Term Sigma Var, Step Sigma Var)
+    => (Integer -> Bool) -> (Integer -> Bool) -> (Integer -> o) -> o -> o
+       -> (Term Sigma Var, Step Sigma Var)
 construct_terms_and_steps in_set geq_lub nu alpha beta
-    = construct term_initial beta' beta' True
+    = construct' term_initial beta' beta' True
         where term_initial = construct_term in_set geq_lub nu beta' alpha
               beta'        = ord_lim_pred beta
-              construct t delta gamma False
+              construct' t delta gamma False
                   | delta `ord_eq` beta = (t, k_step)
-                  | otherwise           = construct t' delta' gamma f_next
+                  | otherwise           = construct' t' delta' gamma f_next
                       where (f_next, k_step) = find_k_step t
                             t'     = rewrite_step t k_step
                             delta' = ord_succ delta
-              construct t delta gamma True
+              construct' t delta gamma True
                   | delta `ord_eq` beta = (t, f_step)
-                  | otherwise           = construct t' delta' gamma' False
+                  | otherwise           = construct' t' delta' gamma' False
                       where f_step = find_f_step in_set nu alpha gamma
                             t'     = rewrite_step t f_step
                             delta' = ord_succ delta
                             gamma' = ord_succ gamma
+
+terms :: (UnivalentSystem o, TermSequence Sigma Var ts o)
+    => (Integer -> Bool) -> (Integer -> Bool) -> (Integer -> o) -> o
+       -> ((o -> Term Sigma Var) -> ts) -> ts
+terms in_set geq_lub nu alpha constr = constr (fst . terms_and_steps)
+    where terms_and_steps = construct_terms_and_steps in_set geq_lub nu alpha
+
+steps :: (UnivalentSystem o, StepSequence Sigma Var System_Non_LL ss o)
+    => (Integer -> Bool) -> (Integer -> Bool) -> (Integer -> o) -> o
+       -> ((o -> Step Sigma Var) -> ss) -> ss
+steps in_set geq_lub nu alpha constr = constr (snd . terms_and_steps)
+    where terms_and_steps = construct_terms_and_steps in_set geq_lub nu alpha
 
 construct_modulus :: UnivalentSystem o
     => (Integer -> Bool) -> (Integer -> Bool) -> (Integer -> o) -> o
@@ -250,6 +276,17 @@ find_last_ordinal in_set nu alpha depth
                   | delta `ord_less` gamma = max_ord gamma os
                   | otherwise              = max_ord delta os
 
+construct_reduction :: (UnivalentSystem o, TermSequence Sigma Var ts o,
+            StepSequence Sigma Var System_Non_LL ss o)
+    => (Integer -> Bool) -> (Integer -> Bool) -> (Integer -> o) -> o
+       -> ((o -> Term Sigma Var) -> ts) -> ((o -> Step Sigma Var) -> ss)
+       -> CReduction Sigma Var System_Non_LL
+construct_reduction in_set geq_lub nu alpha constr_t constr_s
+    = CRCons (RCons ts ss) phi
+        where ts  = terms in_set geq_lub nu alpha constr_t
+              ss  = steps in_set geq_lub nu alpha constr_s
+              phi = construct_modulus in_set geq_lub nu alpha
+
 -- Reductie stap:
 -- * geen limiet ordinaal: zoek vorige en doe unieke stap
 -- * wel limiet ordinaal of nul: bereken term en doe unieke stap
@@ -281,5 +318,11 @@ fin_term = construct_term fin_in_set fin_geq_lub fin_nu (OmegaElement 0) (OmegaE
 
 fin_ts :: Omega -> (Term Sigma Var, Step Sigma Var)
 fin_ts = construct_terms_and_steps fin_in_set fin_geq_lub fin_nu (OmegaElement 4)
+
+construct :: (Omega -> t) -> OmegaSequence t
+construct fun = construct_sequence (map fun [OmegaElement n | n <- [0..]])
+
+fin :: CReduction Sigma Var System_Non_LL
+fin = construct_reduction fin_in_set fin_geq_lub fin_nu (OmegaElement 4) construct construct
 
 -- ord_to_int (count_steps fin_in_set fin_geq_lub fin_nu (OmegaElement 4) (find_last_ordinal fin_in_set fin_nu (OmegaElement 4) 800))
