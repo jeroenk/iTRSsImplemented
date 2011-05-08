@@ -239,7 +239,7 @@ construct_modulus :: UnivalentSystem o
 construct_modulus in_set geq_lub nu alpha beta depth
     | valid     = count_steps in_set geq_lub nu alpha delta
     | otherwise = error "Illegal modulus"
-            where valid = ord_kind beta == LimitOrdinal
+            where valid = ord_kind beta /= SuccOrdinal
                   delta = find_last_ordinal in_set nu beta' depth
                   beta' = if beta `ord_eq` ord_zero then alpha else beta
 
