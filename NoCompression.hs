@@ -16,6 +16,15 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
+-- This module defines non-compressible reductions for a system with a
+-- non-left-linear rule.
+
+module NoCompression (
+    Sigma, Var,
+    System_Non_LL, system_non_ll,
+    construct_reduction
+) where
+
 import SignatureAndVariables
 import Term
 import RuleAndSystem
@@ -24,8 +33,7 @@ import Reduction
 
 import Array
 
-import Omega hiding (construct_modulus)
-
+-- Signature and variables.
 data Sigma = SigmaCons String
 data Var   = VarCons Char
 
@@ -52,6 +60,7 @@ instance Eq Var where
 instance Show Var where
     show (VarCons variable) = [variable]
 
+-- Some wrappers for variables and function symbols.
 x :: Var
 x = VarCons 'x'
 
@@ -79,6 +88,7 @@ h' = SigmaCons "h'"
 k :: Sigma
 k = SigmaCons "k"
 
+-- Terms employed in the rewrite rules of the non-left-linear system.
 f_x_x_y :: Term Sigma Var
 f_x_x_y = function_term f [Variable x, Variable x, Variable y]
 
@@ -123,11 +133,21 @@ rule_k_h' = Rule k_h'_x h_k_x
 rule_k_h :: RewriteRule Sigma Var
 rule_k_h = Rule k_h_x h_x
 
+-- The non-left-linear rewrite system.
+--
+-- The system has four rules:
+--
+--    f(x, x, y)     -> h(k(y))
+--    k(f'(x, y, z)) -> f(k(x), y, z)
+--    k(h'(x))       -> h(k(x))
+--    k(h(x))        -> h(x)
+--
 type System_Non_LL = BasicSystem Sigma Var
 
 system_non_ll :: System_Non_LL
 system_non_ll = BasicSystemCons [rule_f, rule_k_f', rule_k_h', rule_k_h]
 
+-- Two helper functions for ordinals derived from ord_leq.
 ord_less :: UnivalentSystem o
     => o -> o -> Bool
 ord_less alpha beta = alpha `ord_leq` beta && not (beta `ord_leq` alpha)
@@ -136,6 +156,7 @@ ord_eq :: UnivalentSystem o
     => o -> o -> Bool
 ord_eq alpha beta = alpha `ord_leq` beta && beta `ord_leq` alpha
 
+-- Construction of terms in which the symbol k does not occur.
 construct_term :: UnivalentSystem o
     => (Integer -> Bool) -> (Integer -> Bool) -> (Integer -> o) -> o -> o
        -> Term Sigma Var
@@ -172,6 +193,19 @@ replace_c (Function symbol ts)
 replace_c (Variable v)
     = (Variable v)
 
+-- Two helper functions to locate the next redex, given it is known the next
+-- redex either employs the f-rule or one of the k-rules.
+find_f_step :: UnivalentSystem o
+    => (Integer -> Bool) -> (Integer -> o) -> o -> o -> Step Sigma Var
+find_f_step in_set nu alpha beta = (find_f_step' 0, rule_f)
+    where find_f_step' d
+              | beta `ord_eq` alpha
+                  = error "No step with requested index"
+              | in_set d && nu(d) `ord_eq` beta
+                  = []
+              | otherwise
+                  = 1 : find_f_step' (d + 1)
+
 find_k_step :: Term Sigma Var -> (Bool, Step Sigma Var)
 find_k_step term = (f_next, (position, rule))
     where (f_next, position, rule) = find_k_step' term
@@ -189,17 +223,17 @@ find_k_step term = (f_next, (position, rule))
           establish_rule (Variable _)
               = error "Illegal symbol in derived term"
 
-find_f_step :: UnivalentSystem o
-    => (Integer -> Bool) -> (Integer -> o) -> o -> o -> Step Sigma Var
-find_f_step in_set nu alpha beta = (find_f_step' 0, rule_f)
-    where find_f_step' d
-              | beta `ord_eq` alpha
-                  = error "No step with requested index"
-              | in_set d && nu(d) `ord_eq` beta
-                  = []
-              | otherwise
-                  = 1 : find_f_step' (d + 1)
-
+-- Yield the beta-th term and step along the reduction.
+--
+-- The function establishes (ord_lim_pred beta) and starts reducing from there
+-- until a sufficient number of terms and steps have been found.
+--
+-- In case of a limit ordinal the only valid term can be one in which the
+-- function symbol k does not occur. Hence, in this case also, only an f-step
+-- is possible. After the f-step, only a finite number of k-steps can occur,
+-- which occur at depth at least equal to the preceeding f-step. The final
+-- k-step of such a finite series will employ the rule k(h(x)) -> h(x), after
+-- which an f-step should again occur.
 construct_terms_and_steps :: UnivalentSystem o
     => (Integer -> Bool) -> (Integer -> Bool) -> (Integer -> o) -> o -> o
        -> (Term Sigma Var, Step Sigma Var)
@@ -221,6 +255,8 @@ construct_terms_and_steps in_set geq_lub nu alpha beta
                             delta' = ord_succ delta
                             gamma' = ord_succ gamma
 
+-- Yield the computable sequences of terms and steps of which the reduction is
+-- composed.
 terms :: (UnivalentSystem o, TermSequence Sigma Var ts o)
     => (Integer -> Bool) -> (Integer -> Bool) -> (Integer -> o) -> o
        -> ((o -> Term Sigma Var) -> ts) -> ts
@@ -233,6 +269,10 @@ steps :: (UnivalentSystem o, StepSequence Sigma Var System_Non_LL ss o)
 steps in_set geq_lub nu alpha constr = constr (snd . terms_and_steps)
     where terms_and_steps = construct_terms_and_steps in_set geq_lub nu alpha
 
+-- Yield the modulus of the reduction.
+--
+-- Given the ordinal and depth of interest, the function establishes the last
+-- step that occurs at or above the given depth.
 construct_modulus :: UnivalentSystem o
     => (Integer -> Bool) -> (Integer -> Bool) -> (Integer -> o) -> o
        -> Modulus o
@@ -276,6 +316,7 @@ find_last_ordinal in_set nu alpha depth
                   | delta `ord_less` gamma = max_ord gamma os
                   | otherwise              = max_ord delta os
 
+-- Yield a non-compressible reduction.
 construct_reduction :: (UnivalentSystem o, TermSequence Sigma Var ts o,
             StepSequence Sigma Var System_Non_LL ss o)
     => (Integer -> Bool) -> (Integer -> Bool) -> (Integer -> o) -> o
@@ -286,43 +327,3 @@ construct_reduction in_set geq_lub nu alpha constr_t constr_s
         where ts  = terms in_set geq_lub nu alpha constr_t
               ss  = steps in_set geq_lub nu alpha constr_s
               phi = construct_modulus in_set geq_lub nu alpha
-
--- Reductie stap:
--- * geen limiet ordinaal: zoek vorige en doe unieke stap
--- * wel limiet ordinaal of nul: bereken term en doe unieke stap
---            let op: we moeten wel weten of het een k stap of een f stap is,
---                    anders gaan we misschien zoeken in h_omega subterm
---
--- Modulus:
---    kijk of er nog latere stappen in de gevraagde range zitten die hoger
---    liggen dan nu^{-1}(d) (kan omdat we over een bijectie spreken en dus
---    iedere diepte maar een keer voor komt). We moeten we compenseren voor de
---    k-stappen, maar deze gebeuren altijd onder de nu^{-1}(d) stap die we
---    zoeken.
-
-fin_in_set :: Integer -> Bool
-fin_in_set n = n `elem` [1, 3, 5, 7]
-
-fin_geq_lub :: Integer -> Bool
-fin_geq_lub n = n >= 10
-
-fin_nu :: Integer -> Omega
-fin_nu 1 = OmegaElement 2
-fin_nu 3 = OmegaElement 1
-fin_nu 5 = OmegaElement 0
-fin_nu 7 = OmegaElement 3
-fin_nu _ = error "Impossible"
-
-fin_term :: Term Sigma Var
-fin_term = construct_term fin_in_set fin_geq_lub fin_nu (OmegaElement 0) (OmegaElement 4)
-
-fin_ts :: Omega -> (Term Sigma Var, Step Sigma Var)
-fin_ts = construct_terms_and_steps fin_in_set fin_geq_lub fin_nu (OmegaElement 4)
-
-construct :: (Omega -> t) -> OmegaSequence t
-construct fun = construct_sequence (map fun [OmegaElement n | n <- [0..]])
-
-fin :: CReduction Sigma Var System_Non_LL
-fin = construct_reduction fin_in_set fin_geq_lub fin_nu (OmegaElement 4) construct construct
-
--- ord_to_int (count_steps fin_in_set fin_geq_lub fin_nu (OmegaElement 4) (find_last_ordinal fin_in_set fin_nu (OmegaElement 4) 800))
