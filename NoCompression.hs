@@ -175,7 +175,7 @@ construct_term in_set geq_lub nu alpha beta = replace_c (term' 0 alpha beta)
                             empty_range = not (delta `ord_less` gamma)
                             t_1 = term' (d + 1) delta kappa
                             t_2 = constant c
-                            t_3 = rename (term' (d + 1) (succ_kappa) gamma)
+                            t_3 = rename (term' (d + 1) succ_kappa gamma)
 
 rename :: Term Sigma Var -> Term Sigma Var
 rename (Function symbol ts)
@@ -191,7 +191,7 @@ replace_c (Function symbol ts)
     | symbol == c = h_omega
     | otherwise   = Function symbol (fmap replace_c ts)
 replace_c (Variable v)
-    = (Variable v)
+    = Variable v
 
 -- Two helper functions to locate the next redex, given it is known the next
 -- redex either employs the f-rule or one of the k-rules.
@@ -201,7 +201,7 @@ find_f_step in_set nu alpha beta = (find_f_step' 0, rule_f)
     where find_f_step' d
               | beta `ord_eq` alpha
                   = error "No step with requested index"
-              | in_set d && nu(d) `ord_eq` beta
+              | in_set d && nu d `ord_eq` beta
                   = []
               | otherwise
                   = 1 : find_f_step' (d + 1)
@@ -309,7 +309,7 @@ find_last_ordinal in_set nu alpha depth
     | null ordinals = ord_zero
     | otherwise     = ord_succ (max_ord (head ordinals) (tail ordinals))
         where ordinals = [nu d | d <- [0..depth], in_set d, in_range d]
-              in_range d = nu(d) `ord_leq` alpha
+              in_range d = nu d `ord_leq` alpha
               max_ord delta []
                   = delta
               max_ord delta (gamma:os)
