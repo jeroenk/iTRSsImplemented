@@ -38,7 +38,7 @@ import ExampleRulesAndSystems
 --
 red_1a :: OmegaReduction Sigma Var System_a_f_x
 red_1a = RCons (construct_sequence terms) (construct_sequence steps)
-    where terms = rewrite_steps (f_omega) steps
+    where terms = rewrite_steps f_omega steps
           steps = zip ps rs
           ps = iterate (\p -> 1 : p) []
           rs = repeat rule_f_x_to_g_x
@@ -88,7 +88,7 @@ c_red_1c = CRCons red_1c (construct_modulus phi)
 --
 red_2a :: OmegaReduction Sigma Var System_a_b_f_x
 red_2a = RCons (construct_sequence terms) (construct_sequence steps)
-    where terms = rewrite_steps (f_a) steps
+    where terms = rewrite_steps f_a steps
           steps = zip ps rs
           ps = [[], [2], [2,2]]
           rs = [rule_f_x_to_h_x_f_x, rule_f_x_to_h_x_f_x, rule_f_x_to_h_x_f_x]
@@ -130,7 +130,7 @@ red_3a = RCons (construct_sequence terms) (construct_sequence steps)
 
 c_red_3a :: CReduction Sigma Var System_a_b_f_x
 c_red_3a = CRCons red_3a (construct_modulus phi)
-    where phi n = if n == 0 || n == 1 then 0 else 1
+    where phi n = if n `elem` [0, 1] then 0 else 1
 
 --
 -- f(f(a)) -> f(g(a))

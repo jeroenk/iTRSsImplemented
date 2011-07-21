@@ -31,8 +31,8 @@ module PositionAndSubterm (
 import SignatureAndVariables
 import Term
 
-import Array
-import List
+import Data.Array
+import Data.List
 
 -- Positions are sequences of natural numbers.
 type Position  = [Int]
@@ -131,12 +131,12 @@ non_var_pos (Variable _)    = []
 var_pos :: (Signature s, Variables v)
     => Term s v -> v -> Positions
 var_pos (Function _ ts) x = subterm_pos (\t -> var_pos t x) (elems ts)
-var_pos (Variable y)    x = if x == y then [[]] else []
+var_pos (Variable y)    x = [[] | x == y]
 
 var_dpos :: (Signature s, Variables v)
     => Term s v -> v -> PositionsPerDepth
 var_dpos (Function _ ts) x = [] : subterm_dpos (\t -> var_dpos t x) (elems ts)
-var_dpos (Variable y)    x = (if x == y then [[]] else []) : dpos_empty
+var_dpos (Variable y)    x = [[] | x == y] : dpos_empty
 
 -- Yield the subterm at a position.
 subterm :: (Signature s, Variables v)

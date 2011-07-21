@@ -61,7 +61,7 @@ data (TermSequence s v ts o, StepSequence s v r ss o) => Reduction s v r ts ss o
 
 -- Helper function for show.
 show_from :: (Show s, Show v, TermSequence s v ts o, StepSequence s v r ss o)
-    => (Reduction s v r ts ss o) -> o -> String
+    => Reduction s v r ts ss o -> o -> String
 show_from (RCons ts _) alpha = show' (get_from ts alpha) True
     where show' [] True      = error "Reduction without terms"
           show' [] False     = ""

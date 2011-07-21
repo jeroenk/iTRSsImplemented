@@ -49,7 +49,7 @@ instance Eq OrdinalKind where
 class SystemOfNotation o where
     ord_kind     :: o -> OrdinalKind
     ord_pred     :: o -> o
-    ord_limit    :: o -> (Integer -> o)
+    ord_limit    :: o -> Integer -> o
     ord_lim_pred :: o -> o
     ord_to_int   :: o -> Integer
 

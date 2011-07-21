@@ -27,8 +27,8 @@ module Substitution (
 import SignatureAndVariables
 import Term
 
-import Array
-import List
+import Data.Array
+import Data.List
 
 -- Substitutions are finite(!) lists of (variable, term)-pairs.
 type Substitution s v = [(v, Term s v)]

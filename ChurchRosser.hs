@@ -36,7 +36,7 @@ import Omega
 import Compression
 import Confluence
 
-import List
+import Data.List
 
 -- The function interleave_devel computes the interleaving of a pair of
 -- reductions that can be concatenated. The steps of the reduction are returned

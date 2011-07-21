@@ -35,8 +35,8 @@ import Term
 import PositionAndSubterm
 import Substitution
 
-import Array
-import List
+import Data.Array
+import Data.List
 
 -- Rules consist of a left-hand and a right-hand side.
 data (Signature s, Variables v) => RewriteRule s v
@@ -130,7 +130,7 @@ origins_of_position (p, Rule l r) q
 origins_across :: (Signature s, Variables v)
     => Step s v -> Positions -> Positions
 origins_across step ps
-    = nub (concat (map (origins_of_position step) ps))
+    = nub (concatMap (origins_of_position step) ps)
 
 origins :: (Signature s, Variables v)
     => [Step s v] -> Positions -> Positions

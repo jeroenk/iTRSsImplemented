@@ -28,7 +28,7 @@ import SystemOfNotation
 import Reduction
 import Omega
 
-import List
+import Data.List
 
 -- The function bottom_list computes the bottom reduction from the Strip Lemma.
 -- The steps of the reduction are returned as a list of lists of steps, where it

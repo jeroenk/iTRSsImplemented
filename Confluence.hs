@@ -29,7 +29,7 @@ import Omega
 import StripLemma
 import Compression
 
-import List
+import Data.List
 
 -- The function confl_devel computes one side of the confluence diagram. The
 -- steps of the reduction are returned as a list of lists of steps, where it

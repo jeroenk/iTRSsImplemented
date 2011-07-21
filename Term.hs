@@ -27,7 +27,7 @@ module Term (
 import SignatureAndVariables
 
 import Prelude hiding (foldl, and)
-import Array
+import Data.Array
 import Data.Foldable
 
 -- Terms consist of function symbols and variables.

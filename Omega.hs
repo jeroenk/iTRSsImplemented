@@ -31,7 +31,7 @@ import RuleAndSystem
 import SystemOfNotation
 import Reduction
 
-import List
+import Data.List
 
 -- System of notation for the ordinal omega
 data Omega = OmegaElement Integer
@@ -79,7 +79,7 @@ instance ComputableSequence Omega t (OmegaSequence t) where
 
 -- Construct a computable sequence of length at most omega out of a list.
 construct_sequence :: [t] -> OmegaSequence t
-construct_sequence xs = OmegaSequenceCons xs
+construct_sequence = OmegaSequenceCons
 
 -- Reductions of length omega.
 type OmegaTermSequence s v   = OmegaSequence (Term s v)

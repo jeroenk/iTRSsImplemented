@@ -76,7 +76,7 @@ red_1d :: OmegaReduction Sigma Var System_a_f_x
 red_1d = RCons (construct_sequence terms) (construct_sequence steps)
     where terms = rewrite_steps a steps
           steps = zip ps rs
-          ps = [] : [] : [1] : (map (\p -> 1:1:p) ps)
+          ps = [] : [] : [1] : map (\p -> 1:1:p) ps
           rs = rule_a_to_f_a : rule_f_x_to_g_x : rule_a_to_f_a : rs
 
 c_red_1d :: CReduction Sigma Var System_a_f_x

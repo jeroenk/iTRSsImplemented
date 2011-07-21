@@ -26,7 +26,7 @@ import RuleAndSystem
 import Reduction
 import Omega
 
-import List
+import Data.List
 
 -- The function compr_list computes the compressed reduction. The steps of the
 -- reduction are returned as a list of lists of steps, where it is ensured for
