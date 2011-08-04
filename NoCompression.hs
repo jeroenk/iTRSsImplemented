@@ -31,7 +31,7 @@ import RuleAndSystem
 import SystemOfNotation
 import Reduction
 
-import Array
+import Data.Array
 
 -- Signature and variables.
 data Sigma = SigmaCons String
