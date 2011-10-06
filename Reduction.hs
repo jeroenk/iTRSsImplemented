@@ -185,8 +185,9 @@ accumulate (CRCons (RCons _ ss) phi) ps
                             beta'  = phi alpha (maximum (map pos_len (snd sp')))
               get_range alpha beta = select ss f ((), Just alpha)
                   where f (_, kappa)
-                            | beta `ord_leq` kappa = ((), Nothing)
-                            | otherwise            = ((), Just (ord_succ kappa))
+                            | beta `ord_leq` kappa_succ = ((), Nothing)
+                            | otherwise                 = ((), Just kappa_succ)
+                            where kappa_succ = ord_succ kappa
 
 -- Yield the needed positions of the initial term of a reduction for a
 -- prefix-closed subset of positions of the final term of the reduction.
