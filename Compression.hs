@@ -30,7 +30,7 @@ import Data.List
 
 -- The function compr_list computes the compressed reduction. The steps of the
 -- reduction are returned as a list of lists of steps, where it is ensured for
--- the ith item in the list that all its steps occur at depth at least i.
+-- the i-th item in the list that all its steps occur at depth at least i.
 --
 -- The function gather has four arguments: depth, previous steps, and previous
 -- parallel steps.

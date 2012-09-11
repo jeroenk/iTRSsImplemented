@@ -51,7 +51,7 @@ left_height :: (Signature s, Variables v)
     => RewriteRule s v -> Integer
 left_height (Rule l _) = term_height l
 
--- Rewrite steps are (position, rewrite rule)-pairs
+-- Rewrite steps are (position, rewrite rule)-pairs.
 type Step s v = (Position, RewriteRule s v)
 
 -- Apply a rewrite rule to a term.
@@ -139,16 +139,16 @@ origins [] ps
 origins (step:steps) ps
     = origins_across step (origins steps ps)
 
--- Parallel steps contract a number of redexes a parallel positions, where
+-- Parallel steps contract a number of redexes at parallel positions, where
 -- all redexes employ the same rewrite rule. The positions are encoded using
--- PositionsPerDepth, as to also encode that no steps occur at a certain depth.
+-- PositionsPerDepth, as also to encode that no steps occur at a certain depth.
 type ParallelStep s v = (PositionsPerDepth, RewriteRule s v)
 
 -- Filter the steps from a reduction based on the steps found previously. It is
 -- assumed that the steps found previously form a subsequence of the total
--- number of steps and that both sequences define a finite reduction beginning
--- from same term, where there exists a depth d with all previous steps and non
--- of the new steps needed.
+-- number of steps and that both sequences define finite reductions starting
+-- from same term, where there exists a depth d such that all previous steps
+-- and non of the new steps are needed.
 --
 -- The rewrite steps revelant for a certain prefix-closed set of positions are
 -- returned, as is a finite number of parallel steps that are irrelevant for

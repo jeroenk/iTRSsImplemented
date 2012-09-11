@@ -82,7 +82,8 @@ class SystemOfNotation o => UnivalentSystem o where
 -- * get_elem s a       Yields the a-th element of the sequence s
 -- * get_from s a       Enumerates the elements of s starting from a
 -- * select s f (x, a)  Selects elements of the sequence; the function f yields
---                      the next element to select and expected to be monotone
+--                      the next element to select and is expected to be a
+--                      monotone function
 -- * omega_dom s        Yield True in case the employed ordinal is at most omega
 class UnivalentSystem o => ComputableSequence o t s | s -> o t where
     get_elem  :: s -> o -> t
