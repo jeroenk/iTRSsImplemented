@@ -86,10 +86,9 @@ data RewriteSystem s v r => CReduction s v r
 -- A show function for computably convergent reductions.
 instance (Show s, Show v, RewriteSystem s v r)
     => Show (CReduction s v r) where
-    show reduction = show_terms (get_terms reduction) True
-        where show_terms [] _        = ""
-              show_terms (x:xs) True  = show x ++ show_terms xs False
-              show_terms (x:xs) False = " -> " ++ show x ++ show_terms xs False
+    show reduction = show_terms (get_terms reduction) ""
+        where show_terms [] _      = ""
+              show_terms (x:xs) c  = c ++ show x ++ show_terms xs " -> "
 
 -- Get the terms of a computably convergent reduction.
 --

@@ -39,10 +39,9 @@ instance (Show s, Show v, Signature s, Variables v)
     => Show (Term s v) where
     show (Function f ss)
         | arity f == 0  = show f
-        | otherwise     = show f ++ "(" ++ show' (elems ss) True ++ ")"
-            where show' [] _         = ""
-                  show' (x:xs) True  = show x ++ show' xs False
-                  show' (x:xs) False = "," ++ show x ++ show' xs False
+        | otherwise     = show f ++ show' (elems ss) "("
+            where show' [] _     = ")"
+                  show' (x:xs) c = c ++ show x ++ show' xs ","
     show (Variable v)   = show v
 
 -- Wrapper for the definition of terms which are constants.
