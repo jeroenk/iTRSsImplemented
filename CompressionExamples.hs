@@ -51,7 +51,7 @@ red_1 = RCons ts ss
 c_red_1 :: CReduction Sigma Var System_a_f_x
 c_red_1 = CRCons red_1 phi
     where phi (OmegaElement 0)  m = Omega2Element (m + 1)
-          phi (Omega2Element 0) m = OmegaElement (m + 1)
+          phi (Omega2Element 0) m = OmegaElement  (m + 1)
           phi _ _                 = error "Illegal modulus"
 
 --
@@ -80,7 +80,7 @@ red_2 = RCons ts ss
 c_red_2 :: CReduction Sigma Var System_a_f_x
 c_red_2 = CRCons red_2 phi
     where phi (OmegaElement 0)  m = Omega2Element (m + 1)
-          phi (Omega2Element 0) m = OmegaElement m
+          phi (Omega2Element 0) m = OmegaElement   m
           phi _ _                 = error "Illegal modulus"
 
 --

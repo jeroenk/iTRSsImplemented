@@ -41,6 +41,7 @@ import Data.List
 --
 -- For the modulus use the observation that in the worst case a variable in the
 -- left-hand side of a rewrite rule is moved all the way to the root of the
+-- right-hand side.
 bottom_list :: RewriteSystem s v r
     => CReduction s v r -> Step s v -> [[Step s v]]
 bottom_list reduction@(CRCons (RCons _ ss) phi) step@(_, rule)

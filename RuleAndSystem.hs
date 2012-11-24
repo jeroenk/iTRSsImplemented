@@ -1,6 +1,6 @@
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances, GADTs, MultiParamTypeClasses #-}
 {-
-Copyright (C) 2010, 2011 Jeroen Ketema and Jakob Grue Simonsen
+Copyright (C) 2010, 2011, 2012 Jeroen Ketema and Jakob Grue Simonsen
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -39,8 +39,9 @@ import Data.Array
 import Data.List
 
 -- Rules consist of a left-hand and a right-hand side.
-data (Signature s, Variables v) => RewriteRule s v
-    = Rule (Term s v) (Term s v)
+data RewriteRule s v where
+    Rule :: (Signature s, Variables v)
+                => Term s v -> Term s v -> RewriteRule s v
 
 instance (Show s, Show v, Signature s, Variables v)
     => Show (RewriteRule s v) where
@@ -104,7 +105,7 @@ merge (_, Rule l _) pds = merge' (term_height l + 1) pds
 descendants_across :: (Signature s, Variables v)
     => Step s v -> PositionsPerDepth -> PositionsPerDepth
 descendants_across step pd
-    = merge step (map (dpos_merge . map descendants_across_step) pd)
+    = merge step $ map (dpos_merge . map descendants_across_step) pd
         where descendants_across_step = descendants_of_position step
 
 -- Descendants across multiple steps.
@@ -150,7 +151,7 @@ type ParallelStep s v = (PositionsPerDepth, RewriteRule s v)
 -- from same term, where there exists a depth d such that all previous steps
 -- and non of the new steps are needed.
 --
--- The rewrite steps revelant for a certain prefix-closed set of positions are
+-- The rewrite steps relevant for a certain prefix-closed set of positions are
 -- returned, as is a finite number of parallel steps that are irrelevant for
 -- the provided prefix-closed set of positions. The argument psteps_prev can be
 -- used to pass in parallel steps returned by a previous call to the function.
@@ -216,8 +217,9 @@ needed_for_position pd p = find_positions (pos_len p + 1) pd
 class (Signature s, Variables v) => RewriteSystem s v r where
     rules :: r -> [RewriteRule s v]
 
-data (Signature s, Variables v) => BasicSystem s v
-    = BasicSystemCons [RewriteRule s v]
+data BasicSystem s v where
+    BasicSystemCons :: (Signature s, Variables v)
+                           => [RewriteRule s v] -> BasicSystem s v
 
 instance (Signature s, Variables v)
     => RewriteSystem s v (BasicSystem s v) where

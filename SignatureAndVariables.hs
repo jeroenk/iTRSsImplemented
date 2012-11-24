@@ -1,5 +1,6 @@
+{-# LANGUAGE GADTs #-}
 {-
-Copyright (C) 2010, 2011 Jeroen Ketema and Jakob Grue Simonsen
+Copyright (C) 2010, 2011, 2012 Jeroen Ketema and Jakob Grue Simonsen
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -22,7 +23,7 @@ module SignatureAndVariables (
     Symbol(FunctionSymbol, VariableSymbol)
 ) where
 
--- A signature is a set with an comparison operator and an arity function.
+-- A signature is a set with an equality operator and an arity function.
 class Eq s => Signature s where
     arity :: s -> Int
 
@@ -30,9 +31,9 @@ class Eq s => Signature s where
 class Eq v => Variables v
 
 -- Symbols are either from the signature or from the set of variables.
-data (Signature s, Variables v) => Symbol s v
-    = FunctionSymbol s
-    | VariableSymbol v
+data Symbol s v where
+    FunctionSymbol :: (Signature s, Variables v) => s -> Symbol s v
+    VariableSymbol :: (Signature s, Variables v) => v -> Symbol s v
 
 instance (Signature s, Variables v)
     => Eq (Symbol s v) where

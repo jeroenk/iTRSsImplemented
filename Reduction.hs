@@ -1,7 +1,7 @@
-{-# LANGUAGE MultiParamTypeClasses, FlexibleContexts, FlexibleInstances,
-             UndecidableInstances, ExistentialQuantification #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, GADTs, MultiParamTypeClasses,
+             UndecidableInstances #-}
 {-
-Copyright (C) 2010, 2011 Jeroen Ketema and Jakob Grue Simonsen
+Copyright (C) 2010, 2011, 2012 Jeroen Ketema and Jakob Grue Simonsen
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -56,8 +56,9 @@ instance (RewriteSystem s v r, ComputableSequence o (Step s v) ss)
     => StepSequence s v r ss o
 
 -- Computable reductions are computable sequences of terms and rewrite steps.
-data (TermSequence s v ts o, StepSequence s v r ss o) => Reduction s v r ts ss o
-    = RCons ts ss
+data Reduction s v r ts ss o where
+    RCons :: (TermSequence s v ts o, StepSequence s v r ss o)
+                 => ts -> ss -> Reduction s v r ts ss o
 
 -- Helper function for show.
 show_from :: (Show s, Show v, TermSequence s v ts o, StepSequence s v r ss o)
@@ -79,9 +80,10 @@ instance (Show s, Show v, TermSequence s v ts o, StepSequence s v r ss o)
 type Modulus o = o -> Integer -> o
 
 -- Computably convergent reductions are reductions with an associated modulus.
-data RewriteSystem s v r => CReduction s v r
-    = forall o ts ss. (TermSequence s v ts o, StepSequence s v r ss o)
-          => CRCons (Reduction s v r ts ss o) (Modulus o)
+data CReduction s v r where
+    CRCons :: (RewriteSystem s v r,
+                   TermSequence s v ts o, StepSequence s v r ss o)
+                   => Reduction s v r ts ss o -> Modulus o -> CReduction s v r
 
 -- A show function for computably convergent reductions.
 instance (Show s, Show v, RewriteSystem s v r)

@@ -1,5 +1,5 @@
 {-
-Copyright (C) 2010, 2011 Jeroen Ketema and Jakob Grue Simonsen
+Copyright (C) 2010, 2011, 2012 Jeroen Ketema and Jakob Grue Simonsen
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -20,8 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Substitution (
     Substitution,
     in_substitution,
-    substitute,
-    match
+    substitute, match
 ) where
 
 import SignatureAndVariables
@@ -34,7 +33,7 @@ import Data.List
 type Substitution s v = [(v, Term s v)]
 
 -- Establish if a variable occurs in a substitution.
-in_substitution :: Variables v
+in_substitution :: (Signature s, Variables v)
     => Substitution s v -> v -> Bool
 in_substitution [] _
     = False
@@ -43,7 +42,7 @@ in_substitution ((y, _):sigma') x
     | otherwise =  in_substitution sigma' x
 
 -- Substitute a variable (if possible).
-substitute_variable :: Variables v
+substitute_variable :: (Signature s, Variables v)
     => Substitution s v -> v -> Term s v
 substitute_variable [] x
     = Variable x
@@ -55,19 +54,19 @@ substitute_variable ((y, t):sigma') x
 substitute :: (Signature s, Variables v)
     => Substitution s v -> Term s v -> Term s v
 substitute sigma (Function f ss)
-    = Function f (fmap (substitute sigma) ss)
+    = Function f $ fmap (substitute sigma) ss
 substitute sigma (Variable x)
     = substitute_variable sigma x
 
 -- Match a term s with instance t and yield the matching substitution.
 --
--- Note that this function only works poperly in case a match exists,
+-- This function only works as specified in case a match exists,
 -- which suffices for our purposes.
 match :: (Signature s, Variables v)
     => Term s v -> Term s v -> Substitution s v
 match s t = nubBy (\(x, _) (y, _) -> x == y) (compute_match s t)
     where compute_match (Function f ss) (Function g ts)
-              | f == g    = concat (zipWith compute_match (elems ss) (elems ts))
+              | f == g    = concat $ zipWith compute_match (elems ss) (elems ts)
               | otherwise = error "Cannot match terms"
           compute_match (Variable x) t'
               = [(x, t')]

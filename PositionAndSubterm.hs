@@ -1,5 +1,5 @@
 {-
-Copyright (C) 2010, 2011 Jeroen Ketema and Jakob Grue Simonsen
+Copyright (C) 2010, 2011, 2012 Jeroen Ketema and Jakob Grue Simonsen
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -97,7 +97,7 @@ dpos_merge (pd:[])      = pd
 dpos_merge (pd:pd':pds) = dpos_merge (merge' pd pd' : pds)
     where merge' xs ys = zipWith (++) xs ys
 
--- Helper function for obtaining the positions of a term.
+-- Helper function for obtaining the variable positions of a term.
 --
 -- The function processes a list of subterms based on a function f and
 -- prefixes each of the positions returned by f with the appropriate

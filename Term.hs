@@ -1,5 +1,6 @@
+{-# LANGUAGE GADTs #-}
 {-
-Copyright (C) 2010, 2011 Jeroen Ketema and Jakob Grue Simonsen
+Copyright (C) 2010, 2011, 2012 Jeroen Ketema and Jakob Grue Simonsen
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -30,10 +31,12 @@ import Prelude hiding (foldl, and)
 import Data.Array
 import Data.Foldable
 
--- Terms consist of function symbols and variables.
-data (Signature s, Variables v) => Term s v
-    = Function s (Array Int (Term s v))
-    | Variable v
+-- Terms consist of function symbols and variables, with subterms as arrays.
+type Subterms s v = Array Int (Term s v)
+
+data Term s v where
+    Function :: (Signature s, Variables v) => s -> Subterms s v -> Term s v
+    Variable :: (Signature s, Variables v) => v -> Term s v
 
 instance (Show s, Show v, Signature s, Variables v)
     => Show (Term s v) where
@@ -49,7 +52,7 @@ constant :: (Signature s, Variables v)
     => s -> Term s v
 constant c
     | arity c == 0 = Function c (array (1,0) [])
-    | otherwise    = error "Input is not a constant"
+    | otherwise    = error "Symbol is not a constant"
 
 -- Wrapper for the definition of terms with a function symbol at the root and
 -- a number of subterms. The subterms should be given in order of occurence
@@ -57,8 +60,8 @@ constant c
 function_term :: (Signature s, Variables v)
     => s -> [Term s v] -> Term s v
 function_term f ss
-    | has_length a ss = Function f (listArray (1, a) ss)
-    | otherwise       = error "Number of provided subterms does not match arity"
+    | has_length a ss = Function f $ listArray (1, a) ss
+    | otherwise       = error "Number subterms does not match arity"
         where a = arity f
               has_length 0 []     = True
               has_length _ []     = False
@@ -67,7 +70,7 @@ function_term f ss
 -- The height of a term: height(t) = max {|p| : p in Pos(t)}.
 term_height :: (Signature s, Variables v)
     => Term s v -> Integer
-term_height (Function _ ss) = foldl max 0 (fmap term_height' ss)
+term_height (Function _ ss) = foldl max 0 $ fmap term_height' ss
     where term_height' t = 1 + term_height t
 term_height (Variable _)    = 0
 
@@ -75,7 +78,7 @@ term_height (Variable _)    = 0
 less_height :: (Signature s, Variables v)
     => Term s v -> Integer -> Bool
 less_height (Function _ ss) n
-    | n > 0     = and (fmap less_height' ss)
+    | n > 0     = and $ fmap less_height' ss
     | otherwise = False
         where less_height' t = less_height t (n - 1)
 less_height (Variable _) n

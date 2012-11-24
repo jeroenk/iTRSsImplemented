@@ -1,6 +1,6 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
+{-# LANGUAGE FunctionalDependencies, MultiParamTypeClasses #-}
 {-
-Copyright (C) 2010, 2011 Jeroen Ketema and Jakob Grue Simonsen
+Copyright (C) 2010, 2011, 2012 Jeroen Ketema and Jakob Grue Simonsen
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -60,21 +60,21 @@ class SystemOfNotation o where
               ord_lim_pred' LimitOrdinal beta = beta
 
     -- Default implementation of ord_to_int
-    ord_to_int _ = error "Represented ordinal too large"
+    ord_to_int _ = error "Function ord_to_int not implemented"
 
 -- In a univalent, recursively related system of notation it is possible to
--- compare two ordinals, to find the representation of zero, and to compute
--- the successor of an ordinal. The behaviour of ord_succ is undefined in
+-- compare two ordinals and compute the unique representation of zero and
+-- any successor of an ordinal. The behaviour of ord_succ is undefined in
 -- case the ordinal whose successor is being computed does not have one in
 -- the given system of notation.
 class SystemOfNotation o => UnivalentSystem o where
     ord_leq     :: o -> o -> Bool
-    ord_zero    :: o              -- Existence follows by univalence
-    ord_succ    :: o -> o         -- Existence follows by univalence
+    ord_zero    :: o
+    ord_succ    :: o -> o
 
 -- A computable sequence of elements is a function from some ordinal to the
 -- elements of a certain type. The employed ordinal might be choosen larger
--- than strickly required for the given sequence, in which case the behaviour
+-- than strictly required for the given sequence, in which case the behaviour
 -- of the operations is undefined for ordinals outside the range of the
 -- defined sequence.
 --
