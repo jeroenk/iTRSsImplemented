@@ -19,56 +19,58 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Substitution (
     Substitution,
-    in_substitution,
-    substitute, match
+    match, substitute,
+    inSubstitution
 ) where
 
 import SignatureAndVariables
 import Term
 
+import Prelude
 import Data.Array
 import Data.List
 
--- Substitutions are finite(!) lists of (variable, term)-pairs.
+-- Substitutions are finite lists of (variable, term)-pairs.
 type Substitution s v = [(v, Term s v)]
 
--- Establish if a variable occurs in a substitution.
-in_substitution :: (Signature s, Variables v)
-    => Substitution s v -> v -> Bool
-in_substitution [] _
-    = False
-in_substitution ((y, _):sigma') x
-    | x == y    = True
-    | otherwise =  in_substitution sigma' x
+-- Match a term s with instance t and yield the matching substitution.
+--
+-- The function requires a match exists, which suffices. Error detection is
+-- (and can be) only partial.
+match :: (Signature s, Variables v)
+    => Term s v -> Term s v -> Substitution s v
+match s t = nubBy (\(x, _) (y, _) -> x == y) (computeMatch s t)
+    where computeMatch (Function f ss) (Function g ts)
+              | f == g    = concat $ zipWith computeMatch (elems ss) (elems ts)
+              | otherwise = error "Cannot match terms"
+          computeMatch (Variable x) t'
+              = [(x, t')]
+          computeMatch _ _
+              = error "Cannot match terms"
 
--- Substitute a variable (if possible).
-substitute_variable :: (Signature s, Variables v)
+-- Helper function for substitute, which substitutes a term for a variable
+-- if the variable occurs in the subtitution.
+substituteVariable :: (Signature s, Variables v)
     => Substitution s v -> v -> Term s v
-substitute_variable [] x
+substituteVariable [] x
     = Variable x
-substitute_variable ((y, t):sigma') x
+substituteVariable ((y, t):sigma') x
     | x == y    = t
-    | otherwise = substitute_variable sigma' x
+    | otherwise = substituteVariable sigma' x
 
--- Apply a substitution to a term.
+-- Apply a substitution sigma to a term t.
 substitute :: (Signature s, Variables v)
     => Substitution s v -> Term s v -> Term s v
 substitute sigma (Function f ss)
     = Function f $ fmap (substitute sigma) ss
 substitute sigma (Variable x)
-    = substitute_variable sigma x
+    = substituteVariable sigma x
 
--- Match a term s with instance t and yield the matching substitution.
---
--- This function only works as specified in case a match exists,
--- which suffices for our purposes.
-match :: (Signature s, Variables v)
-    => Term s v -> Term s v -> Substitution s v
-match s t = nubBy (\(x, _) (y, _) -> x == y) (compute_match s t)
-    where compute_match (Function f ss) (Function g ts)
-              | f == g    = concat $ zipWith compute_match (elems ss) (elems ts)
-              | otherwise = error "Cannot match terms"
-          compute_match (Variable x) t'
-              = [(x, t')]
-          compute_match _ _
-              = error "Cannot match terms"
+-- Establish if a variable occurs in a substitution.
+inSubstitution :: (Signature s, Variables v)
+    => Substitution s v -> v -> Bool
+inSubstitution [] _
+    = False
+inSubstitution ((y, _):sigma') x
+    | x == y    = True
+    | otherwise = inSubstitution sigma' x

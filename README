@@ -2,10 +2,10 @@ Introduction
 ------------
 
 This package provides an effective version of infinitary term rewriting,
-as described in the paper "Computing with Infinite Terms and Reductions"
+as described in "Computing with Infinite Terms and Infinite Reductions"
 by Jeroen Ketema and Jakob Grue Simonsen.
 
-The Haskell code in this package has been tested with version 6.12.3 of
+The Haskell code in this package has been tested with version 7.4.1 of
 the Glasgow Haskell Compiler (GHC). To obtain GHC, it is best to install
 the Haskell Platform:
 
@@ -14,11 +14,11 @@ the Haskell Platform:
 Usage
 -----
 
-To experiment with the code, it is best to load either CompressionExamples.hs
-(for the compression theorem), ConfluenceExamples.hs (for the confluence
-theorem), or ChurchRosserExamples.hs (for the Church-Rosser theorem) in the
-interpreter supplied with GHC (ghci). Then, input the examples as described
-in the comments of the respective source files.
+To experiment, execute the interpreter supplied with GHC (ghci) with either
+CompressionExamples.hs (for the compression theorem), ConfluenceExamples.hs
+(for the confluence theorem), or ChurchRosserExamples.hs (for the Church-Rosser
+property) in the interpreter supplied with GHC (ghci). Then, input the examples
+as described in the comments of the respective .hs files.
 
 Structure
 ---------
@@ -27,24 +27,46 @@ The code has been split in several files whose contents should be mostly
 obvious from the file names, or otherwise from the initial comments in
 each of the files.
 
-Note that a recursive data type instead of natural numbers is employed to
-represent terms.
+Note that there are a few minor differences compared to the paper:
+
+* Signatures are sets with an arity function instead of sets of pairs.
+* Terms are represented by a recursive data type instead of partial functions.
+* Rewrite systems are objects with a rule function instead of a set of rules.
+* The implementation of Lemma 7.4 does not compute needed reductions to avoid
+  duplicating computation of these reductions, instead these reductions are
+  passed in as parameters.
+* To avoid clutter, rewrite systems are omitted as input parameters except in
+  the top-level functions defining compression, the Strip Lemma, confluence,
+  and the Church-Rosser property.
+* In several places only the steps of finite reductions are passed instead
+  of both a sequence of terms and a sequence of steps. The steps suffice in
+  these places.
 
 Correspondence with the Paper
 -----------------------------
 
-The correspondence between the Turing machines defined in the Theorems, Lemmas,
-etc. of the paper and the functions as present in the code is as follows:
+The correspondence between the Turing machines defined in the the paper and
+the functions as present in the code is as follows:
 
-Lemma 1       : substitute     in Substitution.hs
-Proposition 2 : subterm        in PositionAndSubterm.hs
-Lemma 3       : rewrite_step   in RuleAndSystem.hs
-Theorem 5     : compression    in Compression.hs
-Proposition 6 : origins_across in RuleAndSystem.hs (for a finite reductions)
-Proposition 7 : needed_steps   in Reduction.hs
-Theorem 10    : confluence     in Confluence.hs
-Lemma 12      : strip_lemma    in StripLemma.hs
-Theorem 15    : church_rosser  in ChurchRosser.hs
-Lemma 16      : interleave     in ChurchRosser.hs
+Lemma 3.10       : substitute            in Substitution.hs
+Proposition 3.12 : subterm               in PositionAndSubterm.hs
+Lemma 4.2        : rewriteStep           in RuleAndSystem.hs
+Remark 5.6       : ordLimitPred          in SystemOfNotation.hs
+Remark 5.8       : finalTerm             in Reduction.hs
+Proposition 7.4  : descendantsAcrossStep in RuleAndSystem.hs
+Lemma 7.7        : origins               in Reduction.hs
+Lemma 7.11       : neededSteps           in Reduction.hs
+Lemma 7.12       : descendants           in Reduction.hs
+Proposition 7.15 : neededReduction       in Reduction.hs
+Proposition 8.3  : limitedPermute        in ParallelReduction.hs
+Lemma 8.4        : filterSteps           in ParallelReduction.hs
+Lemma 8.5        : parallelNeededSteps   in ParallelReduction.hs
+Lemma 8.6        : diamondProperty       in ParallelReduction.hs
+Theorem 9.1      : compression           in Compression.hs
+Theorem 10.1     : confluence            in Confluence.hs
+Lemma 10.2       : stripLemma            in StripLemma.hs
+Lemma 10.4       : confluenceSide        in Confluence.hs
+Theorem 10.5     : churchRosser          in ChurchRosser.hs
+Lemma 10.6       : interleave            in ChurchRosser.hs
 
 (End of README)

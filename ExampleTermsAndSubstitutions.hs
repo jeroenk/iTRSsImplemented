@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-
-Copyright (C) 2010, 2011 Jeroen Ketema and Jakob Grue Simonsen
+Copyright (C) 2010, 2011, 2012 Jeroen Ketema and Jakob Grue Simonsen
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -20,8 +20,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module ExampleTermsAndSubstitutions (
     Sigma(SigmaCons), Var(VarCons),
-    Term_Sigma_Var, Symbol_Sigma_Var,
-    Substitution_Sigma_Var,
     f, g, h,
     a, b, c, f_a, g_a, f_f_a, g_f_a, g_g_a,
     f_x, g_x, h_x_x, h_x_f_x,
@@ -35,12 +33,10 @@ import SignatureAndVariables
 import Substitution
 import Term
 
+import Prelude
+
 data Sigma = SigmaCons Char
 data Var   = VarCons Char
-
-type Symbol_Sigma_Var       = Symbol Sigma Var
-type Term_Sigma_Var         = Term Sigma Var
-type Substitution_Sigma_Var = Substitution Sigma Var
 
 instance Signature Sigma where
     arity (SigmaCons 'a') = 0
@@ -75,13 +71,13 @@ y = VarCons 'y'
 z :: Var
 z = VarCons 'z'
 
-a :: Term_Sigma_Var
+a :: Term Sigma Var
 a = constant (SigmaCons 'a')
 
-b :: Term_Sigma_Var
+b :: Term Sigma Var
 b = constant (SigmaCons 'b')
 
-c :: Term_Sigma_Var
+c :: Term Sigma Var
 c = constant (SigmaCons 'c')
 
 f :: Sigma
@@ -96,59 +92,59 @@ h = SigmaCons 'h'
 k :: Sigma
 k = SigmaCons 'k'
 
-f_a :: Term_Sigma_Var
-f_a = function_term f [a]
+f_a :: Term Sigma Var
+f_a = functionTerm f [a]
 
-g_a :: Term_Sigma_Var
-g_a = function_term g [a]
+g_a :: Term Sigma Var
+g_a = functionTerm g [a]
 
-f_f_a :: Term_Sigma_Var
-f_f_a = function_term f [f_a]
+f_f_a :: Term Sigma Var
+f_f_a = functionTerm f [f_a]
 
-g_f_a :: Term_Sigma_Var
-g_f_a = function_term g [f_a]
+g_f_a :: Term Sigma Var
+g_f_a = functionTerm g [f_a]
 
-g_g_a :: Term_Sigma_Var
-g_g_a = function_term g [g_a]
+g_g_a :: Term Sigma Var
+g_g_a = functionTerm g [g_a]
 
-f_x :: Term_Sigma_Var
-f_x = function_term f [Variable x]
+f_x :: Term Sigma Var
+f_x = functionTerm f [Variable x]
 
-g_x :: Term_Sigma_Var
-g_x = function_term g [Variable x]
+g_x :: Term Sigma Var
+g_x = functionTerm g [Variable x]
 
-h_x_x :: Term_Sigma_Var
-h_x_x = function_term h [Variable x, Variable x]
+h_x_x :: Term Sigma Var
+h_x_x = functionTerm h [Variable x, Variable x]
 
-h_x_f_x :: Term_Sigma_Var
-h_x_f_x = function_term h [Variable x, f_x]
+h_x_f_x :: Term Sigma Var
+h_x_f_x = functionTerm h [Variable x, f_x]
 
-f_omega :: Term_Sigma_Var
-f_omega = function_term f [f_omega]
+f_omega :: Term Sigma Var
+f_omega = functionTerm f [f_omega]
 
-g_omega :: Term_Sigma_Var
-g_omega = function_term g [g_omega]
+g_omega :: Term Sigma Var
+g_omega = functionTerm g [g_omega]
 
-h_omega :: Term_Sigma_Var
-h_omega = function_term h [h_omega, h_omega]
+h_omega :: Term Sigma Var
+h_omega = functionTerm h [h_omega, h_omega]
 
-f_g_omega :: Term_Sigma_Var
-f_g_omega = function_term f [g_f_omega]
+f_g_omega :: Term Sigma Var
+f_g_omega = functionTerm f [g_f_omega]
 
-g_f_omega :: Term_Sigma_Var
-g_f_omega = function_term g [f_g_omega]
+g_f_omega :: Term Sigma Var
+g_f_omega = functionTerm g [f_g_omega]
 
-h_x_omega :: Term_Sigma_Var
-h_x_omega = function_term h [Variable x, h_x_omega]
+h_x_omega :: Term Sigma Var
+h_x_omega = functionTerm h [Variable x, h_x_omega]
 
-k_f_omega :: Term_Sigma_Var
-k_f_omega = function_term k [f_k_omega, f_k_omega, f_k_omega]
+k_f_omega :: Term Sigma Var
+k_f_omega = functionTerm k [f_k_omega, f_k_omega, f_k_omega]
 
-f_k_omega :: Term_Sigma_Var
-f_k_omega = function_term f [k_f_omega]
+f_k_omega :: Term Sigma Var
+f_k_omega = functionTerm f [k_f_omega]
 
-sigma_simple :: Substitution_Sigma_Var
+sigma_simple :: Substitution Sigma Var
 sigma_simple = [(x, a)]
 
-sigma_complex :: Substitution_Sigma_Var
+sigma_complex :: Substitution Sigma Var
 sigma_complex = [(x, a), (y, f_a), (z, h_omega)]

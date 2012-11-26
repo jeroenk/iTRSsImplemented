@@ -22,22 +22,24 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module RationalTerms (
     RegularSystem,
-    rational_term
+    rationalTerm
 ) where
 
 import SignatureAndVariables
 import Term
 import Substitution
 
+import Prelude
+
 -- A regular system is a substitution.
 type RegularSystem s v = Substitution s v
 
 -- Rational terms are constructed in the standard way using an initial variable.
-rational_term :: (Signature s, Variables v)
+rationalTerm :: (Signature s, Variables v)
     => RegularSystem s v -> v -> Term s v
-rational_term sigma x = rational (Variable x)
+rationalTerm sigma x = rational (Variable x)
     where rational (Function f ss)
               = Function f (fmap rational ss)
           rational t@(Variable y)
-              | in_substitution sigma y = rational (substitute sigma t)
+              | inSubstitution sigma y = rational (substitute sigma t)
               | otherwise               = t
