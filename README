@@ -41,6 +41,13 @@ Note that there are a few minor differences compared to the paper:
 * In several places only the steps of finite reductions are passed instead
   of both a sequence of terms and a sequence of steps. The steps suffice in
   these places.
+* Extraction of steps from a computably strongly convergent reduction exploits
+  that the assumed systems of notation have a less then or equal operator. As
+  reductions are usually presented by lists, this leads to slightly more
+  efficient code: Instead of having to work backwards through a list of steps
+  from some ordinal determined by modulus invocation to a limit ordinal, we
+  can go forwards through the list (see "select" in SystemOfNotation.hs and
+  its uses).
 
 Correspondence with the Paper
 -----------------------------
