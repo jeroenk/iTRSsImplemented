@@ -216,7 +216,7 @@ neededSteps :: RewriteSystem s v r
 neededSteps reduction positions = snd (accumulate reduction positions)
 
 -- Yield the descendants in the final term t of a reduction s ->> t for a
--- depth-finite positions function of the initial term s of s ->> t.
+-- position function of the initial term s of s ->> t.
 descendants :: RewriteSystem s v r
     => CReduction s v r -> PositionFunction -> PositionFunction
 descendants reduction pf = map descendants' [0..]

@@ -93,8 +93,8 @@ filterSteps steps_prev steps = filters steps_prev steps []
           filters _ _ _
               = error "All previous steps should be included in total"
 
--- Helper function for neededFromParallel that position p finds all positions
--- in a depth-finite position function that occur at a prefix position of p.
+-- Helper function for neededFromParallel that for a position p yields all
+-- positions in a position function that occur at a prefix position of p.
 neededForPosition :: Position -> PositionFunction -> Positions
 neededForPosition p = findPositions (positionLength p + 1)
     where findPositions 0 _  = []

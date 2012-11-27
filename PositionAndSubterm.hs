@@ -138,10 +138,10 @@ replaceSubterm (Function f ss) t (i:p)
 replaceSubterm (Variable _) _ _
     = error "No subterm are required position"
 
--- A depth-finite position function is represented by a list of positions per
--- depth. The list is ordered starting at depth 0; all depths are assumed to
--- occur, as such also the absence of positions at a encoded. Remark that
--- the elements of PositionFunction are by definition finite lists.
+-- A position function is represented by a list of positions per depth. The
+-- list is ordered starting from depth 0; all depths are assumed to occur, as
+-- such also the absence of positions at a encoded. Remark that the elements of
+-- PositionFunction are by definition finite lists.
 type PositionFunction = [Positions]
 
 -- Yield an empty position function.
