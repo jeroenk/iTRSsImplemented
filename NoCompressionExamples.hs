@@ -1,5 +1,5 @@
 {-
-Copyright (C) 2011 Jeroen Ketema
+Copyright (C) 2011, 2012 Jeroen Ketema
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -15,32 +15,34 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
--- This file defines some non-compressible reductions.
+-- This file defines a non-compressible reduction.
 
 import Omega
 import Reduction
 import NoCompression
 
+import Prelude
+
 -- The depths at which reduction steps occur.
-fin_in_set :: Integer -> Bool
-fin_in_set n = n `elem` [1, 3, 5, 7]
+finInSet :: Integer -> Bool
+finInSet n = n `elem` [1, 3, 5, 7]
 
 -- Upper-bound on the depths at which reduction steps occur.
-fin_geq_lub :: Integer -> Bool
-fin_geq_lub n = n >= 10
+finGeqLub :: Integer -> Bool
+finGeqLub n = n >= 10
 
 -- Bijection between depths and steps of the reduction.
-fin_nu :: Integer -> Omega
-fin_nu 1 = OmegaElement 2
-fin_nu 3 = OmegaElement 1
-fin_nu 5 = OmegaElement 0
-fin_nu 7 = OmegaElement 3
-fin_nu _ = error "Impossible"
+finNu :: Integer -> Omega
+finNu 1 = OmegaElement 2
+finNu 3 = OmegaElement 1
+finNu 5 = OmegaElement 0
+finNu 7 = OmegaElement 3
+finNu _ = error "Impossible"
 
 -- Helper function for the construction of computable sequences.
 constr :: (Omega -> t) -> OmegaSequence t
-constr fun = construct_sequence (map fun [OmegaElement n | n <- [0..]])
+constr fun = constructSequence (map fun [OmegaElement n | n <- [0..]])
 
-fin_red :: CReduction Sigma Var System_Non_LL
-fin_red = construct_reduction fin_in_set fin_geq_lub fin_nu lim constr constr
+finRed :: CReduction Sigma Var SystemNonLL
+finRed = constructReduction finInSet finGeqLub finNu lim constr constr
     where lim = OmegaElement 4

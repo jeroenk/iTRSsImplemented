@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-
-Copyright (C) 2011 Jeroen Ketema
+Copyright (C) 2011, 2012 Jeroen Ketema
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -21,8 +21,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module NoCompression (
     Sigma, Var,
-    System_Non_LL, system_non_ll,
-    construct_reduction
+    SystemNonLL, systemNonLL,
+    constructReduction
 ) where
 
 import SignatureAndVariables
@@ -31,7 +31,8 @@ import RuleAndSystem
 import SystemOfNotation
 import Reduction
 
-import Data.Array
+import Prelude
+import Data.Array hiding (inRange)
 
 -- Signature and variables.
 data Sigma = SigmaCons String
@@ -47,18 +48,18 @@ instance Signature Sigma where
     arity  _ = error "Character not in signature"
 
 instance Eq Sigma where
-    (SigmaCons symbol_0) == (SigmaCons symbol_1) = symbol_0 == symbol_1
+    (SigmaCons s0) == (SigmaCons s1) = s0 == s1
 
 instance Show Sigma where
-    show (SigmaCons symbol) = symbol
+    show (SigmaCons s) = s
 
 instance Variables Var
 
 instance Eq Var where
-    (VarCons variable_0) == (VarCons variable_1) = variable_0 == variable_1
+    (VarCons v0) == (VarCons v1) = v0 == v1
 
 instance Show Var where
-    show (VarCons variable) = [variable]
+    show (VarCons v) = [v]
 
 -- Some wrappers for variables and function symbols.
 x :: Var
@@ -90,36 +91,36 @@ k = SigmaCons "k"
 
 -- Terms employed in the rewrite rules of the non-left-linear system.
 f_x_x_y :: Term Sigma Var
-f_x_x_y = function_term f [Variable x, Variable x, Variable y]
+f_x_x_y = functionTerm f [Variable x, Variable x, Variable y]
 
 h_k_y :: Term Sigma Var
-h_k_y = function_term h [k_y]
-    where k_y = function_term k [Variable y]
+h_k_y = functionTerm h [k_y]
+    where k_y = functionTerm k [Variable y]
 
 k_f'_x_y_z :: Term Sigma Var
-k_f'_x_y_z = function_term k [f'_x_y_z]
-    where f'_x_y_z = function_term f' [Variable x, Variable y, Variable z]
+k_f'_x_y_z = functionTerm k [f'_x_y_z]
+    where f'_x_y_z = functionTerm f' [Variable x, Variable y, Variable z]
 
 f_k_x_y_z :: Term Sigma Var
-f_k_x_y_z = function_term f [k_x, Variable y, Variable z]
-    where k_x = function_term k [Variable x]
+f_k_x_y_z = functionTerm f [k_x, Variable y, Variable z]
+    where k_x = functionTerm k [Variable x]
 
 k_h'_x :: Term Sigma Var
-k_h'_x = function_term k [h'_x]
-    where h'_x = function_term h' [Variable x]
+k_h'_x = functionTerm k [h'_x]
+    where h'_x = functionTerm h' [Variable x]
 
 h_k_x :: Term Sigma Var
-h_k_x = function_term h [k_x]
-    where k_x = function_term k [Variable x]
+h_k_x = functionTerm h [k_x]
+    where k_x = functionTerm k [Variable x]
 
 k_h_x :: Term Sigma Var
-k_h_x = function_term k [h_x]
+k_h_x = functionTerm k [h_x]
 
 h_x :: Term Sigma Var
-h_x = function_term h [Variable x]
+h_x = functionTerm h [Variable x]
 
 h_omega :: Term Sigma Var
-h_omega = function_term h [h_omega]
+h_omega = functionTerm h [h_omega]
 
 rule_f :: RewriteRule Sigma Var
 rule_f = Rule f_x_x_y h_k_y
@@ -142,37 +143,37 @@ rule_k_h = Rule k_h_x h_x
 --    k(h'(x))       -> h(k(x))
 --    k(h(x))        -> h(x)
 --
-type System_Non_LL = BasicSystem Sigma Var
+type SystemNonLL = System Sigma Var
 
-system_non_ll :: System_Non_LL
-system_non_ll = BasicSystemCons [rule_f, rule_k_f', rule_k_h', rule_k_h]
+systemNonLL :: SystemNonLL
+systemNonLL = SystemCons [rule_f, rule_k_f', rule_k_h', rule_k_h]
 
--- Two helper functions for ordinals derived from ord_leq.
-ord_less :: UnivalentSystem o
+-- Two helper functions for ordinals derived from ordLeq.
+ordLess :: UnivalentSystem o
     => o -> o -> Bool
-ord_less alpha beta = alpha `ord_leq` beta && not (beta `ord_leq` alpha)
+ordLess alpha beta = (alpha `ordLeq` beta) && not (beta `ordLeq` alpha)
 
-ord_eq :: UnivalentSystem o
+ordEq :: UnivalentSystem o
     => o -> o -> Bool
-ord_eq alpha beta = alpha `ord_leq` beta && beta `ord_leq` alpha
+ordEq alpha beta = (alpha `ordLeq` beta) && (beta `ordLeq` alpha)
 
 -- Construction of terms in which the symbol k does not occur.
-construct_term :: UnivalentSystem o
+constructTerm :: UnivalentSystem o
     => (Integer -> Bool) -> (Integer -> Bool) -> (Integer -> o) -> o -> o
        -> Term Sigma Var
-construct_term in_set geq_lub nu alpha beta = replace_c (term' 0 alpha beta)
+constructTerm inSet geqLub nu alpha beta = replaceC (term' 0 alpha beta)
     where term' d delta gamma
-              | in_set d && in_range
-                  = function_term f [t_1, t_2, t_3]
-              | geq_lub d || empty_range
+              | inSet d && inRange
+                  = functionTerm f [t_1, t_2, t_3]
+              | geqLub d || emptyRange
                   = constant c
               | otherwise
-                  = function_term h [term' (d + 1) delta gamma]
-                      where kappa       = nu d
-                            succ_kappa  = ord_succ kappa
-                            in_range    = delta `ord_leq` kappa
-                                              && kappa `ord_less` gamma
-                            empty_range = not (delta `ord_less` gamma)
+                  = functionTerm h [term' (d + 1) delta gamma]
+                      where kappa      = nu d
+                            succ_kappa = ordSucc kappa
+                            inRange    = delta `ordLeq` kappa
+                                             && kappa `ordLess` gamma
+                            emptyRange = not (delta `ordLess` gamma)
                             t_1 = term' (d + 1) delta kappa
                             t_2 = constant c
                             t_3 = rename (term' (d + 1) succ_kappa gamma)
@@ -186,46 +187,46 @@ rename (Function symbol ts)
 rename _
     = error "Illegal symbol in constructed term"
 
-replace_c :: Term Sigma Var -> Term Sigma Var
-replace_c (Function symbol ts)
+replaceC :: Term Sigma Var -> Term Sigma Var
+replaceC (Function symbol ts)
     | symbol == c = h_omega
-    | otherwise   = Function symbol (fmap replace_c ts)
-replace_c (Variable v)
+    | otherwise   = Function symbol (fmap replaceC ts)
+replaceC (Variable v)
     = Variable v
 
--- Two helper functions to locate the next redex, given it is known the next
--- redex either employs the f-rule or one of the k-rules.
-find_f_step :: UnivalentSystem o
+-- The next two function are helper functions to locate the next redex, given
+-- it is known the next redex either employs the f-rule or one of the k-rules.
+findStepF :: UnivalentSystem o
     => (Integer -> Bool) -> (Integer -> o) -> o -> o -> Step Sigma Var
-find_f_step in_set nu alpha beta = (find_f_step' 0, rule_f)
-    where find_f_step' d
-              | beta `ord_eq` alpha
+findStepF inSet nu alpha beta = (findStepF' 0, rule_f)
+    where findStepF' d
+              | beta `ordEq` alpha
                   = error "No step with requested index"
-              | in_set d && nu d `ord_eq` beta
+              | inSet d && nu d `ordEq` beta
                   = []
               | otherwise
-                  = 1 : find_f_step' (d + 1)
+                  = 1 : findStepF' (d + 1)
 
-find_k_step :: Term Sigma Var -> (Bool, Step Sigma Var)
-find_k_step term = (f_next, (position, rule))
-    where (f_next, position, rule) = find_k_step' term
-          find_k_step' (Function symbol ts)
-              | symbol == k = establish_rule (ts!1)
+findStepK :: Term Sigma Var -> (Bool, Step Sigma Var)
+findStepK term = (f_next, (position, rule))
+    where (f_next, position, rule) = findStepK' term
+          findStepK' (Function symbol ts)
+              | symbol == k = establishRule (ts!1)
               | otherwise   = (f_n, 1 : p, r)
-                  where (f_n, p, r) = find_k_step' (ts!1)
-          find_k_step' (Variable _)
+                  where (f_n, p, r) = findStepK' (ts!1)
+          findStepK' (Variable _)
               = error "Illegal symbol in derived term"
-          establish_rule (Function symbol _)
+          establishRule (Function symbol _)
               | symbol == f' = (False, [], rule_k_f')
               | symbol == h' = (False, [], rule_k_h')
               | symbol == h  = (True, [], rule_k_h)
               | otherwise    = error "Illegal symbol in derived term"
-          establish_rule (Variable _)
+          establishRule (Variable _)
               = error "Illegal symbol in derived term"
 
 -- Yield the beta-th term and step along the reduction.
 --
--- The function establishes (ord_lim_pred beta) and starts reducing from there
+-- The function establishes (ordLimitPred beta) and starts reducing from there
 -- until a sufficient number of terms and steps have been found.
 --
 -- In case of a limit ordinal the only valid term can be one in which the
@@ -234,96 +235,96 @@ find_k_step term = (f_next, (position, rule))
 -- which occur at depth at least equal to the preceeding f-step. The final
 -- k-step of such a finite series will employ the rule k(h(x)) -> h(x), after
 -- which an f-step should again occur.
-construct_terms_and_steps :: UnivalentSystem o
+constructTermsAndSteps :: UnivalentSystem o
     => (Integer -> Bool) -> (Integer -> Bool) -> (Integer -> o) -> o -> o
        -> (Term Sigma Var, Step Sigma Var)
-construct_terms_and_steps in_set geq_lub nu alpha beta
-    = construct' term_initial beta' beta' True
-        where term_initial = construct_term in_set geq_lub nu beta' alpha
-              beta'        = ord_lim_pred beta
+constructTermsAndSteps inSet geqLub nu alpha beta
+    = construct' initial beta' beta' True
+        where initial = constructTerm inSet geqLub nu beta' alpha
+              beta'   = ordLimitPred beta
               construct' t delta gamma False
-                  | delta `ord_eq` beta = (t, k_step)
-                  | otherwise           = construct' t' delta' gamma f_next
-                      where (f_next, k_step) = find_k_step t
-                            t'     = rewrite_step t k_step
-                            delta' = ord_succ delta
+                  | delta `ordEq` beta = (t, k_step)
+                  | otherwise          = construct' t' delta' gamma f_next
+                      where (f_next, k_step) = findStepK t
+                            t'     = rewriteStep t k_step
+                            delta' = ordSucc delta
               construct' t delta gamma True
-                  | delta `ord_eq` beta = (t, f_step)
-                  | otherwise           = construct' t' delta' gamma' False
-                      where f_step = find_f_step in_set nu alpha gamma
-                            t'     = rewrite_step t f_step
-                            delta' = ord_succ delta
-                            gamma' = ord_succ gamma
+                  | delta `ordEq` beta = (t, f_step)
+                  | otherwise          = construct' t' delta' gamma' False
+                      where f_step = findStepF inSet nu alpha gamma
+                            t'     = rewriteStep t f_step
+                            delta' = ordSucc delta
+                            gamma' = ordSucc gamma
 
 -- Yield the computable sequences of terms and steps of which the reduction is
 -- composed.
 terms :: (UnivalentSystem o, TermSequence Sigma Var ts o)
     => (Integer -> Bool) -> (Integer -> Bool) -> (Integer -> o) -> o
        -> ((o -> Term Sigma Var) -> ts) -> ts
-terms in_set geq_lub nu alpha constr = constr (fst . terms_and_steps)
-    where terms_and_steps = construct_terms_and_steps in_set geq_lub nu alpha
+terms inSet geqLub nu alpha constr = constr (fst . terms_and_steps)
+    where terms_and_steps = constructTermsAndSteps inSet geqLub nu alpha
 
-steps :: (UnivalentSystem o, StepSequence Sigma Var System_Non_LL ss o)
+steps :: (UnivalentSystem o, StepSequence Sigma Var SystemNonLL ss o)
     => (Integer -> Bool) -> (Integer -> Bool) -> (Integer -> o) -> o
        -> ((o -> Step Sigma Var) -> ss) -> ss
-steps in_set geq_lub nu alpha constr = constr (snd . terms_and_steps)
-    where terms_and_steps = construct_terms_and_steps in_set geq_lub nu alpha
+steps inSet geqLub nu alpha constr = constr (snd . terms_and_steps)
+    where terms_and_steps = constructTermsAndSteps inSet geqLub nu alpha
 
 -- Yield the modulus of the reduction.
 --
 -- Given the ordinal and depth of interest, the function establishes the last
 -- step that occurs at or above the given depth.
-construct_modulus :: UnivalentSystem o
+constructModulus :: UnivalentSystem o
     => (Integer -> Bool) -> (Integer -> Bool) -> (Integer -> o) -> o
        -> Modulus o
-construct_modulus in_set geq_lub nu alpha beta depth
-    | valid     = count_steps in_set geq_lub nu alpha delta
+constructModulus inSet geqLub nu alpha beta depth
+    | valid     = countSteps inSet geqLub nu alpha delta
     | otherwise = error "Illegal modulus"
-            where valid = ord_kind beta /= SuccOrdinal
-                  delta = find_last_ordinal in_set nu beta' depth
-                  beta' = if beta `ord_eq` ord_zero then alpha else beta
+            where valid = ordKind beta /= SuccOrdinal
+                  delta = findLastOrdinal inSet nu beta' depth
+                  beta' = if beta `ordEq` ordZero then alpha else beta
 
-count_steps :: UnivalentSystem o
+countSteps :: UnivalentSystem o
     => (Integer -> Bool) -> (Integer -> Bool) -> (Integer -> o) -> o -> o
        -> o
-count_steps in_set geq_lub nu alpha beta
-    = count term_initial beta' beta' True
-        where term_initial = construct_term in_set geq_lub nu beta' alpha
-              beta'        = ord_lim_pred beta
+countSteps inSet geqLub nu alpha beta
+    = count initial beta' beta' True
+        where initial = constructTerm inSet geqLub nu beta' alpha
+              beta'   = ordLimitPred beta
               count t delta gamma False
                   = count t' delta' gamma f_next
-                      where (f_next, k_step) = find_k_step t
-                            t'     = rewrite_step t k_step
-                            delta' = ord_succ delta
+                      where (f_next, k_step) = findStepK t
+                            t'     = rewriteStep t k_step
+                            delta' = ordSucc delta
               count t delta gamma True
-                  | gamma `ord_eq` beta = delta
-                  | otherwise           = count t' delta' gamma' False
-                      where f_step = find_f_step in_set nu alpha gamma
-                            t'     = rewrite_step t f_step
-                            delta' = ord_succ delta
-                            gamma' = ord_succ gamma
+                  | gamma `ordEq` beta = delta
+                  | otherwise          = count t' delta' gamma' False
+                      where f_step = findStepF inSet nu alpha gamma
+                            t'     = rewriteStep t f_step
+                            delta' = ordSucc delta
+                            gamma' = ordSucc gamma
 
-find_last_ordinal :: UnivalentSystem o
+findLastOrdinal :: UnivalentSystem o
     => (Integer -> Bool) -> (Integer -> o) -> o -> Integer -> o
-find_last_ordinal in_set nu alpha depth
-    | null ordinals = ord_zero
-    | otherwise     = ord_succ (max_ord (head ordinals) (tail ordinals))
-        where ordinals = [nu d | d <- [0..depth], in_set d, in_range d]
-              in_range d = nu d `ord_leq` alpha
-              max_ord delta []
+findLastOrdinal inSet nu alpha depth
+    | null ordinals = ordZero
+    | otherwise     = ordSucc (maxOrd (head ordinals) (tail ordinals))
+        where ordinals  = [nu d | d <- [0..depth], inSet d, inRange d]
+              inRange d = nu d `ordLeq` alpha
+              maxOrd delta []
                   = delta
-              max_ord delta (gamma:os)
-                  | delta `ord_less` gamma = max_ord gamma os
-                  | otherwise              = max_ord delta os
+              maxOrd delta (gamma : os)
+                  | delta `ordLess` gamma = maxOrd gamma os
+                  | otherwise             = maxOrd delta os
 
 -- Yield a non-compressible reduction.
-construct_reduction :: (UnivalentSystem o, TermSequence Sigma Var ts o,
-            StepSequence Sigma Var System_Non_LL ss o)
+constructReduction :: (UnivalentSystem o, TermSequence Sigma Var ts o,
+            StepSequence Sigma Var SystemNonLL ss o)
     => (Integer -> Bool) -> (Integer -> Bool) -> (Integer -> o) -> o
        -> ((o -> Term Sigma Var) -> ts) -> ((o -> Step Sigma Var) -> ss)
-       -> CReduction Sigma Var System_Non_LL
-construct_reduction in_set geq_lub nu alpha constr_t constr_s
+       -> CReduction Sigma Var SystemNonLL
+constructReduction inSet geqLub nu alpha constrTermSeq constrStepSeq
     = CRCons (RCons ts ss) phi
-        where ts  = terms in_set geq_lub nu alpha constr_t
-              ss  = steps in_set geq_lub nu alpha constr_s
-              phi = construct_modulus in_set geq_lub nu alpha
+        where ts  = terms inSet geqLub nu alpha constrTermSeq
+              ss  = steps inSet geqLub nu alpha constrStepSeq
+              phi = constructModulus inSet geqLub nu alpha
