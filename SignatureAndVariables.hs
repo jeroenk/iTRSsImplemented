@@ -1,5 +1,6 @@
+{-# LANGUAGE GADTs #-}
 {-
-Copyright (C) 2010, 2011 Jeroen Ketema and Jakob Grue Simonsen
+Copyright (C) 2010, 2011, 2012 Jeroen Ketema and Jakob Grue Simonsen
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -18,21 +19,29 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- This module defines signatures and variable sets.
 
 module SignatureAndVariables (
-    Signature(arity), Variables,
+    Signature(arity, inArity), Variables,
     Symbol(FunctionSymbol, VariableSymbol)
 ) where
 
--- A signature is a set with an comparison operator and an arity function.
-class Eq s => Signature s where
-    arity :: s -> Int
+import Prelude
 
--- A set of variables has a comparison operator.
+-- A signature is a set with an equality operator and an arity function. The
+-- inArity function can be used to check if an index is within the range of
+-- the arity.
+class Eq s => Signature s where
+    arity   :: s -> Int
+    inArity :: Int -> s -> Bool
+
+    -- Default implementation of inArity
+    inArity i f = 1 <= i && i <= arity f
+
+-- A set of variables comes with an equality operator.
 class Eq v => Variables v
 
--- Symbols are either from the signature or from the set of variables.
-data (Signature s, Variables v) => Symbol s v
-    = FunctionSymbol s
-    | VariableSymbol v
+-- Symbols (in terms) are either from the signature or the set of variables.
+data Symbol s v where
+    FunctionSymbol :: (Signature s, Variables v) => s -> Symbol s v
+    VariableSymbol :: (Signature s, Variables v) => v -> Symbol s v
 
 instance (Signature s, Variables v)
     => Eq (Symbol s v) where

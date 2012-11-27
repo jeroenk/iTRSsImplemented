@@ -1,5 +1,6 @@
+{-# LANGUAGE GADTs #-}
 {-
-Copyright (C) 2010, 2011 Jeroen Ketema and Jakob Grue Simonsen
+Copyright (C) 2010, 2011, 2012 Jeroen Ketema and Jakob Grue Simonsen
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -19,77 +20,80 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Term (
     Term(Function, Variable),
-    constant, function_term,
-    term_height, less_height,
-    root_symbol, has_root_var
+    constant, functionTerm,
+    termHeight, heightLess,
+    rootSymbol, hasRootVariable
 ) where
 
 import SignatureAndVariables
 
-import Prelude hiding (foldl, and)
-import Array
+import Prelude hiding (and, foldl)
+import Data.Array
 import Data.Foldable
 
+-- Subterms below function symbols are packaged in arrays for efficiency.
+type Subterms s v = Array Int (Term s v)
+
 -- Terms consist of function symbols and variables.
-data (Signature s, Variables v) => Term s v
-    = Function s (Array Int (Term s v))
-    | Variable v
+data Term s v where
+    Function :: (Signature s, Variables v) => s -> Subterms s v -> Term s v
+    Variable :: (Signature s, Variables v) => v -> Term s v
 
 instance (Show s, Show v, Signature s, Variables v)
     => Show (Term s v) where
     show (Function f ss)
         | arity f == 0  = show f
-        | otherwise     = show f ++ "(" ++ show' (elems ss) True ++ ")"
-            where show' [] _         = ""
-                  show' (x:xs) True  = show x ++ show' xs False
-                  show' (x:xs) False = "," ++ show x ++ show' xs False
+        | otherwise     = show f ++ show' (elems ss) "("
+            where show' [] _     = ")"
+                  show' (x:xs) c = c ++ show x ++ show' xs ","
     show (Variable v)   = show v
 
--- Wrapper for the definition of terms which are constants.
+-- Helper function for defining terms which are constants.
 constant :: (Signature s, Variables v)
     => s -> Term s v
 constant c
     | arity c == 0 = Function c (array (1,0) [])
-    | otherwise    = error "Input is not a constant"
+    | otherwise    = error "Symbol is not a constant"
 
--- Wrapper for the definition of terms with a function symbol at the root and
--- a number of subterms. The subterms should be given in order of occurence
--- from left to right.
-function_term :: (Signature s, Variables v)
+-- Helper function for defining terms with a function symbol at the root and
+-- a number of subterms. The subterms should be given as a list with the
+-- elements representing subterms in order of occurence from left to right.
+functionTerm :: (Signature s, Variables v)
     => s -> [Term s v] -> Term s v
-function_term f ss
-    | has_length a ss = Function f (listArray (1, a) ss)
-    | otherwise       = error "Number of provided subterms does not match arity"
+functionTerm f ss
+    | ss `hasLength` a = Function f $ listArray (1, a) ss
+    | otherwise        = error "Number subterms does not match arity"
         where a = arity f
-              has_length 0 []     = True
-              has_length _ []     = False
-              has_length n (_:xs) = has_length (n - 1) xs
+              hasLength [] 0     = True
+              hasLength [] _     = False
+              hasLength (_:_)  0 = False
+              hasLength (_:xs) n = hasLength xs (n - 1)
 
--- The height of a term: height(t) = max {|p| : p in Pos(t)}.
-term_height :: (Signature s, Variables v)
+-- The height of a term t: max {|p| : p in Pos(t) /\ t|_p in Sigma}.
+termHeight :: (Signature s, Variables v)
     => Term s v -> Integer
-term_height (Function _ ss) = foldl max 0 (fmap term_height' ss)
-    where term_height' t = 1 + term_height t
-term_height (Variable _)    = 0
+termHeight (Function _ ss) = foldl max 0 $ fmap termHeight' ss
+    where termHeight' t = 1 + termHeight t
+termHeight (Variable _)    = 0
 
 -- Establish if a term t is of height less than n.
-less_height :: (Signature s, Variables v)
+heightLess :: (Signature s, Variables v)
     => Term s v -> Integer -> Bool
-less_height (Function _ ss) n
-    | n > 0     = and (fmap less_height' ss)
+heightLess (Function _ ss) n
+    | n > 0     = and $ fmap heightLess' ss
     | otherwise = False
-        where less_height' t = less_height t (n - 1)
-less_height (Variable _) n
+        where heightLess' t = heightLess t (n - 1)
+heightLess (Variable _) n
     | n > 0     = True
     | otherwise = False
 
--- Yield the root symbol of a term.
-root_symbol :: (Signature s, Variables v)
+-- Yield the root symbol of a term t.
+rootSymbol :: (Signature s, Variables v)
     => Term s v -> Symbol s v
-root_symbol (Function f _) = FunctionSymbol f
-root_symbol (Variable x)   = VariableSymbol x
+rootSymbol (Function f _) = FunctionSymbol f
+rootSymbol (Variable x)   = VariableSymbol x
 
 -- Establish if a certain variable occurs at the root of a term
-has_root_var :: (Signature s, Variables v)
+hasRootVariable :: (Signature s, Variables v)
     => Term s v -> v -> Bool
-has_root_var t x = root_symbol t == VariableSymbol x
+hasRootVariable t x = rootSymbol t == VariableSymbol x

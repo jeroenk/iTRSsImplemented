@@ -1,5 +1,5 @@
 {-
-Copyright (C) 2010, 2011 Jeroen Ketema and Jakob Grue Simonsen
+Copyright (C) 2010, 2011, 2012 Jeroen Ketema and Jakob Grue Simonsen
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -21,142 +21,165 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- As usual, positions are represented by lists of natural numbers.
 
 module PositionAndSubterm (
-    Position, Positions, PositionsPerDepth,
-    pos_len, prefix_of, pos_of, fun_pos_of,
-    dpos_empty, dpos_add_empty, pos_to_dpos, dpos_merge,
-    pos_to_depth, non_var_pos, var_pos, var_dpos,
-    subterm, replace_subterm
+    Position, Positions,
+    positionLength, prefixOf, positionOf, funPositionOf,
+    getVarAndPos, posToDepth, nonVarPos, varPos,
+    subterm, replaceSubterm,
+    PositionFunction,
+    posFunEmpty, posFunPad, pos2PosFun, posFunMerge, varPosFun
 ) where
 
 import SignatureAndVariables
 import Term
 
-import Array
-import List
+import Prelude
+import Data.Array
+import Data.List
 
--- Positions are sequences of natural numbers.
+-- Positions are lists of natural numbers.
 type Position  = [Int]
 
--- Sets of positions
+-- Sets of positions.
 type Positions = [Position]
 
--- A list of positions per depth. The list is ordered starting at depth 0; all
--- depths are assumed to occur, as such also the absence of positions at a
--- encoded. Remark that elements of PositionsPerDepth are by definition
--- infinite lists.
-type PositionsPerDepth = [Positions]
-
 -- Yield the length of a position
-pos_len :: Position -> Integer
-pos_len = genericLength
+positionLength :: Position -> Integer
+positionLength = genericLength
 
--- Establish if one position is a prefix of another position.
-prefix_of :: Position -> Position -> Bool
-prefix_of = isPrefixOf
+-- Establish if a position p is a prefix of a position q.
+prefixOf :: Position -> Position -> Bool
+prefixOf = isPrefixOf
 
--- Establish if a position occurs in a term.
-pos_of :: (Signature s, Variables v)
+-- Establish if a position p occurs in a term t.
+positionOf :: (Signature s, Variables v)
     => Position -> Term s v -> Bool
-pos_of [] _
+positionOf [] _
     = True
-pos_of (i:p) (Function f ts)
-    | 1 <= i && i <= arity f = pos_of p (ts!i)
-    | otherwise              = False
-pos_of (_:_) (Variable _)
+positionOf (i:p) (Function f ts)
+    | i `inArity` f = p `positionOf` (ts!i)
+    | otherwise     = False
+positionOf (_:_) (Variable _)
     = False
 
--- Establish if a position is position of a function symbol.
-fun_pos_of :: (Signature s, Variables v)
+-- Establish if a position p is position of a function symbol in a term t.
+funPositionOf :: (Signature s, Variables v)
     => Position -> Term s v -> Bool
-fun_pos_of [] (Function _ _)
+funPositionOf [] (Function _ _)
     = True
-fun_pos_of (i:p) (Function f ts)
-    | 1 <= i && i <= arity f  = fun_pos_of p (ts!i)
-    | otherwise               = False
-fun_pos_of _ (Variable _)
+funPositionOf (i:p) (Function f ts)
+    | i `inArity` f  = p `funPositionOf` (ts!i)
+    | otherwise      = error "No subterm at prefix of position"
+funPositionOf _ (Variable _)
     = False
 
--- Positions per depth where no position occurs at any depth.
-dpos_empty :: PositionsPerDepth
-dpos_empty = repeat []
-
--- Yield positions per depth given that the positions per depth up to a finite
--- depth are given.
-dpos_add_empty :: Integer -> PositionsPerDepth -> PositionsPerDepth
-dpos_add_empty 0 pd = pd
-dpos_add_empty d pd = [] : dpos_add_empty (d - 1) pd
-
--- Yield positions per depth given a single position.
-pos_to_dpos :: Position -> PositionsPerDepth
-pos_to_dpos p = dpos_add_empty (pos_len p) ([p] : dpos_empty)
-
--- Merge a list of positions per depth.
-dpos_merge :: [PositionsPerDepth] -> PositionsPerDepth
-dpos_merge []           = dpos_empty
-dpos_merge (pd:[])      = pd
-dpos_merge (pd:pd':pds) = dpos_merge (merge' pd pd' : pds)
-    where merge' xs ys = zipWith (++) xs ys
+-- Recurse a term following a given position until a variable is found. Once a
+-- variable is found the function yields the variable and the remainder of the
+-- position.
+getVarAndPos :: (Signature s, Variables v)
+    => Term s v -> Position -> (v, Position)
+getVarAndPos (Function f ts) (i:p)
+    | i `inArity` f = getVarAndPos (ts!i) p
+    | otherwise     = error "No subterm at prefix of position"
+getVarAndPos (Function _ _) []
+    = error "Function symbol occurs at position"
+getVarAndPos (Variable x) p
+    = (x, p)
 
 -- Helper function for obtaining the positions of a term.
 --
 -- The function processes a list of subterms based on a function f and
 -- prefixes each of the positions returned by f with the appropriate
 -- natural number (based on the location of the subterms in the list).
-subterm_pos :: (Signature s, Variables v)
+subPos :: (Signature s, Variables v)
     => (Term s v -> Positions) -> [Term s v] -> Positions
-subterm_pos f ts = concat (prefix (map f ts))
-    where prefix ps = zipWith (map . (:)) [1..length ts] ps
+subPos f ts = concat (prefix (map f ts))
+    where prefix = zipWith (map . (:)) [1..length ts]
 
-subterm_dpos :: (Signature s, Variables v)
-    => (Term s v -> PositionsPerDepth) -> [Term s v] -> PositionsPerDepth
-subterm_dpos _ [] = dpos_empty
-subterm_dpos f ts = dpos_merge (prefix (map f ts))
-    where prefix pds = zipWith (map . map . (:)) [1..length ts] pds
-
--- Positions up to and including a certain depth.
-pos_to_depth :: (Signature s, Variables v)
+-- Positions of a term t up to and including a certain depth d.
+posToDepth :: (Signature s, Variables v)
     => Term s v -> Integer -> Positions
-pos_to_depth _ 0               = [[]]
-pos_to_depth (Function _ ts) d = [] : subterm_pos pos_to_depth' (elems ts)
-    where pos_to_depth' t = pos_to_depth t (d - 1)
-pos_to_depth (Variable _) _    = [[]]
-
--- Non-variable positions.
-non_var_pos :: (Signature s, Variables v)
-    => Term s v -> Positions
-non_var_pos (Function _ ts) = [] : subterm_pos non_var_pos (elems ts)
-non_var_pos (Variable _)    = []
+posToDepth _ 0               = [[]]
+posToDepth (Function _ ts) d = [] : subPos posToDepth' (elems ts)
+    where posToDepth' t = posToDepth t (d - 1)
+posToDepth (Variable _) _   = [[]]
 
 -- Positions at which a specific variable occurs.
-var_pos :: (Signature s, Variables v)
+varPos :: (Signature s, Variables v)
     => Term s v -> v -> Positions
-var_pos (Function _ ts) x = subterm_pos (\t -> var_pos t x) (elems ts)
-var_pos (Variable y)    x = if x == y then [[]] else []
+varPos (Function _ ts) x = subPos varPos' (elems ts)
+    where varPos' t = varPos t x
+varPos (Variable y)    x = [[] | x == y]
 
-var_dpos :: (Signature s, Variables v)
-    => Term s v -> v -> PositionsPerDepth
-var_dpos (Function _ ts) x = [] : subterm_dpos (\t -> var_dpos t x) (elems ts)
-var_dpos (Variable y)    x = (if x == y then [[]] else []) : dpos_empty
+-- Non-variable positions of a term.
+nonVarPos :: (Signature s, Variables v)
+    => Term s v -> Positions
+nonVarPos (Function _ ts) = [] : subPos nonVarPos (elems ts)
+nonVarPos (Variable _)    = []
 
--- Yield the subterm at a position.
+-- Yield the subterm of a term t at a position p.
 subterm :: (Signature s, Variables v)
     => Term s v -> Position -> Term s v
-subterm s []
-    = s
+subterm t []
+    = t
 subterm (Function f ts) (i:p)
-    | 1 <= i && i <= arity f = subterm (ts!i) p
-    | otherwise              = error "No subterm at required position"
+    | i `inArity` f = subterm (ts!i) p
+    | otherwise     = error "No subterm at required position"
 subterm (Variable _) _
     = error "No subterm at required position"
 
--- Replace a subterm at a certain position.
-replace_subterm :: (Signature s, Variables v)
+-- Replace a subterm at a position p by t.
+replaceSubterm :: (Signature s, Variables v)
     => Term s v -> Term s v -> Position -> Term s v
-replace_subterm _ t []
+replaceSubterm _ t []
     = t
-replace_subterm (Function f ss) t (i:p)
-    | 1 <= i && i <= arity f = Function f subterms
-    | otherwise              = error "No subterm at required position"
-        where subterms = ss // [(i, replace_subterm (ss!i) t p)]
-replace_subterm (Variable _) _ _
+replaceSubterm (Function f ss) t (i:p)
+    | i `inArity` f = Function f $ ss // [(i, replaceSubterm (ss!i) t p)]
+    | otherwise     = error "No subterm at required position"
+replaceSubterm (Variable _) _ _
     = error "No subterm are required position"
+
+-- A position function is represented by a list of positions per depth. The
+-- list is ordered starting from depth 0; all depths are assumed to occur, as
+-- such also the absence of positions at a encoded. Remark that the elements of
+-- PositionFunction are by definition finite lists.
+type PositionFunction = [Positions]
+
+-- Yield an empty position function.
+posFunEmpty :: PositionFunction
+posFunEmpty = repeat []
+
+-- Yield a position function given a natural numnber d and a function f from
+-- natual numbers to sets of positions such that f(i) is a set of positions of
+-- length i + d.
+posFunPad :: Integer -> PositionFunction -> PositionFunction
+posFunPad 0 f = f
+posFunPad d f = [] : posFunPad (d - 1) f
+
+-- Yield position function with a single position p.
+pos2PosFun :: Position -> PositionFunction
+pos2PosFun p = posFunPad (positionLength p) ([p] : posFunEmpty)
+
+-- Merge position functions.
+posFunMerge :: [PositionFunction] -> PositionFunction
+posFunMerge []           = posFunEmpty
+posFunMerge (pf:[])      = pf
+posFunMerge (pf:pf':pfs) = posFunMerge (merge' pf pf' : pfs)
+    where merge' = zipWith (++)
+
+-- Helper function for obtaining the variable positions of a term.
+--
+-- The function processes a list of subterms based on a function f and
+-- prefixes each of the positions returned by f with the appropriate
+-- natural number (based on the location of the subterms in the list).
+subPosFun :: (Signature s, Variables v)
+    => (Term s v -> PositionFunction) -> [Term s v] -> PositionFunction
+subPosFun _ [] = posFunEmpty
+subPosFun f ts = posFunMerge (prefix (map f ts))
+    where prefix = zipWith (map . map . (:)) [1..length ts]
+
+-- Yield position function of positions at which a variable x occurs.
+varPosFun :: (Signature s, Variables v)
+    => Term s v -> v -> PositionFunction
+varPosFun (Function _ ts) x = [] : subPosFun varPosFun' (elems ts)
+    where varPosFun' t = varPosFun t x
+varPosFun (Variable y)    x = [[] | x == y] : posFunEmpty
