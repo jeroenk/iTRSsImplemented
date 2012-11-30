@@ -60,11 +60,11 @@ Proposition 3.12 : subterm               in PositionAndSubterm.hs
 Lemma 4.2        : rewriteStep           in RuleAndSystem.hs
 Remark 5.6       : ordLimitPred          in SystemOfNotation.hs
 Remark 5.8       : finalTerm             in Reduction.hs
-Proposition 7.3  : descendantsAcrossStep in RuleAndSystem.hs
-Lemma 7.6        : origins               in Reduction.hs
-Lemma 7.10       : neededSteps           in Reduction.hs
-Lemma 7.11       : descendants           in Reduction.hs
-Proposition 7.14 : neededReduction       in Reduction.hs
+Proposition 7.4  : descendantsAcrossStep in RuleAndSystem.hs
+Lemma 7.7        : origins               in Reduction.hs
+Lemma 7.11       : neededSteps           in Reduction.hs
+Lemma 7.12       : descendants           in Reduction.hs
+Proposition 7.16 : neededReduction       in Reduction.hs
 Proposition 8.3  : limitedPermute        in ParallelReduction.hs
 Lemma 8.4        : filterSteps           in ParallelReduction.hs
 Lemma 8.5        : parallelNeededSteps   in ParallelReduction.hs
