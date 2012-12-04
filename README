@@ -32,7 +32,7 @@ Note that there are a few minor differences compared to the paper:
 * Signatures are sets with an arity function instead of sets of pairs.
 * Terms are represented by a recursive data type instead of partial functions.
 * Rewrite systems are objects with a rule function instead of a rule set.
-* The implementation of Lemma 7.4 does not compute needed reductions to avoid
+* The implementation of Lemma 8.4 does not compute needed reductions to avoid
   duplicating computation of these reductions, instead these reductions are
   passed in as parameters.
 * To avoid clutter, rewrite systems are omitted as input parameters except in
