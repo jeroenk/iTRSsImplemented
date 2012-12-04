@@ -17,8 +17,8 @@ Usage
 To experiment, execute the interpreter supplied with GHC (ghci) with either
 CompressionExamples.hs (for the compression theorem), ConfluenceExamples.hs
 (for the confluence theorem), or ChurchRosserExamples.hs (for the Church-Rosser
-property) in the interpreter supplied with GHC (ghci). Then, input the examples
-as described in the comments of the respective .hs files.
+property). Then, input the examples as described in the comments of the
+respective .hs files.
 
 Structure
 ---------
@@ -31,7 +31,7 @@ Note that there are a few minor differences compared to the paper:
 
 * Signatures are sets with an arity function instead of sets of pairs.
 * Terms are represented by a recursive data type instead of partial functions.
-* Rewrite systems are objects with a rule function instead of a set of rules.
+* Rewrite systems are objects with a rule function instead of a rule set.
 * The implementation of Lemma 7.4 does not compute needed reductions to avoid
   duplicating computation of these reductions, instead these reductions are
   passed in as parameters.
@@ -39,15 +39,14 @@ Note that there are a few minor differences compared to the paper:
   the top-level functions defining compression, the Strip Lemma, confluence,
   and the Church-Rosser property.
 * In several places only the steps of finite reductions are passed instead
-  of both a sequence of terms and a sequence of steps. The steps suffice in
-  these places.
+  of both a sequence of terms and a sequence of steps. Steps suffice in these
+  places.
 * Extraction of steps from a computably strongly convergent reduction exploits
-  that the assumed systems of notation have a less then or equal operator. As
-  reductions are usually presented by lists, this leads to slightly more
-  efficient code: Instead of having to work backwards through a list of steps
-  from some ordinal determined by modulus invocation to a limit ordinal, we
-  can go forwards through the list (see "select" in SystemOfNotation.hs and
-  its uses).
+  the fact that the assumed systems of notation have a less then or equal
+  operator. As reductions are usually represented by lists, this leads to
+  slightly more efficient code: Instead of having to work backwards through a
+  list of steps from some ordinal determined by the modulus we can go forwards
+  (see "select" in SystemOfNotation.hs).
 
 Correspondence with the Paper
 -----------------------------
