@@ -144,5 +144,10 @@ creduction = CRCons reduction phi
            phi _                  _  = error "Illegal modulus"
 
 -- Compression of creduction.
+--
+-- To obtain the final term of the compressed redution input:
+--
+--     finalTerm $ compressedReduction
+--
 compressedReduction :: CReduction Sigma V BooleanSystem
 compressedReduction = compression booleanSystem creduction
