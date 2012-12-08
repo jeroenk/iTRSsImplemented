@@ -23,14 +23,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- to be careful when defining rewrite systems.
 
 module ExampleRulesAndSystems (
-    rule_a_to_b,
-    rule_b_to_c,
-    rule_a_to_f_a,
-    rule_a_to_f_omega,
-    rule_f_x_to_a,
-    rule_f_x_to_g_x,
-    rule_f_x_to_h_x_f_x,
-    rule_f_x_to_h_x_omega,
+    rule_a_to_b, rule_b_to_c,
+    rule_a_to_f_a, rule_a_to_f_omega,
+    rule_f_x_to_a, rule_f_x_to_g_x,
+    rule_f_x_to_h_x_f_x, rule_f_x_to_h_x_omega,
     System_a_f_x, system_a_f_x,
     System_a_b_f_x, system_a_b_f_x,
     System_a_f_x_omega, system_a_f_x_omega
@@ -41,6 +37,7 @@ import ExampleTermsAndSubstitutions
 
 import Prelude
 
+-- Rules.
 rule_a_to_b ::RewriteRule Sigma Var
 rule_a_to_b = Rule a b
 
@@ -65,6 +62,7 @@ rule_f_x_to_h_x_f_x = Rule f_x h_x_f_x
 rule_f_x_to_h_x_omega :: RewriteRule Sigma Var
 rule_f_x_to_h_x_omega = Rule f_x h_x_omega
 
+-- Systems.
 type System_a_f_x = System Sigma Var
 
 system_a_f_x :: System_a_f_x
