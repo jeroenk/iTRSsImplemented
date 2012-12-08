@@ -32,9 +32,9 @@ import Prelude
 import Data.List
 import Data.Ord
 
-redexPosPrefix :: (Signature s, Variables v)
+redexPatternAndPrefixPos :: (Signature s, Variables v)
     => Step s v -> Positions
-redexPosPrefix (p, Rule l _) = prefix_pos ++ pattern_pos
+redexPatternAndPrefixPos (p, Rule l _) = prefix_pos ++ pattern_pos
     where prefix_pos    = [p' | p' <- inits p, p' /= p]
           pattern_pos   = [p ++ p' | p' <- nonVarPos l]
 
@@ -53,7 +53,7 @@ extraStep d (p, _) pstep@(pf, rule)
 stepPermutation :: (Signature s, Variables v)
     => Integer -> ParallelStep s v -> Step s v -> ([Step s v], ParallelStep s v)
 stepPermutation d pstep step = (needed', qstep')
-    where positions     = redexPosPrefix step
+    where positions     = redexPatternAndPrefixPos step
           needed'       = needed_sorted ++ step' : extra
           needed_sorted = sortBy (comparing $ length . fst) needed
           (needed, psteps') = parallelNeededSteps [pstep] positions
@@ -75,10 +75,11 @@ reductionPermutation d ((p, rule) : steps)
               where (ss', qstep')   = stepPermutation d qstep s
                     (ss'', qstep'') = permute qstep' ss
 
-standardFilter' :: (Signature s, Variables v)
-    => Integer -> ParallelReduction s v -> Step s v -> ([Step s v], ParallelReduction s v)
-standardFilter' d psteps step = (steps, leftover ++ remaining')
-    where ps = redexPosPrefix step
+stepStandardFilter :: (Signature s, Variables v)
+    => Integer -> ParallelReduction s v -> Step s v
+       -> ([Step s v], ParallelReduction s v)
+stepStandardFilter d psteps step = (steps, leftover ++ remaining')
+    where ps = redexPatternAndPrefixPos step
           (needed, remaining) = parallelNeededSteps psteps ps
           (step', remaining') = lP (reverse remaining) step []
           (steps, leftover) = reductionPermutation d (needed ++ [step'])
@@ -101,7 +102,7 @@ standardFilter d psteps = filters psteps []
                     (qf_b, qf_e) = genericSplitAt d qf
                     q = head qs
                     prev' = reverse prev
-                    (steps, remaining) = standardFilter' d prev' (q, rule)
+                    (steps, remaining) = stepStandardFilter d prev' (q, rule)
 
 -- depth, previous needed steps, and previous parallel steps
 standardisationList :: RewriteSystem s v r
@@ -128,7 +129,7 @@ standardisationModulus reduction = constructModulus phi
     where phi n      = genericLength $ concat $ genericTake (n + 1) steps_list
           steps_list = standardisationList reduction
 
--- Standardisation of left-linear rewrite systems.
+-- Standardisation of reductions in left-linear rewrite systems.
 standardisation :: RewriteSystem s v r
     => r -> CReduction s v r -> CReduction s v r
 standardisation _ reduction = CRCons (RCons ts ss) phi
