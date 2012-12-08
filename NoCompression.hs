@@ -45,7 +45,7 @@ instance Signature Sigma where
     arity (SigmaCons "h")  = 1
     arity (SigmaCons "h'") = 1
     arity (SigmaCons "k")  = 1
-    arity  _ = error "Character not in signature"
+    arity  _ = error "Not a function symbol"
 
 instance Eq Sigma where
     (SigmaCons s0) == (SigmaCons s1) = s0 == s1
