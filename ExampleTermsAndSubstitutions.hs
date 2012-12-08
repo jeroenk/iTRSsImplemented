@@ -22,7 +22,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module ExampleTermsAndSubstitutions (
     Sigma(SigmaCons), Var(VarCons),
     a, b, c,
-    f_a, g_a, f_f_a, g_f_a, g_g_a,
+    f_a, f_b, g_a, g_b,
+    f_f_a, g_f_a, g_g_a,
     f_x, g_x, h_x_x, h_x_f_x,
     f_omega, g_omega, h_omega,
     f_g_omega, g_f_omega, h_x_omega,
@@ -101,8 +102,14 @@ c = constant (SigmaCons 'c')
 f_a :: Term Sigma Var
 f_a = f a
 
+f_b :: Term Sigma Var
+f_b = f b
+
 g_a :: Term Sigma Var
 g_a = g a
+
+g_b :: Term Sigma Var
+g_b = g b
 
 f_f_a :: Term Sigma Var
 f_f_a = f f_a
