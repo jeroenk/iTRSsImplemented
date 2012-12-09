@@ -95,7 +95,7 @@ cRed2 = CRCons red2 phi
 --     compression system_a_f_x cRed3
 --
 -- Observe that the system of notation used does not need to be as `tight' as
--- possible, but can contain many more odinals than there are steps in the
+-- possible, but can contain many more ordinals than there are steps in the
 -- constructed reduction.
 red3 :: Omega2Reduction Sigma Var System_a_f_x
 red3 = RCons ts ss
