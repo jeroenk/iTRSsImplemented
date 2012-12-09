@@ -132,10 +132,31 @@ standardFilter d psteps = filters psteps []
                     prev' = reverse prev
                     (steps, remaining) = stepStandardFilter d prev' (q, rule)
 
+
+gather_inner :: (Signature s, Variables v)
+    => Integer -> ParallelReduction s v -> [[Step s v]]
+gather_inner d psteps = steps_d' : gather_inner (d + 1) psteps_d
+    where steps_d' = standardisationOrder DepthLeft steps_d
+          (steps_d, psteps_d) = standardFilter d psteps
+
+standard :: (Signature s, Variables v)
+    => [Step s v] -> [Step s v]
+standard []  = error "Cannot be empty"
+standard [x] = [x]
+standard steps = steps'' ++ [last steps]
+    where steps'' = genericTake (genericLength begin) $ concat steps'
+          steps' = gather_inner 0 (map makeParallel begin)
+          makeParallel (p, rule) = (pos2PosFun p, rule)
+          begin = init steps
+
 standardisationOrder :: (Signature s, Variables v)
     => StandardisationMethod -> [[Step s v]] -> [Step s v]
-standardisationOrder Parallel steps  = concat steps
-standardisationOrder DepthLeft steps = error "not implemented"
+standardisationOrder Parallel  steps = concat steps
+standardisationOrder DepthLeft steps = concat steps'''
+    where steps''' = map (standard . snd) steps''
+          steps''  = sortBy (comparing fst) steps'
+          steps'   = map finalPosition steps
+          finalPosition step = (Wrap . fst $ last step, step)
 
 -- depth, previous needed steps, and previous parallel steps
 standardisationList :: RewriteSystem s v r
