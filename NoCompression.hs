@@ -194,7 +194,7 @@ replaceC (Function symbol ts)
 replaceC (Variable v)
     = Variable v
 
--- The next two function are helper functions to locate the next redex, given
+-- The next two functions are helper functions to locate the next redex, given
 -- it is known the next redex either employs the f-rule or one of the k-rules.
 findStepF :: UnivalentSystem o
     => (Integer -> Bool) -> (Integer -> o) -> o -> o -> Step Sigma Var
@@ -285,8 +285,7 @@ constructModulus inSet geqLub nu alpha beta depth
                   beta' = if beta `ordEq` ordZero then alpha else beta
 
 countSteps :: UnivalentSystem o
-    => (Integer -> Bool) -> (Integer -> Bool) -> (Integer -> o) -> o -> o
-       -> o
+    => (Integer -> Bool) -> (Integer -> Bool) -> (Integer -> o) -> o -> o -> o
 countSteps inSet geqLub nu alpha beta
     = count initial beta' beta' True
         where initial = constructTerm inSet geqLub nu beta' alpha
