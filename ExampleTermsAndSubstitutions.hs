@@ -24,6 +24,7 @@ module ExampleTermsAndSubstitutions (
     a, b, c,
     f_a, f_b, g_a, g_b,
     f_f_a, g_f_a, g_g_a,
+    h_a_a, h_a_f_a, h_a_f_b, h_b_f_b,
     f_x, g_x, h_x_x, h_x_f_x,
     f_omega, g_omega, h_omega,
     f_g_omega, g_f_omega, h_x_omega,
@@ -119,6 +120,18 @@ g_f_a = g f_a
 
 g_g_a :: Term Sigma Var
 g_g_a = g g_a
+
+h_a_a :: Term Sigma Var
+h_a_a = h a a
+
+h_a_f_a :: Term Sigma Var
+h_a_f_a = h a f_a
+
+h_a_f_b :: Term Sigma Var
+h_a_f_b = h a f_b
+
+h_b_f_b :: Term Sigma Var
+h_b_f_b = h b f_b
 
 f_x :: Term Sigma Var
 f_x = f (Variable x)
