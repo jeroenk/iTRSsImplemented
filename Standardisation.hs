@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- This module implements standardisation of transfinite reductions.
 
 module Standardisation (
+    StandardisationMethod(Parallel, DepthLeft),
     standardisation
 ) where
 
@@ -32,11 +33,38 @@ import Prelude
 import Data.List
 import Data.Ord
 
+data StandardisationMethod
+    = Parallel
+    | DepthLeft
+
+newtype WrappedPosition = Wrap Position
+
+toLeft :: Position -> Position -> Bool
+toLeft (p:ps) (q:qs)
+    | p == q = toLeft ps qs
+    | p < q  = True
+    | p > q  = False
+toLeft _ _
+    = False
+
+instance Eq WrappedPosition where
+    (Wrap p) == (Wrap q) = p == q
+
+instance Ord WrappedPosition where
+    compare (Wrap p) (Wrap q)
+        | p_len < q_len    = LT
+        | p_len == q_len
+          && p `toLeft` q  = LT
+        | p == q           = EQ
+        | otherwise        = GT
+        where p_len = positionLength p
+              q_len = positionLength q
+
 redexPatternAndPrefixPos :: (Signature s, Variables v)
     => Step s v -> Positions
 redexPatternAndPrefixPos (p, Rule l _) = prefix_pos ++ pattern_pos
-    where prefix_pos    = [p' | p' <- inits p, p' /= p]
-          pattern_pos   = [p ++ p' | p' <- nonVarPos l]
+    where prefix_pos  = [p' | p' <- inits p, p' /= p]
+          pattern_pos = [p ++ p' | p' <- nonVarPos l]
 
 extraStep :: (Signature s, Variables v)
     => Integer -> Step s v -> ParallelStep s v -> ([Step s v], ParallelStep s v)
@@ -55,7 +83,7 @@ stepPermutation :: (Signature s, Variables v)
 stepPermutation d pstep step = (needed', qstep')
     where positions     = redexPatternAndPrefixPos step
           needed'       = needed_sorted ++ step' : extra
-          needed_sorted = sortBy (comparing $ length . fst) needed
+          needed_sorted = sortBy (comparing $ positionLength . fst) needed
           (needed, psteps') = parallelNeededSteps [pstep] positions
           (step', qstep)    = limitedPermute (head psteps') step
           (extra, qstep')   = extraStep d step qstep
@@ -88,13 +116,13 @@ stepStandardFilter d psteps step = (steps, leftover ++ remaining')
               where (step'', dp) = limitedPermute qstep step'''
 
 standardFilter :: (Signature s, Variables v)
-    => Integer -> ParallelReduction s v -> ([Step s v], ParallelReduction s v)
+    => Integer -> ParallelReduction s v -> ([[Step s v]], ParallelReduction s v)
 standardFilter d psteps = filters psteps []
     where filters [] prev
               = ([], reverse prev)
           filters (qstep@(qf, rule):qsteps) prev
               | null qs   = filters qsteps (qstep:prev)
-              | otherwise = (steps ++ steps', qsteps')
+              | otherwise = (steps : steps', qsteps')
               where qs = genericIndex qf d
                     (steps', qsteps') = filters qsteps_new []
                     qsteps_new = remaining ++ (qf', rule) : qsteps
@@ -104,37 +132,43 @@ standardFilter d psteps = filters psteps []
                     prev' = reverse prev
                     (steps, remaining) = stepStandardFilter d prev' (q, rule)
 
+standardisationOrder :: (Signature s, Variables v)
+    => StandardisationMethod -> [[Step s v]] -> [Step s v]
+standardisationOrder Parallel steps  = concat steps
+standardisationOrder DepthLeft steps = error "not implemented"
+
 -- depth, previous needed steps, and previous parallel steps
 standardisationList :: RewriteSystem s v r
-    => CReduction s v r -> [[Step s v]]
-standardisationList reduction = gather 0 [] []
+    => StandardisationMethod -> CReduction s v r -> [[Step s v]]
+standardisationList method reduction = gather 0 [] []
     where final = finalTerm reduction
-          gather d prev psteps = steps_d : gather (d + 1) total psteps_d
-              where (steps_d, psteps_d) = standardFilter d (psteps ++ psteps')
+          gather d prev psteps = steps_d' : gather (d + 1) total psteps_d
+              where steps_d' = standardisationOrder method steps_d
+                    (steps_d, psteps_d) = standardFilter d (psteps ++ psteps')
                     psteps' = filterSteps prev total
                     total   = neededSteps reduction ps
                     ps      = posToDepth final d
 
 -- Concatenate the lists produced by standardisationList to obtain all steps.
 standardisationSteps :: RewriteSystem s v r
-    => CReduction s v r -> [Step s v]
-standardisationSteps reduction = concat steps_list
-    where steps_list = standardisationList reduction
+    => StandardisationMethod -> CReduction s v r -> [Step s v]
+standardisationSteps method reduction = concat steps_list
+    where steps_list = standardisationList method reduction
 
 -- Compute the modulus using that the ith element of the list produced by
 -- standardisationList contains only steps at depth at least i.
 standardisationModulus :: RewriteSystem s v r
-    => CReduction s v r -> Modulus Omega
-standardisationModulus reduction = constructModulus phi
+    => StandardisationMethod -> CReduction s v r -> Modulus Omega
+standardisationModulus method reduction = constructModulus phi
     where phi n      = genericLength $ concat $ genericTake (n + 1) steps_list
-          steps_list = standardisationList reduction
+          steps_list = standardisationList method reduction
 
 -- Standardisation of reductions in left-linear rewrite systems.
 standardisation :: RewriteSystem s v r
-    => r -> CReduction s v r -> CReduction s v r
-standardisation _ reduction = CRCons (RCons ts ss) phi
+    => StandardisationMethod -> r -> CReduction s v r -> CReduction s v r
+standardisation method _ reduction = CRCons (RCons ts ss) phi
         where ts    = constructSequence terms
               ss    = constructSequence steps
-              phi   = standardisationModulus reduction
+              phi   = standardisationModulus method reduction
               terms = rewriteSteps (initialTerm reduction) steps
-              steps = standardisationSteps reduction
+              steps = standardisationSteps method reduction
