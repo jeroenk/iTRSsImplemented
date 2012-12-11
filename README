@@ -16,9 +16,9 @@ Usage
 
 To experiment, execute the interpreter supplied with GHC (ghci) with either:
 
-* IntroductionExample.hs (for the example from the Introduction)
-* CompressionExamples.hs (for the compression theorem)
-* ConfluenceExamples.hs (for the confluence theorem), or
+* IntroductionExample.hs  (for the example from the Introduction)
+* CompressionExamples.hs  (for the compression theorem)
+* ConfluenceExamples.hs   (for the confluence theorem), or
 * ChurchRosserExamples.hs (for the Church-Rosser property).
 
 Then, input the examples as described in the comments of the .hs files.
@@ -57,6 +57,7 @@ Correspondence with the Paper
 The correspondence between the Turing machines defined in the the paper and
 the functions as present in the code is as follows:
 
+Example 3.6      : rationalTerm          in RationalTerm.hs
 Lemma 3.10       : substitute            in Substitution.hs
 Proposition 3.12 : subterm               in PositionAndSubterm.hs
 Lemma 4.2        : rewriteStep           in RuleAndSystem.hs

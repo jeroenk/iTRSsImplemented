@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- Remark that a finite system of regular equations is a substitution where
 -- the terms are not allowed to be variables.
 
-module RationalTerms (
+module RationalTerm (
     RegularSystem,
     rationalTerm
 ) where
