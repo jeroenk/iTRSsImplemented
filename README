@@ -62,7 +62,7 @@ Lemma 3.10       : substitute            in Substitution.hs
 Proposition 3.12 : subterm               in PositionAndSubterm.hs
 Lemma 4.2        : rewriteStep           in RuleAndSystem.hs
 Remark 5.6       : ordLimitPred          in SystemOfNotation.hs
-Remark 5.8       : finalTerm             in Reduction.hs
+Remark 5.10      : finalTerm             in Reduction.hs
 Proposition 7.4  : descendantsAcrossStep in RuleAndSystem.hs
 Lemma 7.7        : origins               in Reduction.hs
 Lemma 7.11       : neededSteps           in Reduction.hs
