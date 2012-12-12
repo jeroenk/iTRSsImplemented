@@ -38,7 +38,7 @@ red1 :: Omega2Reduction Sigma Var System_a_a_f_x_g_b
 red1 = RCons ts ss
     where ts = constructSequence terms []
           ss = constructSequence steps []
-          terms = [a, f_a, f_b, g_b, c]
+          terms = rewriteSteps a steps
           steps = zip ps rs
           ps = [[], [1], [], []]
           rs = [rule_a_to_f_a, rule_a_to_b, rule_f_x_to_g_x, rule_g_b_to_c]
@@ -52,7 +52,7 @@ red2 :: Omega2Reduction Sigma Var System_a_a_f_x_g_b
 red2 = RCons ts ss
     where ts = constructSequence terms []
           ss = constructSequence steps []
-          terms = [h_a_a, h_a_f_a, h_a_f_b, h_b_f_b]
+          terms = rewriteSteps h_a_a steps
           steps = zip ps rs
           ps = [[2], [2, 1], [1]]
           rs = [rule_a_to_f_a, rule_a_to_b, rule_a_to_b]
@@ -60,4 +60,18 @@ red2 = RCons ts ss
 cRed2 :: CReduction Sigma Var System_a_a_f_x_g_b
 cRed2 = CRCons red2 phi
     where phi (OmegaElement 0) _ = OmegaElement 3
+          phi _ _                = error "Illegal modulus"
+
+red3 :: Omega2Reduction Sigma Var System_a_a_f_x_g_b
+red3 = RCons ts ss
+    where ts = constructSequence terms []
+          ss = constructSequence steps []
+          terms = rewriteSteps h_a_a steps
+          steps = zip ps rs
+          ps = [[2], [2, 1], [1], []]
+          rs = [rule_a_to_f_a, rule_a_to_b, rule_a_to_b, rule_h_b_x_to_x]
+
+cRed3 :: CReduction Sigma Var System_a_a_f_x_g_b
+cRed3 = CRCons red3 phi
+    where phi (OmegaElement 0) _ = OmegaElement 4
           phi _ _                = error "Illegal modulus"
