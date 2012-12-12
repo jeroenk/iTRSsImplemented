@@ -24,8 +24,8 @@ module ExampleTermsAndSubstitutions (
     x, y, z,
     a, b, c,
     f, g, h, k,
-    f_a, f_f_a, g_b, h_a_a,
-    f_x, g_x, h_x_f_x, h_b_x,
+    f_a, f_f_a, g_b, h_a_a, h_b_a,
+    f_x, g_x, h_x_f_x,
     f_omega, f_g_omega,
     h_omega, h_f_f_omega, h_x_omega,
     sigma_simple, sigma_complex
@@ -120,6 +120,9 @@ f_f_a = f f_a
 h_a_a :: Term Sigma Var
 h_a_a = h a a
 
+h_b_a :: Term Sigma Var
+h_b_a = h b a
+
 f_x :: Term Sigma Var
 f_x = f x
 
@@ -128,9 +131,6 @@ g_x = g x
 
 h_x_f_x :: Term Sigma Var
 h_x_f_x = h x f_x
-
-h_b_x :: Term Sigma Var
-h_b_x = h b x
 
 f_omega :: Term Sigma Var
 f_omega = f f_omega
