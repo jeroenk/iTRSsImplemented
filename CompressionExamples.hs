@@ -101,7 +101,7 @@ red3 :: Omega2Reduction Sigma Var System_a_f_x
 red3 = RCons ts ss
     where ts = constructSequence terms []
           ss = constructSequence steps []
-          terms = [f_a, f_f_a, g_f_a, g_g_a]
+          terms = rewriteSteps f_a steps
           steps = zip ps rs
           ps = [[1], [], [1]]
           rs = [rule_a_to_f_a, rule_f_x_to_g_x, rule_f_x_to_g_x]

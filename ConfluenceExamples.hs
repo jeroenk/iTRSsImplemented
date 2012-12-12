@@ -61,7 +61,7 @@ red1b = RCons (constructSequence terms) (constructSequence steps)
 
 cRed1b :: CReduction Sigma Var System_a_f_x
 cRed1b = CRCons red1b (constructModulus phi)
-    where phi n = n + 1
+    where phi m = m + 1
 
 --
 -- f^omega -> (fg)(f^\omega) -> (fg)^2(f^\omega))) -> ...
@@ -76,7 +76,7 @@ red1c = RCons (constructSequence terms) (constructSequence steps)
 
 cRed1c :: CReduction Sigma Var System_a_f_x
 cRed1c = CRCons red1c (constructModulus phi)
-    where phi n = n
+    where phi m = m
 
 -- The next two finite reductions start in f(a). These reductions demonstrate
 -- that the confluence algorithm also applies in the finite case. The two
@@ -97,7 +97,7 @@ red2a = RCons (constructSequence terms) (constructSequence steps)
 
 cRed2a :: CReduction Sigma Var System_a_b_f_x
 cRed2a = CRCons red2a (constructModulus phi)
-     where phi n = min 3 (n + 1)
+     where phi m = min 3 (m + 1)
 
 --
 -- f(a) -> f(b) -> f(c)
@@ -111,7 +111,7 @@ red2b = RCons (constructSequence terms) (constructSequence steps)
 
 cRed2b :: CReduction Sigma Var System_a_b_f_x
 cRed2b = CRCons red2b (constructModulus phi)
-    where phi n = if n == 0 then 0 else 2
+    where phi m = if m == 0 then 0 else 2
 
 -- The next two reductions test for an edge case where the top-most function
 -- symbol is not touched in either reduction.  The two
@@ -132,7 +132,7 @@ red3a = RCons (constructSequence terms) (constructSequence steps)
 
 cRed3a :: CReduction Sigma Var System_a_b_f_x
 cRed3a = CRCons red3a (constructModulus phi)
-    where phi n = if n `elem` [0, 1] then 0 else 1
+    where phi m = if m `elem` [0, 1] then 0 else 1
 
 --
 -- f(f(a)) -> f(g(a))
@@ -167,7 +167,7 @@ red4a = RCons (constructSequence terms) (constructSequence steps)
 
 cRed4a :: CReduction Sigma Var System_a_f_x_omega
 cRed4a = CRCons red4a (constructModulus phi)
-    where phi n = n + 1
+    where phi m = m + 1
 
 --
 -- a -> f(a) -> s = h(a, s)

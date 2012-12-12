@@ -27,7 +27,7 @@ module ExampleRulesAndSystems (
     rule_a_to_f_a, rule_a_to_f_omega,
     rule_f_x_to_a, rule_f_x_to_g_x,
     rule_f_x_to_h_x_f_x, rule_f_x_to_h_x_omega,
-    rule_g_b_to_c,
+    rule_g_b_to_c, rule_h_b_x_to_x,
     System_a_f_x, system_a_f_x,
     System_a_b_f_x, system_a_b_f_x,
     System_a_f_x_omega, system_a_f_x_omega,
@@ -67,6 +67,9 @@ rule_f_x_to_h_x_omega = Rule f_x h_x_omega
 rule_g_b_to_c :: RewriteRule Sigma Var
 rule_g_b_to_c = Rule g_b c
 
+rule_h_b_x_to_x :: RewriteRule Sigma Var
+rule_h_b_x_to_x = Rule h_b_x x
+
 -- Systems.
 type System_a_f_x = System Sigma Var
 
@@ -87,4 +90,4 @@ type System_a_a_f_x_g_b = System Sigma Var
 
 system_a_a_f_x_g_b :: System_a_a_f_x_g_b
 system_a_a_f_x_g_b = SystemCons [rule_a_to_b, rule_a_to_f_a, rule_f_x_to_g_x,
-                                     rule_g_b_to_c]
+                                     rule_g_b_to_c, rule_h_b_x_to_x]

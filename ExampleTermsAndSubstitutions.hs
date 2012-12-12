@@ -21,14 +21,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module ExampleTermsAndSubstitutions (
     Sigma(SigmaCons), Var(VarCons),
+    x, y, z,
     a, b, c,
-    f_a, f_b, g_a, g_b,
-    f_f_a, g_f_a, g_g_a,
-    h_a_a, h_a_f_a, h_a_f_b, h_b_f_b,
-    f_x, g_x, h_x_x, h_x_f_x,
-    f_omega, g_omega, h_omega,
-    f_g_omega, g_f_omega, h_x_omega,
-    h_f_f_omega, k_f_omega, f_k_omega,
+    f, g, h, k,
+    f_a, f_f_a, g_b, h_a_a,
+    f_x, g_x, h_x_f_x, h_b_x,
+    f_omega, f_g_omega,
+    h_omega, h_f_f_omega, h_x_omega,
     sigma_simple, sigma_complex
 ) where
 
@@ -68,14 +67,23 @@ instance Eq Var where
 instance Show Var where
     show (VarCons x) = [x]
 
-x :: Var
-x = VarCons 'x'
+xVar :: Var
+xVar = VarCons 'x'
 
-y :: Var
-y = VarCons 'y'
+x :: Term Sigma Var
+x = Variable xVar
 
-z :: Var
-z = VarCons 'z'
+yVar :: Var
+yVar = VarCons 'y'
+
+y :: Term Sigma Var
+y = Variable yVar
+
+zVar :: Var
+zVar = VarCons 'z'
+
+z :: Term Sigma Var
+z = Variable zVar
 
 -- Term constructors.
 f :: Term Sigma Var -> Term Sigma Var
@@ -103,53 +111,29 @@ c = constant (SigmaCons 'c')
 f_a :: Term Sigma Var
 f_a = f a
 
-f_b :: Term Sigma Var
-f_b = f b
-
-g_a :: Term Sigma Var
-g_a = g a
-
 g_b :: Term Sigma Var
 g_b = g b
 
 f_f_a :: Term Sigma Var
 f_f_a = f f_a
 
-g_f_a :: Term Sigma Var
-g_f_a = g f_a
-
-g_g_a :: Term Sigma Var
-g_g_a = g g_a
-
 h_a_a :: Term Sigma Var
 h_a_a = h a a
 
-h_a_f_a :: Term Sigma Var
-h_a_f_a = h a f_a
-
-h_a_f_b :: Term Sigma Var
-h_a_f_b = h a f_b
-
-h_b_f_b :: Term Sigma Var
-h_b_f_b = h b f_b
-
 f_x :: Term Sigma Var
-f_x = f (Variable x)
+f_x = f x
 
 g_x :: Term Sigma Var
-g_x = g (Variable x)
-
-h_x_x :: Term Sigma Var
-h_x_x = h (Variable x) (Variable x)
+g_x = g x
 
 h_x_f_x :: Term Sigma Var
-h_x_f_x = h (Variable x) f_x
+h_x_f_x = h x f_x
+
+h_b_x :: Term Sigma Var
+h_b_x = h b x
 
 f_omega :: Term Sigma Var
 f_omega = f f_omega
-
-g_omega :: Term Sigma Var
-g_omega = g g_omega
 
 h_omega :: Term Sigma Var
 h_omega = h h_omega h_omega
@@ -160,21 +144,15 @@ f_g_omega = f g_f_omega
 g_f_omega :: Term Sigma Var
 g_f_omega = g f_g_omega
 
-h_x_omega :: Term Sigma Var
-h_x_omega = h (Variable x) h_x_omega
-
 h_f_f_omega :: Term Sigma Var
 h_f_f_omega = h f_omega f_omega
 
-k_f_omega :: Term Sigma Var
-k_f_omega = k f_k_omega f_k_omega f_k_omega
-
-f_k_omega :: Term Sigma Var
-f_k_omega = f k_f_omega
+h_x_omega :: Term Sigma Var
+h_x_omega = h x h_x_omega
 
 -- Substitutions.
 sigma_simple :: Substitution Sigma Var
-sigma_simple = [(x, a)]
+sigma_simple = [(xVar, a)]
 
 sigma_complex :: Substitution Sigma Var
-sigma_complex = [(x, a), (y, f_a), (z, h_omega)]
+sigma_complex = [(xVar, a), (yVar, f_a), (zVar, h_omega)]
