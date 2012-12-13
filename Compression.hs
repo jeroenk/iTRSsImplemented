@@ -59,7 +59,7 @@ compressionModulus reduction = constructModulus phi
     where phi n      = genericLength $ concat $ genericTake (n + 1) steps_list
           steps_list = compressionList reduction
 
--- Compression of left-linear rewrite systems.
+-- Compression of reductions in left-linear rewrite systems.
 --
 -- Return the original reduction in case it already has length at most omega.
 compression :: RewriteSystem s v r

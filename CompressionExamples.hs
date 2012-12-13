@@ -15,8 +15,14 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
--- This file defines some reductions that can be tried with the compression
+-- This module defines some reductions that can be tried with the compression
 -- algorithm.
+
+module CompressionExamples (
+    cRed1, cRed2, cRed3,
+    cRed4, cRed5,
+    compression
+) where
 
 import RuleAndSystem
 import Reduction
@@ -29,7 +35,7 @@ import Prelude
 
 --
 -- a -> f(a) -> f^2(a) -> ... -> f^n(a) -> ...
---    f^omega -> g(f^omega) -> g^2(f^omega) -> ... -> g^n(f^omega) -> ...
+--     f^omega -> g(f^omega) -> g^2(f^omega) -> ... -> g^n(f^omega) -> ...
 --
 -- To obtain the compressed reduction input:
 --
@@ -59,7 +65,7 @@ cRed1 = CRCons red1 phi
 --
 -- f^omega -> (fg)(f^\omega) -> (fg)^2(f^\omega))) -> ...
 --                                             -> (fg)^n(f^\omega) -> ...
---    (fg)^omega -> g^2((fg)^omega) -> g^3((fg^omega)) -> ...
+--     (fg)^omega -> g^2((fg)^omega) -> g^3((fg^omega)) -> ...
 --                                                 -> g^(2n)((fg)^omega) -> ...
 --
 -- To obtain the final term of the compressed reduction input:
@@ -95,13 +101,13 @@ cRed2 = CRCons red2 phi
 --     compression system_a_f_x cRed3
 --
 -- Observe that the system of notation used does not need to be as `tight' as
--- possible, but can contain many more odinals than there are steps in the
+-- possible, but can contain many more ordinals than there are steps in the
 -- constructed reduction.
 red3 :: Omega2Reduction Sigma Var System_a_f_x
 red3 = RCons ts ss
     where ts = constructSequence terms []
           ss = constructSequence steps []
-          terms = [f_a, f_f_a, g_f_a, g_g_a]
+          terms = rewriteSteps f_a steps
           steps = zip ps rs
           ps = [[1], [], [1]]
           rs = [rule_a_to_f_a, rule_f_x_to_g_x, rule_f_x_to_g_x]

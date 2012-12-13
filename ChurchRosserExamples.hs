@@ -15,8 +15,13 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
--- This file defines some reductions that can be tried with the Church-Rosser
+-- This module defines some reductions that can be tried with the Church-Rosser
 -- algorithm.
+
+module ChurchRosserExamples (
+    cRed1a, cRed1b, cRed1c, cRed1d,
+    churchRosser
+) where
 
 import RuleAndSystem
 import Reduction
@@ -44,7 +49,7 @@ red1a = RCons (constructSequence terms) (constructSequence steps)
 
 cRed1a :: CReduction Sigma Var System_a_f_x
 cRed1a = CRCons red1a (constructModulus phi)
-    where phi x = x + 1
+    where phi m = m + 1
 
 --
 -- f^omega
@@ -68,7 +73,7 @@ red1c = RCons (constructSequence terms) (constructSequence steps)
 
 cRed1c :: CReduction Sigma Var System_a_f_x
 cRed1c = CRCons red1c (constructModulus phi)
-    where phi x = x + 1
+    where phi m = m + 1
 
 --
 -- a -> f(a) -> g(a) -> g(f(a)) -> g(f(f(a))) -> g(f(g(a))) -> ...
@@ -83,6 +88,6 @@ red1d = RCons (constructSequence terms) (constructSequence steps)
 
 cRed1d :: CReduction Sigma Var System_a_f_x
 cRed1d = CRCons red1d (constructModulus phi)
-    where phi x = e * 2 + o + 2
-              where e = x `div` 2
-                    o = x `div` 2 + x `mod` 2
+    where phi m = e * 2 + o + 2
+              where e = m `div` 2
+                    o = m `div` 2 + m `mod` 2

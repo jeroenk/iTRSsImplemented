@@ -16,16 +16,18 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
--- This module defines a signature Sigma and some simple terms over Sigma.
+-- This module defines a signature Sigma, some simple terms over Sigma, and
+-- two substitutions over Sigma.
 
 module ExampleTermsAndSubstitutions (
     Sigma(SigmaCons), Var(VarCons),
-    f, g, h,
-    a, b, c, f_a, g_a, f_f_a, g_f_a, g_g_a,
-    f_x, g_x, h_x_x, h_x_f_x,
-    f_omega, g_omega, h_omega,
-    f_g_omega, g_f_omega,
-    h_x_omega, k_f_omega, f_k_omega,
+    x, y, z,
+    a, b, c,
+    f, g, h, k,
+    f_a, f_f_a, g_b, h_a_a, h_b_a,
+    f_x, g_x, h_x_f_x,
+    f_omega, f_g_omega,
+    h_omega, h_f_f_omega, h_x_omega,
     sigma_simple, sigma_complex
 ) where
 
@@ -35,9 +37,11 @@ import Term
 
 import Prelude
 
+-- The elements of the signature and the set of variables are characters.
 data Sigma = SigmaCons Char
 data Var   = VarCons Char
 
+-- The signature Sigma.
 instance Signature Sigma where
     arity (SigmaCons 'a') = 0
     arity (SigmaCons 'b') = 0
@@ -46,7 +50,7 @@ instance Signature Sigma where
     arity (SigmaCons 'g') = 1
     arity (SigmaCons 'h') = 2
     arity (SigmaCons 'k') = 3
-    arity _  = error "Symbol not in signature"
+    arity _  = error "Not a function symbol"
 
 instance Eq Sigma where
     (SigmaCons f) == (SigmaCons g) = f == g
@@ -54,6 +58,7 @@ instance Eq Sigma where
 instance Show Sigma where
     show (SigmaCons f) = [f]
 
+-- Variables.
 instance Variables Var
 
 instance Eq Var where
@@ -62,15 +67,38 @@ instance Eq Var where
 instance Show Var where
     show (VarCons x) = [x]
 
-x :: Var
-x = VarCons 'x'
+xVar :: Var
+xVar = VarCons 'x'
 
-y :: Var
-y = VarCons 'y'
+x :: Term Sigma Var
+x = Variable xVar
 
-z :: Var
-z = VarCons 'z'
+yVar :: Var
+yVar = VarCons 'y'
 
+y :: Term Sigma Var
+y = Variable yVar
+
+zVar :: Var
+zVar = VarCons 'z'
+
+z :: Term Sigma Var
+z = Variable zVar
+
+-- Term constructors.
+f :: Term Sigma Var -> Term Sigma Var
+f s = functionTerm (SigmaCons 'f') [s]
+
+g :: Term Sigma Var -> Term Sigma Var
+g s = functionTerm (SigmaCons 'g') [s]
+
+h :: Term Sigma Var ->  Term Sigma Var -> Term Sigma Var
+h s t = functionTerm (SigmaCons 'h') [s, t]
+
+k :: Term Sigma Var -> Term Sigma Var -> Term Sigma Var -> Term Sigma Var
+k s t u = functionTerm (SigmaCons 'k') [s, t, u]
+
+-- Terms.
 a :: Term Sigma Var
 a = constant (SigmaCons 'a')
 
@@ -80,71 +108,51 @@ b = constant (SigmaCons 'b')
 c :: Term Sigma Var
 c = constant (SigmaCons 'c')
 
-f :: Sigma
-f = SigmaCons 'f'
-
-g :: Sigma
-g = SigmaCons 'g'
-
-h :: Sigma
-h = SigmaCons 'h'
-
-k :: Sigma
-k = SigmaCons 'k'
-
 f_a :: Term Sigma Var
-f_a = functionTerm f [a]
+f_a = f a
 
-g_a :: Term Sigma Var
-g_a = functionTerm g [a]
+g_b :: Term Sigma Var
+g_b = g b
 
 f_f_a :: Term Sigma Var
-f_f_a = functionTerm f [f_a]
+f_f_a = f f_a
 
-g_f_a :: Term Sigma Var
-g_f_a = functionTerm g [f_a]
+h_a_a :: Term Sigma Var
+h_a_a = h a a
 
-g_g_a :: Term Sigma Var
-g_g_a = functionTerm g [g_a]
+h_b_a :: Term Sigma Var
+h_b_a = h b a
 
 f_x :: Term Sigma Var
-f_x = functionTerm f [Variable x]
+f_x = f x
 
 g_x :: Term Sigma Var
-g_x = functionTerm g [Variable x]
-
-h_x_x :: Term Sigma Var
-h_x_x = functionTerm h [Variable x, Variable x]
+g_x = g x
 
 h_x_f_x :: Term Sigma Var
-h_x_f_x = functionTerm h [Variable x, f_x]
+h_x_f_x = h x f_x
 
 f_omega :: Term Sigma Var
-f_omega = functionTerm f [f_omega]
-
-g_omega :: Term Sigma Var
-g_omega = functionTerm g [g_omega]
+f_omega = f f_omega
 
 h_omega :: Term Sigma Var
-h_omega = functionTerm h [h_omega, h_omega]
+h_omega = h h_omega h_omega
 
 f_g_omega :: Term Sigma Var
-f_g_omega = functionTerm f [g_f_omega]
+f_g_omega = f g_f_omega
 
 g_f_omega :: Term Sigma Var
-g_f_omega = functionTerm g [f_g_omega]
+g_f_omega = g f_g_omega
+
+h_f_f_omega :: Term Sigma Var
+h_f_f_omega = h f_omega f_omega
 
 h_x_omega :: Term Sigma Var
-h_x_omega = functionTerm h [Variable x, h_x_omega]
+h_x_omega = h x h_x_omega
 
-k_f_omega :: Term Sigma Var
-k_f_omega = functionTerm k [f_k_omega, f_k_omega, f_k_omega]
-
-f_k_omega :: Term Sigma Var
-f_k_omega = functionTerm f [k_f_omega]
-
+-- Substitutions.
 sigma_simple :: Substitution Sigma Var
-sigma_simple = [(x, a)]
+sigma_simple = [(xVar, a)]
 
 sigma_complex :: Substitution Sigma Var
-sigma_complex = [(x, a), (y, f_a), (z, h_omega)]
+sigma_complex = [(xVar, a), (yVar, f_a), (zVar, h_omega)]
