@@ -139,12 +139,16 @@ gather_inner d psteps = steps_d' : gather_inner (d + 1) psteps_d
     where steps_d' = standardisationOrder DepthLeft steps_d
           (steps_d, psteps_d) = standardFilter d psteps
 
+takeSufficient :: (Signature s, Variables v)
+    => Integer -> [Step s v] -> [Step s v]
+takeSufficient = genericTake
+
 standard :: (Signature s, Variables v)
     => [Step s v] -> [Step s v]
-standard []  = error "Cannot be empty"
-standard [x] = [x]
+standard []    = error "Cannot be empty"
+standard [x]   = [x]
 standard steps = steps'' ++ [last steps]
-    where steps'' = genericTake (genericLength begin) $ concat steps'
+    where steps'' = takeSufficient (genericLength begin) $ concat steps'
           steps' = gather_inner 0 (map makeParallel begin)
           makeParallel (p, rule) = (pos2PosFun p, rule)
           begin = init steps
