@@ -16,137 +16,20 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
--- This module defines non-compressible reductions for a system with a
--- non-left-linear rule.
+-- This module defines non-compressible reductions.
 
 module NoCompression (
-    Sigma, Var,
-    SystemNonLL, systemNonLL,
     constructReduction
 ) where
 
-import SignatureAndVariables
 import Term
 import RuleAndSystem
 import SystemOfNotation
 import Reduction
+import NoCompressionSystem
 
 import Prelude
 import Data.Array hiding (inRange)
-
--- Signature and variables.
-data Sigma = SigmaCons String
-data Var   = VarCons Char
-
-instance Signature Sigma where
-    arity (SigmaCons "c")  = 0
-    arity (SigmaCons "f")  = 3
-    arity (SigmaCons "f'") = 3
-    arity (SigmaCons "h")  = 1
-    arity (SigmaCons "h'") = 1
-    arity (SigmaCons "k")  = 1
-    arity  _ = error "Not a function symbol"
-
-instance Eq Sigma where
-    (SigmaCons s0) == (SigmaCons s1) = s0 == s1
-
-instance Show Sigma where
-    show (SigmaCons s) = s
-
-instance Variables Var
-
-instance Eq Var where
-    (VarCons v0) == (VarCons v1) = v0 == v1
-
-instance Show Var where
-    show (VarCons v) = [v]
-
--- Some wrappers for variables and function symbols.
-x :: Var
-x = VarCons 'x'
-
-y :: Var
-y = VarCons 'y'
-
-z :: Var
-z = VarCons 'z'
-
-c :: Sigma
-c = SigmaCons "c"
-
-f :: Sigma
-f = SigmaCons "f"
-
-f' :: Sigma
-f' = SigmaCons "f'"
-
-h :: Sigma
-h = SigmaCons "h"
-
-h' :: Sigma
-h' = SigmaCons "h'"
-
-k :: Sigma
-k = SigmaCons "k"
-
--- Terms employed in the rewrite rules of the non-left-linear system.
-f_x_x_y :: Term Sigma Var
-f_x_x_y = functionTerm f [Variable x, Variable x, Variable y]
-
-h_k_y :: Term Sigma Var
-h_k_y = functionTerm h [k_y]
-    where k_y = functionTerm k [Variable y]
-
-k_f'_x_y_z :: Term Sigma Var
-k_f'_x_y_z = functionTerm k [f'_x_y_z]
-    where f'_x_y_z = functionTerm f' [Variable x, Variable y, Variable z]
-
-f_k_x_y_z :: Term Sigma Var
-f_k_x_y_z = functionTerm f [k_x, Variable y, Variable z]
-    where k_x = functionTerm k [Variable x]
-
-k_h'_x :: Term Sigma Var
-k_h'_x = functionTerm k [h'_x]
-    where h'_x = functionTerm h' [Variable x]
-
-h_k_x :: Term Sigma Var
-h_k_x = functionTerm h [k_x]
-    where k_x = functionTerm k [Variable x]
-
-k_h_x :: Term Sigma Var
-k_h_x = functionTerm k [h_x]
-
-h_x :: Term Sigma Var
-h_x = functionTerm h [Variable x]
-
-h_omega :: Term Sigma Var
-h_omega = functionTerm h [h_omega]
-
-rule_f :: RewriteRule Sigma Var
-rule_f = Rule f_x_x_y h_k_y
-
-rule_k_f' :: RewriteRule Sigma Var
-rule_k_f' = Rule k_f'_x_y_z f_k_x_y_z
-
-rule_k_h' :: RewriteRule Sigma Var
-rule_k_h' = Rule k_h'_x h_k_x
-
-rule_k_h :: RewriteRule Sigma Var
-rule_k_h = Rule k_h_x h_x
-
--- The non-left-linear rewrite system.
---
--- The system has four rules:
---
---    f(x, x, y)     -> h(k(y))
---    k(f'(x, y, z)) -> f(k(x), y, z)
---    k(h'(x))       -> h(k(x))
---    k(h(x))        -> h(x)
---
-type SystemNonLL = System Sigma Var
-
-systemNonLL :: SystemNonLL
-systemNonLL = SystemCons [rule_f, rule_k_f', rule_k_h', rule_k_h]
 
 -- Two helper functions for ordinals derived from ordLeq.
 ordLess :: UnivalentSystem o
@@ -161,38 +44,22 @@ ordEq alpha beta = (alpha `ordLeq` beta) && (beta `ordLeq` alpha)
 constructTerm :: UnivalentSystem o
     => (Integer -> Bool) -> (Integer -> Bool) -> (Integer -> o) -> o -> o
        -> Term Sigma Var
-constructTerm inSet geqLub nu alpha beta = replaceC (term' 0 alpha beta)
+constructTerm inSet geqLub nu alpha beta = replaceC $ term' 0 alpha beta
     where term' d delta gamma
               | inSet d && inRange
-                  = functionTerm f [t_1, t_2, t_3]
+                  = f t_1 t_2 t_3
               | geqLub d || emptyRange
-                  = constant c
+                  = c
               | otherwise
-                  = functionTerm h [term' (d + 1) delta gamma]
+                  = h $ term' (d + 1) delta gamma
                       where kappa      = nu d
                             succ_kappa = ordSucc kappa
                             inRange    = delta `ordLeq` kappa
                                              && kappa `ordLess` gamma
                             emptyRange = not (delta `ordLess` gamma)
                             t_1 = term' (d + 1) delta kappa
-                            t_2 = constant c
-                            t_3 = rename (term' (d + 1) succ_kappa gamma)
-
-rename :: Term Sigma Var -> Term Sigma Var
-rename (Function symbol ts)
-    | symbol == f = Function f' (ts // [(1, rename (ts!1))])
-    | symbol == h = Function h' (ts // [(1, rename (ts!1))])
-    | symbol == c = constant c
-    | otherwise   = error "Illegal symbol in constructed term"
-rename _
-    = error "Illegal symbol in constructed term"
-
-replaceC :: Term Sigma Var -> Term Sigma Var
-replaceC (Function symbol ts)
-    | symbol == c = h_omega
-    | otherwise   = Function symbol (fmap replaceC ts)
-replaceC (Variable v)
-    = Variable v
+                            t_2 = c
+                            t_3 = addPrime $ term' (d + 1) succ_kappa gamma
 
 -- The next two functions are helper functions to locate the next redex, given
 -- it is known the next redex either employs the f-rule or one of the k-rules.
@@ -211,15 +78,15 @@ findStepK :: Term Sigma Var -> (Bool, Step Sigma Var)
 findStepK term = (f_next, (position, rule))
     where (f_next, position, rule) = findStepK' term
           findStepK' (Function symbol ts)
-              | symbol == k = establishRule (ts!1)
-              | otherwise   = (f_n, 1 : p, r)
-                  where (f_n, p, r) = findStepK' (ts!1)
+              | symbol == kFun = establishRule $ ts!1
+              | otherwise      = (f_n, 1 : p, r)
+                  where (f_n, p, r) = findStepK' $ ts!1
           findStepK' (Variable _)
               = error "Illegal symbol in derived term"
           establishRule (Function symbol _)
-              | symbol == f' = (False, [], rule_k_f')
-              | symbol == h' = (False, [], rule_k_h')
-              | symbol == h  = (True, [], rule_k_h)
+              | symbol == fFun' = (False, [], rule_k_f')
+              | symbol == hFun' = (False, [], rule_k_h')
+              | symbol == hFun  = (True, [],  rule_k_h)
               | otherwise    = error "Illegal symbol in derived term"
           establishRule (Variable _)
               = error "Illegal symbol in derived term"
