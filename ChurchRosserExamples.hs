@@ -15,8 +15,13 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
--- This file defines some reductions that can be tried with the Church-Rosser
+-- This module defines some reductions that can be tried with the Church-Rosser
 -- algorithm.
+
+module ChurchRosserExamples (
+    cRed1a, cRed1b, cRed1c, cRed1d,
+    churchRosser
+) where
 
 import RuleAndSystem
 import Reduction

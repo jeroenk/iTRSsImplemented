@@ -15,8 +15,16 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
--- This file defines some reductions that can be tried with the confluence
+-- This module defines some reductions that can be tried with the confluence
 -- algorithm.
+
+module ConfluenceExamples (
+    cRed1a, cRed1b, cRed1c,
+    cRed2a, cRed2b,
+    cRed3a, cRed3b,
+    cRed4a, cRed4b,
+    confluence
+) where
 
 import RuleAndSystem
 import Reduction

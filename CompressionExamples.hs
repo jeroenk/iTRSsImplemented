@@ -15,8 +15,14 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
--- This file defines some reductions that can be tried with the compression
+-- This module defines some reductions that can be tried with the compression
 -- algorithm.
+
+module CompressionExamples (
+    cRed1, cRed2, cRed3,
+    cRed4, cRed5,
+    compression
+) where
 
 import RuleAndSystem
 import Reduction

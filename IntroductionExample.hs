@@ -137,17 +137,17 @@ reduction = RCons terms steps
            ps_2 = iterate (\p -> 2 : 2 : p) [2, 1]
            rs_2 = repeat ruleAndTrue
 
-creduction :: CReduction Sigma V BooleanSystem
-creduction = CRCons reduction phi
+cReduction :: CReduction Sigma V BooleanSystem
+cReduction = CRCons reduction phi
     where  phi (OmegaElement 0)   m  = Omega2Element  m
            phi (Omega2Element 0)  m  = OmegaElement   m
            phi _                  _  = error "Illegal modulus"
 
--- Compression of creduction.
+-- Compression of cReduction.
 --
 -- To obtain the final term of the compressed redution input:
 --
 --     finalTerm $ compressedReduction
 --
 compressedReduction :: CReduction Sigma V BooleanSystem
-compressedReduction = compression booleanSystem creduction
+compressedReduction = compression booleanSystem cReduction
