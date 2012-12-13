@@ -15,10 +15,15 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
--- This file defines a non-compressible reduction.
+-- This module gives an example of how to define a non-compressible reduction.
+
+module NoCompressionExamples (
+    finCRed
+) where
 
 import Omega
 import Reduction
+import NoCompressionSystem
 import NoCompression
 
 import Prelude
@@ -37,12 +42,12 @@ finNu 1 = OmegaElement 2
 finNu 3 = OmegaElement 1
 finNu 5 = OmegaElement 0
 finNu 7 = OmegaElement 3
-finNu _ = error "Impossible"
+finNu _ = error "Impossible depth"
 
 -- Helper function for the construction of computable sequences.
-constr :: (Omega -> t) -> OmegaSequence t
-constr fun = constructSequence (map fun [OmegaElement n | n <- [0..]])
+construct :: (Omega -> t) -> OmegaSequence t
+construct fun = constructSequence $ map fun [OmegaElement n | n <- [0..]]
 
-finRed :: CReduction Sigma Var SystemNonLL
-finRed = constructReduction finInSet finGeqLub finNu lim constr constr
+finCRed :: CReduction Sigma Var SystemNonLL
+finCRed = constructReduction finInSet finGeqLub finNu lim construct construct
     where lim = OmegaElement 4
