@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
--- This module defines non-compressible reductions.
+-- This module defines incompressible reductions.
 
 module NoCompression (
     constructReduction
@@ -188,7 +188,7 @@ finalStepF inSet nu alpha depth
               inRange d = nu d `ordLeq` alpha
               maxOrd os = foldl ordMax (head os) (tail os)
 
--- Yield a non-compressible reduction.
+-- Yield an incompressible reduction.
 --
 -- Constructor functions for the term and step sequences are explicitly passed
 -- in, as we do not know how long the constructed reduction will be.

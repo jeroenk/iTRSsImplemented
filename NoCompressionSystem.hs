@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
 -- This module defines a system with a non-left-linear rule which allows for
--- the definition of non-compressible reductions.
+-- the definition of incompressible reductions.
 --
 -- The system has four rules:
 --
@@ -128,7 +128,7 @@ k :: Term Sigma Var -> Term Sigma Var
 k s = functionTerm kFun [s]
 
 -- The following two functions are simple helper functions used in construction
--- of the terms that occur in non-compressible reductions.
+-- of the terms that occur in incompressible reductions.
 
 -- Add a prime to the root symbol of a term if this symbol is either f or h and
 -- recurse into the left-most subterm.

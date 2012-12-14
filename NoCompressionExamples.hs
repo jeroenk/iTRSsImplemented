@@ -15,7 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
--- This module gives an example of how to define a non-compressible reduction.
+-- This module gives an example of how to define an incompressible reduction.
 
 module NoCompressionExamples (
     finCRed

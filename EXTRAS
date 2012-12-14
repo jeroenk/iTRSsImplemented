@@ -1,0 +1,35 @@
+Introduction
+------------
+
+In addition to providing an implementation for the work described in "Computing
+with Infinite Terms and Infinite Reduction", effective versions of the work
+described in "Reinterpreting Compression in Infinitary Rewriting" by Jeroen
+Ketema is also provided. In particular:
+
+* A module implementing incompressible reductions (NoCompression.hs)
+* A module implementing standardisation (Standardisation.hs)
+
+Usage
+-----
+
+To experiment, execute the interpreter supplied with GHC (ghci) with either:
+
+* NoCompressionExamples.hs   (for the incompressible reductions)
+* StandardisationExamples.hs (for the standardisation theorems).
+
+Then, input the examples as described in the comments of the .hs files.
+
+Correspondence with the Paper
+-----------------------------
+
+The correspondence between the results in the paper and the functions as
+present in the code is as follows:
+
+Definition 3.8 : constructTerm             in NoCompression.hs
+Theorem 3.11   : constructReduction        in NoCompression.hs
+Lemma 4.5      : stepPermutation           in Standardisation.hs
+Lemma 4.6      : reductionPermutation      in Standardisation.hs
+Theorem 4.10   : standardisation Parallel  in Standardisation.hs
+Theorem 4.15   : standardisation DepthLeft in Standardisation.hs
+
+(End of EXTRAS)
