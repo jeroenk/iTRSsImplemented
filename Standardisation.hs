@@ -72,34 +72,51 @@ instance Ord WrappedPosition where
               p_len  = positionLength p
               q_len  = positionLength q
 
+-- Determine the positions that occur in and above the redex pattern of a
+-- redex contracted in a reduction step.
 redexPatternAndPrefixPos :: (Signature s, Variables v)
     => Step s v -> Positions
 redexPatternAndPrefixPos (p, Rule l _) = prefix_pos ++ pattern_pos
     where prefix_pos  = [p' | p' <- inits p, p' /= p]
           pattern_pos = [p ++ p' | p' <- nonVarPos l]
 
-extraStep :: (Signature s, Variables v)
+-- Helper function for step permutation which determines whether an extra redex
+-- contraction needs to take place at position p depending on p occurring at
+-- depth d and a step at position p occurring in pstep.
+--
+-- The resulting list of steps will always contain either zero or one element.
+findExtraStep :: (Signature s, Variables v)
     => Integer -> Step s v -> ParallelStep s v -> ([Step s v], ParallelStep s v)
-extraStep d (p, _) pstep@(pf, rule)
-    | d == d' && p `elem` ps = ([(p, rule)], (pf', rule))
-    | otherwise              = ([], pstep)
-    where d'  = positionLength p
-          ps  = genericIndex pf d
-          pf' = pf_b ++ [p' | p' <- ps, p' /= p] : tail pf_e
+findExtraStep d (p, _) pstep@(pf, rule)
+    | d == dp && p `elem` psd = ([(p, rule)], (pf', rule))
+    | otherwise               = ([], pstep)
+    where dp  = positionLength p
+          psd = genericIndex pf d
+          pf' = pf_b ++ [p' | p' <- psd, p' /= p] : tail pf_e
           (pf_b, pf_e) = genericSplitAt d pf
 
--- The steps returned by parallelNeededSteps will be parallel to each other and
--- psteps' will consist of precisely on parallel step.
+-- Permute a parallel step over a single step, as far as the parallel steps
+-- are not needed to create the redex pattern employed in the single step.
+-- All steps in the parallel step are assumed to occur at depth > d and the
+-- single step is assumed to occur at depth >= d.
+--
+-- Observe that the steps returned by parallelNeededSteps will be parallel to
+-- each other and psteps' will consist of precisely on parallel step, as
+-- [pstep] consists of a single parallel step.
 stepPermutation :: (Signature s, Variables v)
     => Integer -> ParallelStep s v -> Step s v -> ([Step s v], ParallelStep s v)
 stepPermutation d pstep step = (needed', qstep')
-    where positions     = redexPatternAndPrefixPos step
-          needed'       = needed_sorted ++ step' : extra
+    where needed'       = needed_sorted ++ step' : extra
           needed_sorted = sortBy (comparing $ positionLength . fst) needed
-          (needed, psteps') = parallelNeededSteps [pstep] positions
+          positions     = redexPatternAndPrefixPos step
+          (extra, qstep')   = findExtraStep d step qstep
           (step', qstep)    = limitedPermute (head psteps') step
-          (extra, qstep')   = extraStep d step qstep
+          (needed, psteps') = parallelNeededSteps [pstep] positions
 
+-- Permute the steps of a finite reduction to obtain a reduction which is
+-- parallel standard with repsect to the last step of the reduction being
+-- provided. The last step is required to occur at depth d, all other steps
+-- must occur at depth > d; the reduction may not be empty.
 reductionPermutation :: (Signature s, Variables v)
     => Integer -> [Step s v] -> ([Step s v], ParallelReduction s v)
 reductionPermutation _ []
@@ -108,12 +125,12 @@ reductionPermutation _ [step]
     = ([step], [])
 reductionPermutation d ((p, rule) : steps)
     = (steps_new, pstep : psteps)
-    where (steps', psteps)     = reductionPermutation d steps
-          (steps_new, pstep)   = permute (pos2PosFun p, rule) steps'
+    where (steps_new, pstep)   = permute (pos2PosFun p, rule) steps'
+          (steps', psteps)     = reductionPermutation d steps
           permute qstep []     = ([], qstep)
-          permute qstep (s:ss) = (ss' ++ ss'', qstep'')
-              where (ss', qstep')   = stepPermutation d qstep s
-                    (ss'', qstep'') = permute qstep' ss
+          permute qstep (s:ss) = (ss_step ++ ss_new, qstep_new)
+              where (ss_step, qstep_step) = stepPermutation d qstep s
+                    (ss_new, qstep_new)   = permute qstep_step ss
 
 stepStandardFilter :: (Signature s, Variables v)
     => Integer -> ParallelReduction s v -> Step s v
