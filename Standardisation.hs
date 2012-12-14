@@ -33,32 +33,44 @@ import Prelude
 import Data.List
 import Data.Ord
 
+-- The two standardisation methods: parallel and depth-left standardisation.
 data StandardisationMethod
     = Parallel
     | DepthLeft
 
-newtype WrappedPosition = Wrap Position
-
+-- Depth-left comparison for positions of equal length.
 toLeft :: Position -> Position -> Bool
+toLeft [] []
+    = False
 toLeft (p:ps) (q:qs)
     | p == q = toLeft ps qs
     | p < q  = True
     | p > q  = False
 toLeft _ _
-    = False
+    = error "Positions not of equal length"
 
+-- Wrapping of positions in a datatype constructor.
+--
+-- Ideally, this wrapping would be redundant. However, it is not possible to
+-- declare Position to be an instance of Ord for use with depth-left comparison,
+-- as Positions are simply lists of integers, which already are already
+-- instantiated for Ord.
+newtype WrappedPosition = Wrap Position
+
+-- Eq instance for WrappedPosition.
 instance Eq WrappedPosition where
     (Wrap p) == (Wrap q) = p == q
 
+-- Ord instance for WrappedPosition.
 instance Ord WrappedPosition where
     compare (Wrap p) (Wrap q)
         | p_len < q_len    = LT
-        | p_len == q_len
-          && p `toLeft` q  = LT
+        | p_left           = LT
         | p == q           = EQ
         | otherwise        = GT
-        where p_len = positionLength p
-              q_len = positionLength q
+        where p_left = p_len == q_len && p `toLeft` q
+              p_len  = positionLength p
+              q_len  = positionLength q
 
 redexPatternAndPrefixPos :: (Signature s, Variables v)
     => Step s v -> Positions
@@ -162,7 +174,13 @@ standardisationOrder DepthLeft steps = concat steps'''
           steps'   = map finalPosition steps
           finalPosition step = (Wrap . fst $ last step, step)
 
--- depth, previous needed steps, and previous parallel steps
+-- The function standardisationList computes the standardised reduction. The
+-- steps of the reduction are returned as a list of lists of steps, where it
+-- is ensured for the i-th item in the list that all its steps occur at depth
+-- at least i.
+--
+-- The function gather has three arguments: depth, previous steps, and previous
+-- parallel steps.
 standardisationList :: RewriteSystem s v r
     => StandardisationMethod -> CReduction s v r -> [[Step s v]]
 standardisationList method reduction = gather 0 [] []
@@ -189,6 +207,9 @@ standardisationModulus method reduction = constructModulus phi
           steps_list = standardisationList method reduction
 
 -- Standardisation of reductions in left-linear rewrite systems.
+--
+-- The first argument of the function determines which standardisation method
+-- (depth-left or parallel) will be used.
 standardisation :: RewriteSystem s v r
     => StandardisationMethod -> r -> CReduction s v r -> CReduction s v r
 standardisation method _ reduction = CRCons (RCons ts ss) phi
