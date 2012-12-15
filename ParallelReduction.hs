@@ -45,7 +45,7 @@ type ParallelStep s v = (PositionFunction, RewriteRule s v)
 type ParallelReduction s v = [ParallelStep s v]
 
 -- Permute a parallel step and a rewrite step. It is assumed that no redex
--- in the parallel step either overlaps with occurs at prefix position of the
+-- in the parallel step either overlaps with or occurs at prefix position of the
 -- rewrite step.
 limitedPermute :: (Signature s, Variables v)
     => ParallelStep s v -> Step s v -> (Step s v, ParallelStep s v)
@@ -54,7 +54,7 @@ limitedPermute (pf, rule) step = (step, (pf', rule))
 
 -- Permute a parallel step and a finite sequence of rewrite steps, with all
 -- steps parallel to each other. It is assumed that no redex in the parallel
--- step either overlaps with occurs at prefix position of any of the rewrite
+-- step either overlaps with or occurs at prefix position of any of the rewrite
 -- steps in the sequence.
 limitedPermutes :: (Signature s, Variables v)
     => ParallelStep s v -> [Step s v] -> ([Step s v], ParallelStep s v)
