@@ -34,7 +34,7 @@ import Data.List
 -- the reduction are returned as a list of lists of steps, where it is ensured
 -- for the i-th item in the list that all its steps occur at depth at least i.
 --
--- The function gather has four arguments: depth, previous steps, and previous
+-- The function gather has three arguments: depth, previous steps, and previous
 -- parallel steps.
 compressionList :: RewriteSystem s v r
     => CReduction s v r -> [[Step s v]]
