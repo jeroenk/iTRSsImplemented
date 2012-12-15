@@ -144,8 +144,12 @@ limitedPermutes psteps step = permutes (reverse psteps) step []
               = permutes left s' (pstep' : done)
               where (s', pstep') = limitedPermute pstep s
 
--- XXX Find needed redexes and put these in the right order, ensure that all
--- other steps are permuted over step. The step at depth d.
+-- Given a parallel reduction and a rewrite step, find the redexes needed for
+-- creation of the redex of the rewrite step and permute the found steps as
+-- appropriate for parallel standard reduction. The non-needed steps from the
+-- parallel reduction are permuted to the end. It is assumed that the steps in
+-- the parallel reduction all occur at depth > d and that the rewrite step
+-- occurs at depth d.
 stepStandardFilter :: (Signature s, Variables v)
     => Integer -> ParallelReduction s v -> Step s v
        -> ([Step s v], ParallelReduction s v)
@@ -155,7 +159,17 @@ stepStandardFilter d psteps step = (steps, left_needed ++ left')
           (needed, left) = parallelNeededSteps psteps ps
           ps = redexPatternAndPrefixPos step
 
--- XXX
+-- Find the steps at depth in a parallel reduction where all steps occur at
+-- depth >= d. Permute the found steps and the steps needed for their creation
+-- as appropriate for parallel standardisation. The function yields a list of
+-- finite reductions, where each finite reduction has its last step at depth
+-- d and where all other steps are needed for creation of the redex of the
+-- last step. The finite reductions are not concatenated to allow for further
+-- reordering in the case of depth-left standardisation.
+--
+-- standardFilter is a wrapper for standardFilter'. The latter function has an
+-- additional argument tracking the steps from the parallel reduction that have
+-- been dealt with.
 standardFilter :: (Signature s, Variables v)
     => Integer -> ParallelReduction s v -> ([[Step s v]], ParallelReduction s v)
 standardFilter d psteps = standardFilter' d psteps []
@@ -165,50 +179,51 @@ standardFilter' :: (Signature s, Variables v)
        -> ([[Step s v]], ParallelReduction s v)
 standardFilter' _ [] prev
     = ([], reverse prev)
-standardFilter' d (qstep@(qf, rule):qsteps) prev
-    | null qs   = standardFilter' d qsteps (qstep:prev)
-    | otherwise = (steps : steps', qsteps')
-    where qs = genericIndex qf d
-          (steps', qsteps') = standardFilter' d qsteps_new []
-          qsteps_new = remaining ++ (qf', rule) : qsteps
-          qf' = qf_b ++ (tail qs) : tail qf_e
-          (qf_b, qf_e) = genericSplitAt d qf
-          q = head qs
-          prev' = reverse prev
-          (steps, remaining) = stepStandardFilter d prev' (q, rule)
+standardFilter' d (pstep@(pf, rule) : psteps) prev
+    | null ps   = standardFilter' d psteps (pstep : prev)
+    | otherwise = (steps : steps', psteps')
+    where (steps', psteps') = standardFilter' d psteps_new []
+          (steps, left)     = stepStandardFilter d (reverse prev) step
+          psteps_new   = left ++ (pf', rule) : psteps
+          pf'          = pf_b ++ (tail ps) : tail pf_e
+          (pf_b, pf_e) = genericSplitAt d pf
+          step = (head ps, rule)
+          ps   = genericIndex pf d
 
--- XXX
-gather_inner :: (Signature s, Variables v)
-    => Integer -> ParallelReduction s v -> [[Step s v]]
-gather_inner d psteps = steps_d' : gather_inner (d + 1) psteps_d
-    where steps_d' = standardisationOrder DepthLeft steps_d
-          (steps_d, psteps_d) = standardFilter d psteps
-
--- XXX
+-- Wrapper function for genericTake specialising the function to Integer and
+-- finite reductions. Specialising to Integer is needed to supress a compiler
+-- warning.
 takeSufficient :: (Signature s, Variables v)
     => Integer -> [Step s v] -> [Step s v]
 takeSufficient = genericTake
 
 -- XXX
-standard :: (Signature s, Variables v)
+depthLeftStandardisation :: (Signature s, Variables v)
     => [Step s v] -> [Step s v]
-standard []    = error "Cannot be empty"
-standard [x]   = [x]
-standard steps = steps'' ++ [last steps]
-    where steps'' = takeSufficient (genericLength begin) $ concat steps'
-          steps' = gather_inner 0 (map makeParallel begin)
+depthLeftStandardisation []    = error "Cannot be empty"
+depthLeftStandardisation [x]   = [x]
+depthLeftStandardisation steps = steps_new ++ [last steps]
+    where steps_new = takeSufficient (genericLength begin) $ concat steps_std
+          steps_std = gather 0 (map makeParallel begin)
+          begin     = init steps
           makeParallel (p, rule) = (pos2PosFun p, rule)
-          begin = init steps
+          gather d psteps = steps_d' : gather (d + 1) psteps_d
+              where steps_d' = standardisationOrder DepthLeft steps_d
+                    (steps_d, psteps_d) = standardFilter d psteps
 
--- XXX
+-- Reorder the finite reductions as found by standardFilter as appropriate for
+-- the selected standardisation order. In case of parallel standardisation
+-- simple concatenation suffices. In case of depth-left standardisation the
+-- finite reductions are sorted in depth-left order based on their final steps
+-- and standardisation is recursively applied to each finite reduction.
 standardisationOrder :: (Signature s, Variables v)
     => StandardisationMethod -> [[Step s v]] -> [Step s v]
 standardisationOrder Parallel  steps = concat steps
-standardisationOrder DepthLeft steps = concat steps'''
-    where steps''' = map (standard . snd) steps''
-          steps''  = sortBy (comparing fst) steps'
-          steps'   = map finalPosition steps
-          finalPosition step = (Wrap . fst $ last step, step)
+standardisationOrder DepthLeft steps = concat steps'
+    where steps' = map (depthLeftStandardisation . snd) steps_sort
+          steps_sort = sortBy (comparing fst) steps_wrap
+          steps_wrap = map finalPositionWrap steps
+          finalPositionWrap step = (Wrap . fst $ last step, step)
 
 -- The function standardisationList computes the standardised reduction. The
 -- steps of the reduction are returned as a list of lists of steps, where it
