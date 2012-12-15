@@ -95,10 +95,10 @@ findExtraStep d (p, _) pstep@(pf, rule)
           pf' = pf_b ++ [p' | p' <- psd, p' /= p] : tail pf_e
           (pf_b, pf_e) = genericSplitAt d pf
 
--- Permute a parallel step over a single step, as far as the parallel steps
--- are not needed to create the redex pattern employed in the single step.
+-- Permute a parallel step over a rewrite step, as far as the parallel steps
+-- are not needed to create the redex pattern employed in the rewrite step.
 -- All steps in the parallel step are assumed to occur at depth > d and the
--- single step is assumed to occur at depth >= d.
+-- rewrite step is assumed to occur at depth >= d.
 --
 -- Observe that the steps returned by parallelNeededSteps will be parallel to
 -- each other and psteps' will consist of precisely on parallel step, as
@@ -132,46 +132,64 @@ reductionPermutation d ((p, rule) : steps)
               where (ss_step, qstep_step) = stepPermutation d qstep s
                     (ss_new, qstep_new)   = permute qstep_step ss
 
+-- Permute a parallel reduction over a rewrite step. It is assumed that no redex
+-- in the parallel reduction either overlaps with or occurs at a prefix position
+-- of the rewrite step.
+limitedPermutes :: (Signature s, Variables v)
+    => ParallelReduction s v -> Step s v -> (Step s v, ParallelReduction s v)
+limitedPermutes psteps step = permutes (reverse psteps) step []
+    where permutes [] s done
+              = (s, done)
+          permutes (pstep : left) s done
+              = permutes left s' (pstep' : done)
+              where (s', pstep') = limitedPermute pstep s
+
+-- XXX Find needed redexes and put these in the right order, ensure that all
+-- other steps are permuted over step. The step at depth d.
 stepStandardFilter :: (Signature s, Variables v)
     => Integer -> ParallelReduction s v -> Step s v
        -> ([Step s v], ParallelReduction s v)
-stepStandardFilter d psteps step = (steps, leftover ++ remaining')
-    where ps = redexPatternAndPrefixPos step
-          (needed, remaining) = parallelNeededSteps psteps ps
-          (step', remaining') = lP (reverse remaining) step []
-          (steps, leftover) = reductionPermutation d (needed ++ [step'])
-          lP [] step''' done = (step''', done)
-          lP (qstep:qsteps) step''' done = lP qsteps step'' (dp:done)
-              where (step'', dp) = limitedPermute qstep step'''
+stepStandardFilter d psteps step = (steps, left_needed ++ left')
+    where (steps, left_needed) = reductionPermutation d (needed ++ [step'])
+          (step', left') = limitedPermutes left step
+          (needed, left) = parallelNeededSteps psteps ps
+          ps = redexPatternAndPrefixPos step
 
+-- XXX
 standardFilter :: (Signature s, Variables v)
     => Integer -> ParallelReduction s v -> ([[Step s v]], ParallelReduction s v)
-standardFilter d psteps = filters psteps []
-    where filters [] prev
-              = ([], reverse prev)
-          filters (qstep@(qf, rule):qsteps) prev
-              | null qs   = filters qsteps (qstep:prev)
-              | otherwise = (steps : steps', qsteps')
-              where qs = genericIndex qf d
-                    (steps', qsteps') = filters qsteps_new []
-                    qsteps_new = remaining ++ (qf', rule) : qsteps
-                    qf' = qf_b ++ (tail qs) : tail qf_e
-                    (qf_b, qf_e) = genericSplitAt d qf
-                    q = head qs
-                    prev' = reverse prev
-                    (steps, remaining) = stepStandardFilter d prev' (q, rule)
+standardFilter d psteps = standardFilter' d psteps []
 
+standardFilter' :: (Signature s, Variables v)
+    => Integer -> ParallelReduction s v -> ParallelReduction s v
+       -> ([[Step s v]], ParallelReduction s v)
+standardFilter' _ [] prev
+    = ([], reverse prev)
+standardFilter' d (qstep@(qf, rule):qsteps) prev
+    | null qs   = standardFilter' d qsteps (qstep:prev)
+    | otherwise = (steps : steps', qsteps')
+    where qs = genericIndex qf d
+          (steps', qsteps') = standardFilter' d qsteps_new []
+          qsteps_new = remaining ++ (qf', rule) : qsteps
+          qf' = qf_b ++ (tail qs) : tail qf_e
+          (qf_b, qf_e) = genericSplitAt d qf
+          q = head qs
+          prev' = reverse prev
+          (steps, remaining) = stepStandardFilter d prev' (q, rule)
 
+-- XXX
 gather_inner :: (Signature s, Variables v)
     => Integer -> ParallelReduction s v -> [[Step s v]]
 gather_inner d psteps = steps_d' : gather_inner (d + 1) psteps_d
     where steps_d' = standardisationOrder DepthLeft steps_d
           (steps_d, psteps_d) = standardFilter d psteps
 
+-- XXX
 takeSufficient :: (Signature s, Variables v)
     => Integer -> [Step s v] -> [Step s v]
 takeSufficient = genericTake
 
+-- XXX
 standard :: (Signature s, Variables v)
     => [Step s v] -> [Step s v]
 standard []    = error "Cannot be empty"
@@ -182,6 +200,7 @@ standard steps = steps'' ++ [last steps]
           makeParallel (p, rule) = (pos2PosFun p, rule)
           begin = init steps
 
+-- XXX
 standardisationOrder :: (Signature s, Variables v)
     => StandardisationMethod -> [[Step s v]] -> [Step s v]
 standardisationOrder Parallel  steps = concat steps
