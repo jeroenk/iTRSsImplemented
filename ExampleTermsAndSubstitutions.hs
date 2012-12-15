@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-
 Copyright (C) 2010, 2011, 2012 Jeroen Ketema and Jakob Grue Simonsen
 
@@ -53,19 +52,19 @@ instance Signature Sigma where
     arity _  = error "Not a function symbol"
 
 instance Eq Sigma where
-    (SigmaCons f) == (SigmaCons g) = f == g
+    (SigmaCons s0) == (SigmaCons s1) = s0 == s1
 
 instance Show Sigma where
-    show (SigmaCons f) = [f]
+    show (SigmaCons s) = [s]
 
 -- Variables.
 instance Variables Var
 
 instance Eq Var where
-    (VarCons x) == (VarCons y) = x == y
+    (VarCons v0) == (VarCons v1) = v0 == v1
 
 instance Show Var where
-    show (VarCons x) = [x]
+    show (VarCons v) = [v]
 
 xVar :: Var
 xVar = VarCons 'x'
