@@ -197,7 +197,16 @@ takeSufficient :: (Signature s, Variables v)
     => Integer -> [Step s v] -> [Step s v]
 takeSufficient = genericTake
 
--- XXX
+-- Function for depth-left standardisation of finite sub-reductions, where all
+-- steps in the sub-reduction are needed to create the redex pattern of the
+-- redex employed in the last rewrite step of the reduction. The function
+-- is essentially the same as standardisationList, but the whole reduction can
+-- be considered at once as it is finite.
+--
+-- As all steps in the subreduction are needed to create the redex pattern from
+-- the last step, only parallel steps will be permuted. Hence, the length of
+-- the finite reduction does not change, which explains the use of the length
+-- of begin in takeSufficient.
 depthLeftStandardisation :: (Signature s, Variables v)
     => [Step s v] -> [Step s v]
 depthLeftStandardisation []    = error "Cannot be empty"
