@@ -30,7 +30,7 @@ module Reduction (
     TermSequence, StepSequence,
     FiniteReduction, Reduction(RCons),
     Modulus, CReduction(CRCons),
-    atMostLengthOmega,
+    getTerms, atMostLengthOmega,
     initialTerm, finalTerm,
     origins, descendants,
     neededSteps, neededReduction
@@ -104,8 +104,6 @@ instance (Show s, Show v, RewriteSystem s v r)
               showSteps (x:xs) c  = c ++ show x ++ showSteps xs " -> "
 
 -- Get the terms of a computably strongly convergent reduction.
---
--- This is a helper function for show above.
 --
 -- The function detects whether more terms exist based on (a) the height of the
 -- last term computed and (b) the modulus associated with the reduction. Note
