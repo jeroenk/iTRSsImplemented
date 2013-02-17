@@ -92,7 +92,7 @@ findExtraStep d (p, _) pstep@(pf, rule)
     | otherwise               = ([], pstep)
     where dp  = positionLength p
           psd = genericIndex pf d
-          pf' = pf_b ++ [p' | p' <- psd, p' /= p] : tail pf_e
+          pf' = pf_b ++ [q | q <- psd, q /= p] : tail pf_e
           (pf_b, pf_e) = genericSplitAt d pf
 
 -- Permute a parallel step over a rewrite step, as far as the parallel steps
