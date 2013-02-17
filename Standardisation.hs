@@ -1,5 +1,5 @@
 {-
-Copyright (C) 2012 Jeroen Ketema
+Copyright (C) 2012, 2013 Jeroen Ketema
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -77,8 +77,8 @@ instance Ord WrappedPosition where
 redexPatternAndPrefixPos :: (Signature s, Variables v)
     => Step s v -> Positions
 redexPatternAndPrefixPos (p, Rule l _) = prefix_pos ++ pattern_pos
-    where prefix_pos  = [p' | p' <- inits p, p' /= p]
-          pattern_pos = [p ++ p' | p' <- nonVarPos l]
+    where prefix_pos  = [q | q <- inits p, q /= p]
+          pattern_pos = [p ++ q | q <- nonVarPos l]
 
 -- Helper function for step permutation which determines whether an extra redex
 -- contraction needs to take place at position p depending on p occurring at
@@ -114,7 +114,7 @@ stepPermutation d pstep step = (needed', qstep')
           (needed, psteps') = parallelNeededSteps [pstep] positions
 
 -- Permute the steps of a finite reduction to obtain a reduction which is
--- parallel standard with repsect to the last step of the reduction being
+-- parallel standard with respect to the last step of the reduction being
 -- provided. The last step is required to occur at depth d, all other steps
 -- must occur at depth > d; the reduction may not be empty.
 reductionPermutation :: (Signature s, Variables v)
@@ -132,32 +132,22 @@ reductionPermutation d ((p, rule) : steps)
               where (ss_step, qstep_step) = stepPermutation d qstep s
                     (ss_new, qstep_new)   = permute qstep_step ss
 
--- Permute a parallel reduction over a rewrite step. It is assumed that no redex
--- in the parallel reduction either overlaps with or occurs at a prefix position
--- of the rewrite step.
-limitedPermutes :: (Signature s, Variables v)
-    => ParallelReduction s v -> Step s v -> (Step s v, ParallelReduction s v)
-limitedPermutes psteps step = permutes (reverse psteps) step []
-    where permutes [] s done
-              = (s, done)
-          permutes (pstep : left) s done
-              = permutes left s' (pstep' : done)
-              where (s', pstep') = limitedPermute pstep s
-
--- Given a parallel reduction and a rewrite step, find the redexes needed for
--- creation of the redex of the rewrite step and permute the found steps as
--- appropriate for parallel standard reduction. The non-needed steps from the
--- parallel reduction are permuted to the end. It is assumed that the steps in
--- the parallel reduction all occur at depth > d and that the rewrite step
+-- Given a parallel reduction and a rewrite step constracting a redex at
+-- position p, find the redexes needed for creation of the redex of the
+-- rewrite step and permute the found steps as appropriate for parallel
+-- standard reduction. The non-needed steps from the parallel reduction are
+-- permuted to the end, retaining possibly additional steps in case the
+-- given rewrite step was collapsing. It is assumed that the steps in the
+-- parallel reduction all occur at depth > d and that the rewrite step
 -- occurs at depth d.
 stepStandardFilter :: (Signature s, Variables v)
     => Integer -> ParallelReduction s v -> Step s v
        -> ([Step s v], ParallelReduction s v)
-stepStandardFilter d psteps step = (steps, left_needed ++ left')
-    where (steps, left_needed) = reductionPermutation d (needed ++ [step'])
-          (step', left') = limitedPermutes left step
-          (needed, left) = parallelNeededSteps psteps ps
-          ps = redexPatternAndPrefixPos step
+stepStandardFilter d psteps (p, rule) = (steps, left_needed ++ left)
+    where (steps, left_needed) = reductionPermutation d needed
+          (needed, left) = parallelNeededSteps (psteps ++ [pstep]) ps
+          pstep = (pos2PosFun p, rule)
+          ps    = [q | q <- inits p]
 
 -- Find the steps at depth in a parallel reduction where all steps occur at
 -- depth >= d. Permute the found steps and the steps needed for their creation
