@@ -80,21 +80,6 @@ redexPatternAndPrefixPos (p, Rule l _) = prefix_pos ++ pattern_pos
     where prefix_pos  = [q | q <- inits p, q /= p]
           pattern_pos = [p ++ q | q <- nonVarPos l]
 
--- Helper function for step permutation which determines whether an extra redex
--- contraction needs to take place at position p depending on p occurring at
--- depth d and a step at position p occurring in pstep.
---
--- The resulting list of steps will always contain either zero or one element.
-findExtraStep :: (Signature s, Variables v)
-    => Integer -> Step s v -> ParallelStep s v -> ([Step s v], ParallelStep s v)
-findExtraStep d (p, _) pstep@(pf, rule)
-    | d == dp && p `elem` psd = ([(p, rule)], (pf', rule))
-    | otherwise               = ([], pstep)
-    where dp  = positionLength p
-          psd = genericIndex pf d
-          pf' = pf_b ++ [q | q <- psd, q /= p] : tail pf_e
-          (pf_b, pf_e) = genericSplitAt d pf
-
 -- Permute a parallel step over a rewrite step, as far as the parallel steps
 -- are not needed to create the redex pattern employed in the rewrite step.
 -- All steps in the parallel step are assumed to occur at depth > d and the
@@ -104,14 +89,25 @@ findExtraStep d (p, _) pstep@(pf, rule)
 -- each other and psteps' will consist of precisely on parallel step, as
 -- [pstep] consists of a single parallel step.
 stepPermutation :: (Signature s, Variables v)
-    => Integer -> ParallelStep s v -> Step s v -> ([Step s v], ParallelStep s v)
-stepPermutation d pstep step = (needed', qstep')
-    where needed'       = needed_sorted ++ step' : extra
-          needed_sorted = sortBy (comparing $ positionLength . fst) needed
-          positions     = redexPatternAndPrefixPos step
-          (extra, qstep')   = findExtraStep d step qstep
+    => ParallelStep s v -> Step s v -> ([Step s v], ParallelStep s v)
+stepPermutation pstep step = (needed_sorted ++ [step'], qstep)
+    where needed_sorted     = sortBy (comparing $ positionLength . fst) needed
           (step', qstep)    = limitedPermute (head psteps') step
           (needed, psteps') = parallelNeededSteps [pstep] positions
+          positions         = redexPatternAndPrefixPos step
+
+-- Helper function for reduction permutation which determines whether an extra
+-- redex contraction needs to take place at position p. The resulting list of
+-- steps will always contain either zero or one element.
+findExtraStep :: (Signature s, Variables v)
+    => Step s v -> ParallelStep s v -> ([Step s v], ParallelStep s v)
+findExtraStep (p, _) pstep@(pf, rule)
+    | p `elem` psd = ([(p, rule)], (pf', rule))
+    | otherwise    = ([], pstep)
+    where psd = genericIndex pf dp
+          dp  = positionLength p
+          pf' = pf_b ++ [q | q <- psd, q /= p] : tail pf_e
+          (pf_b, pf_e) = genericSplitAt dp pf
 
 -- Permute the steps of a finite reduction to obtain a reduction which is
 -- parallel standard with respect to the last step of the reduction being
@@ -125,11 +121,14 @@ reductionPermutation _ [step]
     = ([step], [])
 reductionPermutation d ((p, rule) : steps)
     = (steps_new, pstep : psteps)
-    where (steps_new, pstep)   = permute (pos2PosFun p, rule) steps'
-          (steps', psteps)     = reductionPermutation d steps
-          permute qstep []     = ([], qstep)
+    where (steps_new, pstep) = permute (pos2PosFun p, rule) steps'
+          (steps', psteps)   = reductionPermutation d steps
+          permute _ []         = error "No reduction steps given"
+          permute qstep (s:[]) = (ss_step ++ extra, qstep_new)
+              where (ss_step, qstep_step) = stepPermutation qstep s
+                    (extra, qstep_new)    = findExtraStep s qstep_step
           permute qstep (s:ss) = (ss_step ++ ss_new, qstep_new)
-              where (ss_step, qstep_step) = stepPermutation d qstep s
+              where (ss_step, qstep_step) = stepPermutation qstep s
                     (ss_new, qstep_new)   = permute qstep_step ss
 
 -- Given a parallel reduction and a rewrite step constracting a redex at
