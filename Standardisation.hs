@@ -148,7 +148,7 @@ stepStandardFilter d psteps (p, rule) = (steps, left_needed ++ left)
           pstep = (pos2PosFun p, rule)
           ps    = [q | q <- inits p]
 
--- Find the steps at depth in a parallel reduction where all steps occur at
+-- Find the steps at depth d in a parallel reduction where all steps occur at
 -- depth >= d. Permute the found steps and the steps needed for their creation
 -- as appropriate for parallel standardisation. The function yields a list of
 -- finite reductions, where each finite reduction has its last step at depth
