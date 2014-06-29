@@ -16,8 +16,8 @@ Usage
 
 To experiment, execute the interpreter supplied with GHC (ghci) with either:
 
-* IntroductionExample.hs  (for the example from the Introduction)
-* CompressionExamples.hs  (for the compression theorem)
+* IntroductionExample.hs  (for the example from the Introduction),
+* CompressionExamples.hs  (for the compression theorem),
 * ConfluenceExamples.hs   (for the confluence theorem), or
 * ChurchRosserExamples.hs (for the Church-Rosser property).
 
