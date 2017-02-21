@@ -37,8 +37,6 @@ module ExampleRulesAndSystems (
 import RuleAndSystem
 import ExampleTermsAndSubstitutions
 
-import Prelude
-
 -- Rules.
 rule_a_to_b ::RewriteRule Sigma Var
 rule_a_to_b = Rule a b
