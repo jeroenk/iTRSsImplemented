@@ -5,7 +5,7 @@ This package provides an effective version of infinitary term rewriting,
 as described in "Computing with Infinite Terms and Infinite Reductions"
 by Jeroen Ketema and Jakob Grue Simonsen.
 
-The Haskell code in this package has been tested with version 7.4.1 of
+The Haskell code in this package has been tested with version 8.0.2 of
 the Glasgow Haskell Compiler (GHC). To obtain GHC, it is best to install
 the Haskell Platform:
 
